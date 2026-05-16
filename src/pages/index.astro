@@ -124,86 +124,108 @@ const cities = [
     </div>
   </main>
 
-  <script is:inline>
-    (() => {
-      const WMO = JSON.parse('{"0":"Despejado ☀️","1":"Despejado ☀️","2":"Parcialmente nublado ⛅","3":"Nublado ☁️","45":"Niebla 🌫️","48":"Niebla 🌫️","51":"Llovizna 🌦️","53":"Llovizna 🌦️","55":"Llovizna 🌦️","61":"Lluvia 🌧️","63":"Lluvia 🌧️","65":"Lluvia intensa 🌧️","71":"Nieve 🌨️","73":"Nieve 🌨️","75":"Nieve intensa 🌨️","80":"Chubascos 🌩️","81":"Chubascos 🌩️","82":"Tormenta ⛈️","95":"Tormenta ⛈️","96":"Tormenta con granizo ⛈️","99":"Tormenta con granizo ⛈️"}');
-      const cards = Array.from(document.querySelectorAll('[data-city-card]'));
-      const updatedAt = document.getElementById('js-updated-at');
+  <script>
+    // Bundled module script (NOT is:inline) so the import is processed by Astro/Vite.
+    import { fetchWeather } from '../lib/weather';
 
-      function setUpdatedAtMessage() {
-        if (!updatedAt) return;
-        const now = new Date();
-        const time = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-        updatedAt.textContent = `Última actualización: ${time}`;
+    const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+
+    const cards = Array.from(document.querySelectorAll('[data-city-card]'));
+    const updatedAt = document.getElementById('js-updated-at');
+
+    function setUpdatedAtMessage() {
+      if (!updatedAt) return;
+      const now = new Date();
+      const time = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      updatedAt.textContent = `Última actualización: ${time}`;
+    }
+
+    function setUpdateFailedMessage() {
+      if (!updatedAt) return;
+      updatedAt.textContent = 'No se pudo actualizar. Reintentando automáticamente.';
+    }
+
+    function setStatusMessage(card: Element, message: string, isError: boolean) {
+      const status = card.querySelector('.js-status');
+      const weather = card.querySelector('.js-weather');
+      if (status) {
+        status.textContent = message;
+        status.classList.remove('text-gray-500', 'text-red-400');
+        status.classList.add(isError ? 'text-red-400' : 'text-gray-500');
+        status.classList.remove('hidden');
       }
+      if (weather) weather.classList.add('hidden');
+    }
 
-      function renderError(card) {
-        const status = card.querySelector('.js-status');
-        const weather = card.querySelector('.js-weather');
-        if (status) {
-          status.textContent = 'Error cargando datos. Reintentando...';
-          status.classList.remove('text-gray-500');
-          status.classList.add('text-red-400');
-        }
-        if (weather) weather.classList.add('hidden');
+    function renderRetrying(card: Element) {
+      // Accurate copy: a retry is genuinely in progress.
+      setStatusMessage(card, 'Error al cargar. Reintentando...', true);
+    }
+
+    function renderTerminalError(card: Element) {
+      // Attempts exhausted; the 10-minute interval is the only further retry.
+      setStatusMessage(card, 'Error al cargar. Se reintentará automáticamente.', true);
+    }
+
+    function renderSuccess(
+      card: Element,
+      payload: { tmax: number; tmin: number; rain: number; condition: string },
+    ) {
+      const status = card.querySelector('.js-status');
+      const weather = card.querySelector('.js-weather');
+      const tmax = card.querySelector('.js-tmax');
+      const tmin = card.querySelector('.js-tmin');
+      const rain = card.querySelector('.js-rain');
+      const condition = card.querySelector('.js-condition');
+
+      if (tmax) tmax.textContent = String(payload.tmax);
+      if (tmin) tmin.textContent = String(payload.tmin);
+      if (rain) rain.textContent = String(payload.rain);
+      if (condition) condition.textContent = payload.condition;
+      if (status) status.classList.add('hidden');
+      if (weather) weather.classList.remove('hidden');
+    }
+
+    async function refreshCard(card: Element): Promise<boolean> {
+      const lat = card.getAttribute('data-lat');
+      const lng = card.getAttribute('data-lng');
+      const tz = card.getAttribute('data-tz') || 'America/Mexico_City';
+      if (!lat || !lng) return false;
+
+      try {
+        const weather = await fetchWeather(
+          { lat, lng, tz },
+          {
+            fetch: window.fetch.bind(window),
+            // Show an accurate "retrying" message before each backoff wait.
+            sleep: (ms: number) =>
+              new Promise<void>((resolve) => {
+                renderRetrying(card);
+                window.setTimeout(resolve, ms);
+              }),
+          },
+        );
+        renderSuccess(card, weather);
+        return true;
+      } catch {
+        // All retry attempts exhausted.
+        renderTerminalError(card);
+        return false;
       }
+    }
 
-      function renderSuccess(card, payload) {
-        const status = card.querySelector('.js-status');
-        const weather = card.querySelector('.js-weather');
-        const tmax = card.querySelector('.js-tmax');
-        const tmin = card.querySelector('.js-tmin');
-        const rain = card.querySelector('.js-rain');
-        const condition = card.querySelector('.js-condition');
-
-        if (tmax) tmax.textContent = String(payload.tmax);
-        if (tmin) tmin.textContent = String(payload.tmin);
-        if (rain) rain.textContent = String(payload.rain);
-        if (condition) condition.textContent = payload.condition;
-        if (status) status.classList.add('hidden');
-        if (weather) weather.classList.remove('hidden');
-      }
-
-      async function refreshCard(card) {
-        const lat = card.getAttribute('data-lat');
-        const lng = card.getAttribute('data-lng');
-        const tz = card.getAttribute('data-tz') || 'America/Mexico_City';
-        if (!lat || !lng) return;
-
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=${tz}&forecast_days=1&models=best_match`;
-        try {
-          const response = await fetch(url, { cache: 'no-store' });
-          if (!response.ok) throw new Error('Weather request failed');
-          const data = await response.json();
-          const daily = data?.daily;
-          if (!daily) throw new Error('Invalid weather response');
-
-          const tmax = daily.temperature_2m_max?.[0];
-          const tmin = daily.temperature_2m_min?.[0];
-          const rain = daily.precipitation_probability_max?.[0];
-          const weatherCode = daily.weathercode?.[0];
-          if (tmax == null || tmin == null || rain == null || weatherCode == null) {
-            throw new Error('Missing weather fields');
-          }
-
-          renderSuccess(card, {
-            tmax,
-            tmin,
-            rain,
-            condition: WMO[String(weatherCode)] || '—',
-          });
-        } catch {
-          renderError(card);
-        }
-      }
-
-      async function refreshAll() {
-        await Promise.all(cards.map((card) => refreshCard(card)));
+    async function refreshAll() {
+      const results = await Promise.all(cards.map((card) => refreshCard(card)));
+      // Only stamp a fresh timestamp when at least one card succeeded this
+      // cycle; during a total outage show an accurate failure message instead.
+      if (results.some((ok) => ok)) {
         setUpdatedAtMessage();
+      } else {
+        setUpdateFailedMessage();
       }
+    }
 
-      refreshAll();
-      window.setInterval(refreshAll, 10 * 60 * 1000);
-    })();
+    refreshAll();
+    window.setInterval(refreshAll, REFRESH_INTERVAL_MS);
   </script>
 </BaseLayout>
