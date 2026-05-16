@@ -1,0 +1,553 @@
+---
+/**
+ * FeedbackFAB — Floating Action Button for reporting issues to GitHub.
+ *
+ * Adapted from Rastrum's ReportIssueButton.astro.
+ * Features:
+ *   - Modal with type/title/description fields
+ *   - Bug-specific fields: steps to reproduce + expected behavior
+ *   - Auto telemetry: captures console errors, network failures, unhandled exceptions
+ *   - Red badge on FAB when errors are detected
+ *   - Diagnostics accordion: env, console, network info
+ *   - Copy diagnostics to clipboard
+ *   - Opens pre-filled GitHub Issue
+ *   - i18n es/en
+ */
+
+interface Props {
+  lang?: 'es' | 'en';
+}
+
+const { lang = 'es' } = Astro.props;
+
+const repoSlug = 'ArtemioPadilla/mexico-weather-site';
+const buildSha = import.meta.env.PUBLIC_BUILD_SHA || 'dev';
+const appVersion = import.meta.env.PUBLIC_VERSION || 'dev';
+
+const tr = {
+  es: {
+    button_label: 'Reportar un problema',
+    modal_title: 'Reportar un problema',
+    type_label: 'Tipo',
+    type_bug: 'Error',
+    type_feature: 'Solicitud de funcionalidad',
+    type_question: 'Pregunta',
+    type_translation: 'Problema de traducción',
+    title_label: 'Título',
+    title_placeholder: 'Resumen corto del problema',
+    description_label: 'Descripción',
+    description_placeholder: '¿Qué pasó? ¿Qué esperabas?',
+    steps_label: 'Pasos para reproducir',
+    steps_placeholder: '1. Ir a…\n2. Hacer clic en…\n3. Ver error',
+    expected_label: 'Comportamiento esperado',
+    expected_placeholder: '¿Qué esperabas que pasara?',
+    diagnostics_toggle: 'Mostrar diagnósticos',
+    diagnostics_env: 'Entorno',
+    diagnostics_console: 'Errores de consola',
+    diagnostics_network: 'Peticiones fallidas',
+    diagnostics_none: 'Ninguno capturado',
+    copy_diagnostics: 'Copiar diagnósticos',
+    copied: '¡Copiado!',
+    cancel: 'Cancelar',
+    open_on_github: 'Abrir en GitHub',
+    badge_errors_label: 'errores detectados',
+  },
+  en: {
+    button_label: 'Report an issue',
+    modal_title: 'Report an issue',
+    type_label: 'Type',
+    type_bug: 'Bug',
+    type_feature: 'Feature request',
+    type_question: 'Question',
+    type_translation: 'Translation issue',
+    title_label: 'Title',
+    title_placeholder: 'Short summary of the issue',
+    description_label: 'Description',
+    description_placeholder: 'What happened? What did you expect?',
+    steps_label: 'Steps to reproduce',
+    steps_placeholder: '1. Go to…\n2. Click on…\n3. See error',
+    expected_label: 'Expected behavior',
+    expected_placeholder: 'What did you expect to happen?',
+    diagnostics_toggle: 'Show diagnostics',
+    diagnostics_env: 'Environment',
+    diagnostics_console: 'Console errors',
+    diagnostics_network: 'Failed requests',
+    diagnostics_none: 'None captured',
+    copy_diagnostics: 'Copy diagnostics',
+    copied: 'Copied!',
+    cancel: 'Cancel',
+    open_on_github: 'Open on GitHub',
+    badge_errors_label: 'errors detected',
+  },
+}[lang];
+---
+
+<!-- FAB button -->
+<div class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] sm:bottom-6 right-5 z-50 w-12 h-12">
+  <button
+    id="secid-report-btn"
+    type="button"
+    aria-label={tr.button_label}
+    title={tr.button_label}
+    class="relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg
+           bg-white text-primary-600 ring-1 ring-primary-500/20
+           hover:bg-primary-50 hover:ring-primary-500/40
+           dark:bg-gray-800 dark:text-primary-400 dark:ring-primary-500/30
+           dark:hover:bg-gray-700 dark:hover:ring-primary-500/50
+           transition-all hover:scale-105 hover:shadow-xl
+           focus:outline-none focus:ring-2 focus:ring-primary-500"
+  >
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M7.5 8.25h9m-9 3.75h6m-7.5 4.5L4.5 19V5.25A1.25 1.25 0 0 1 5.75 4h12.5A1.25 1.25 0 0 1 19.5 5.25v9.5A1.25 1.25 0 0 1 18.25 16h-9.5L6 18l-1.5-1.5z" />
+    </svg>
+    <span class="sr-only">{tr.button_label}</span>
+    <!-- Error badge -->
+    <span
+      id="secid-report-badge"
+      aria-label={tr.badge_errors_label}
+      class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+             bg-red-600 text-white text-[10px] font-bold
+             flex items-center justify-center
+             ring-2 ring-white dark:ring-gray-800 pointer-events-none"
+    ></span>
+  </button>
+</div>
+
+<!-- Modal dialog -->
+<dialog
+  id="secid-report-modal"
+  data-repo={repoSlug}
+  data-lang={lang}
+  data-build-sha={buildSha}
+  data-app-version={appVersion}
+  data-l-steps-label={tr.steps_label}
+  data-l-steps-placeholder={tr.steps_placeholder}
+  data-l-expected-label={tr.expected_label}
+  data-l-expected-placeholder={tr.expected_placeholder}
+  data-l-diagnostics-toggle={tr.diagnostics_toggle}
+  data-l-diagnostics-env={tr.diagnostics_env}
+  data-l-diagnostics-console={tr.diagnostics_console}
+  data-l-diagnostics-network={tr.diagnostics_network}
+  data-l-diagnostics-none={tr.diagnostics_none}
+  data-l-copy={tr.copy_diagnostics}
+  data-l-copied={tr.copied}
+  class="rounded-xl backdrop:bg-black/60 p-0 w-[min(92vw,540px)] max-h-[88vh] overflow-hidden
+         bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100
+         shadow-2xl border border-gray-200 dark:border-gray-700"
+>
+  <form method="dialog" class="flex flex-col max-h-[88vh]">
+    <!-- Header -->
+    <header class="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+      <h2 class="text-base font-semibold">{tr.modal_title}</h2>
+      <button
+        type="button"
+        id="secid-report-close"
+        aria-label={tr.cancel}
+        class="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Body -->
+    <div class="px-5 py-4 space-y-4 overflow-y-auto flex-1">
+      <!-- Type -->
+      <div>
+        <label for="secid-report-type" class="block text-sm font-medium mb-1">{tr.type_label}</label>
+        <select
+          id="secid-report-type"
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                 bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="bug">{tr.type_bug}</option>
+          <option value="feature">{tr.type_feature}</option>
+          <option value="question">{tr.type_question}</option>
+          <option value="translation">{tr.type_translation}</option>
+        </select>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <label for="secid-report-title" class="block text-sm font-medium mb-1">{tr.title_label}</label>
+        <input
+          type="text"
+          id="secid-report-title"
+          maxlength="120"
+          placeholder={tr.title_placeholder}
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                 bg-white dark:bg-gray-700 px-3 py-2 text-sm
+                 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="secid-report-description" class="block text-sm font-medium mb-1">{tr.description_label}</label>
+        <textarea
+          id="secid-report-description"
+          rows="4"
+          placeholder={tr.description_placeholder}
+          class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                 bg-white dark:bg-gray-700 px-3 py-2 text-sm resize-y
+                 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        ></textarea>
+      </div>
+
+      <!-- Bug-only fields -->
+      <div id="secid-report-bug-fields" class="space-y-4">
+        <div>
+          <label for="secid-report-steps" class="block text-sm font-medium mb-1">{tr.steps_label}</label>
+          <textarea
+            id="secid-report-steps"
+            rows="3"
+            placeholder={tr.steps_placeholder}
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                   bg-white dark:bg-gray-700 px-3 py-2 text-sm resize-y
+                   focus:outline-none focus:ring-2 focus:ring-primary-500"
+          ></textarea>
+        </div>
+        <div>
+          <label for="secid-report-expected" class="block text-sm font-medium mb-1">{tr.expected_label}</label>
+          <textarea
+            id="secid-report-expected"
+            rows="2"
+            placeholder={tr.expected_placeholder}
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600
+                   bg-white dark:bg-gray-700 px-3 py-2 text-sm resize-y
+                   focus:outline-none focus:ring-2 focus:ring-primary-500"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Diagnostics accordion -->
+      <details id="secid-report-diagnostics" class="group">
+        <summary class="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 select-none py-1">
+          <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+          {tr.diagnostics_toggle}
+          <span id="secid-report-diag-count"
+            class="hidden inline-flex items-center justify-center rounded-full
+                   bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300
+                   text-[10px] font-bold min-w-[18px] h-[18px] px-1">0</span>
+        </summary>
+        <div class="mt-2 space-y-3">
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{tr.diagnostics_env}</p>
+            <pre id="secid-report-env"
+              class="text-xs bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700
+                     rounded-lg p-2 whitespace-pre-wrap break-all max-h-28 overflow-auto"></pre>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{tr.diagnostics_console}</p>
+            <pre id="secid-report-console"
+              class="text-xs bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700
+                     rounded-lg p-2 whitespace-pre-wrap break-all max-h-32 overflow-auto"></pre>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">{tr.diagnostics_network}</p>
+            <pre id="secid-report-network"
+              class="text-xs bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700
+                     rounded-lg p-2 whitespace-pre-wrap break-all max-h-32 overflow-auto"></pre>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Footer -->
+    <footer class="sticky bottom-0 flex items-center justify-between gap-2 px-5 py-3
+                   border-t border-gray-200 dark:border-gray-700
+                   bg-white dark:bg-gray-800 z-10">
+      <button
+        type="button"
+        id="secid-report-copy"
+        title={tr.copy_diagnostics}
+        class="min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium
+               text-gray-600 dark:text-gray-400
+               hover:bg-gray-100 dark:hover:bg-gray-700
+               inline-flex items-center gap-1.5 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span id="secid-report-copy-label">{tr.copy_diagnostics}</span>
+      </button>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          id="secid-report-cancel"
+          class="min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium
+                 border border-gray-300 dark:border-gray-600
+                 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          {tr.cancel}
+        </button>
+        <button
+          type="button"
+          id="secid-report-submit"
+          class="min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold
+                 bg-primary-600 hover:bg-primary-700 text-white
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+        >
+          {tr.open_on_github}
+        </button>
+      </div>
+    </footer>
+  </form>
+</dialog>
+
+<script is:inline>
+(function () {
+  // ── Telemetry capture (runs once at parse time) ──────────────────────
+  var W = window;
+  if (!W.__secid_diag) {
+    var MAX = 30;
+    var diag = { console: [], network: [], errors: [] };
+    W.__secid_diag = diag;
+
+    // Intercept console.error / console.warn
+    var origError = console.error.bind(console);
+    var origWarn  = console.warn.bind(console);
+    function captureLog(level, args) {
+      var msg = Array.prototype.map.call(args, function (a) {
+        if (a == null) return String(a);
+        if (a instanceof Error) return a.message + '\n' + (a.stack || '');
+        if (typeof a === 'object') { try { return JSON.stringify(a); } catch(e) { return String(a); } }
+        return String(a);
+      }).join(' ');
+      diag.console.push({ ts: new Date().toISOString(), level: level, msg: msg.slice(0, 500) });
+      if (diag.console.length > MAX) diag.console.shift();
+    }
+    console.error = function () { captureLog('error', arguments); origError.apply(console, arguments); W.__secid_updateBadge && W.__secid_updateBadge(); };
+    console.warn  = function () { captureLog('warn',  arguments); origWarn.apply(console, arguments); };
+
+    // Unhandled errors + rejections
+    W.addEventListener('error', function (ev) {
+      diag.errors.push({ ts: new Date().toISOString(), msg: (ev.message || 'Unknown').slice(0, 300), src: ev.filename ? ev.filename + ':' + ev.lineno : '' });
+      if (diag.errors.length > MAX) diag.errors.shift();
+      W.__secid_updateBadge && W.__secid_updateBadge();
+    });
+    W.addEventListener('unhandledrejection', function (ev) {
+      var r = ev.reason;
+      var msg = r instanceof Error ? r.message + '\n' + (r.stack || '') : String(r || 'Unhandled rejection');
+      diag.errors.push({ ts: new Date().toISOString(), msg: msg.slice(0, 300), src: 'promise' });
+      if (diag.errors.length > MAX) diag.errors.shift();
+      W.__secid_updateBadge && W.__secid_updateBadge();
+    });
+
+    // Fetch network error capture
+    var origFetch = W.fetch;
+    if (origFetch) {
+      W.fetch = function () {
+        var url = arguments[0];
+        var urlStr = typeof url === 'string' ? url : (url && url.url ? url.url : String(url));
+        var method = (arguments[1] && arguments[1].method) || (typeof url === 'object' && url.method) || 'GET';
+        return origFetch.apply(W, arguments).then(function (res) {
+          if (!res.ok) {
+            diag.network.push({ ts: new Date().toISOString(), method: method.toUpperCase(), url: urlStr.slice(0, 200), status: res.status, statusText: res.statusText || '' });
+            if (diag.network.length > MAX) diag.network.shift();
+            W.__secid_updateBadge && W.__secid_updateBadge();
+          }
+          return res;
+        }, function (err) {
+          diag.network.push({ ts: new Date().toISOString(), method: method.toUpperCase(), url: urlStr.slice(0, 200), status: 0, statusText: err && err.message ? err.message.slice(0, 100) : 'Network error' });
+          if (diag.network.length > MAX) diag.network.shift();
+          W.__secid_updateBadge && W.__secid_updateBadge();
+          throw err;
+        });
+      };
+    }
+  }
+
+  // ── Badge update ─────────────────────────────────────────────────────
+  // Count only window-level errors (diag.errors) + explicit console.error calls (diag.console).
+  // These two sources don't overlap: window 'error' events push to diag.errors,
+  // console.error calls push to diag.console. unhandledrejection also goes to diag.errors only.
+  W.__secid_updateBadge = function () {
+    var badge = document.getElementById('secid-report-badge');
+    if (!badge) return;
+    var diag = W.__secid_diag;
+    var windowErrors = diag.errors ? diag.errors.length : 0;
+    var consoleErrors = diag.console ? diag.console.filter(function(c){ return c.level === 'error'; }).length : 0;
+    var count = windowErrors + consoleErrors;
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.classList.remove('hidden');
+      badge.classList.add('flex');
+    } else {
+      badge.classList.add('hidden');
+      badge.classList.remove('flex');
+    }
+  };
+
+  // ── Modal wiring ────────────────────────────────────────────────────
+  // Use DOMContentLoaded. Note: this site does not use Astro ViewTransitions,
+  // so DOMContentLoaded fires on every full page load. If ViewTransitions are
+  // ever added, replace with: document.addEventListener('astro:page-load', ...)
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn     = document.getElementById('secid-report-btn');
+    var modal   = document.getElementById('secid-report-modal');
+    if (!btn || !modal) return;
+
+    var repo       = modal.dataset.repo || '';
+    var lang       = modal.dataset.lang || 'es';
+    var buildSha   = modal.dataset.buildSha || 'dev';
+    var appVersion = modal.dataset.appVersion || 'dev';
+    var noneLabel  = modal.dataset.lDiagnosticsNone || 'None captured';
+    var copyLabel  = modal.dataset.lCopy || 'Copiar diagnósticos';
+    var copiedLabel= modal.dataset.lCopied || '¡Copiado!';
+
+    var typeEl    = document.getElementById('secid-report-type');
+    var titleEl   = document.getElementById('secid-report-title');
+    var descEl    = document.getElementById('secid-report-description');
+    var stepsEl   = document.getElementById('secid-report-steps');
+    var expectedEl= document.getElementById('secid-report-expected');
+    var bugFields = document.getElementById('secid-report-bug-fields');
+    var envBlock  = document.getElementById('secid-report-env');
+    var consBlock = document.getElementById('secid-report-console');
+    var netBlock  = document.getElementById('secid-report-network');
+    var diagCount = document.getElementById('secid-report-diag-count');
+    var copyBtn   = document.getElementById('secid-report-copy');
+    var copyLabel2= document.getElementById('secid-report-copy-label');
+    var submitBtn = document.getElementById('secid-report-submit');
+    var cancelBtn = document.getElementById('secid-report-cancel');
+    var closeBtn  = document.getElementById('secid-report-close');
+
+    // Toggle bug-only fields
+    if (typeEl && bugFields) {
+      typeEl.addEventListener('change', function () {
+        bugFields.style.display = typeEl.value === 'bug' ? '' : 'none';
+      });
+    }
+
+    // Open modal
+    btn.addEventListener('click', function () {
+      populateDiagnostics();
+      modal.showModal();
+    });
+
+    // Close
+    function closeModal() { modal.close(); }
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+    // Populate diagnostics
+    function populateDiagnostics() {
+      var diag = W.__secid_diag || { console: [], network: [], errors: [] };
+
+      // Env block
+      if (envBlock) {
+        envBlock.textContent = JSON.stringify({
+          url: location.href,
+          userAgent: navigator.userAgent,
+          viewport: window.innerWidth + 'x' + window.innerHeight,
+          lang: lang,
+          buildSha: buildSha,
+          version: appVersion,
+          timestamp: new Date().toISOString(),
+        }, null, 2);
+      }
+
+      // Console block
+      var consEntries = (diag.console || []).concat((diag.errors || []).map(function(e){ return { level: 'error', ts: e.ts, msg: e.msg + (e.src ? ' @ ' + e.src : '') }; }));
+      if (consBlock) consBlock.textContent = consEntries.length ? consEntries.map(function(c){ return '[' + c.level.toUpperCase() + '] ' + c.ts + '\n' + c.msg; }).join('\n\n') : noneLabel;
+
+      // Network block
+      if (netBlock) netBlock.textContent = (diag.network || []).length
+        ? diag.network.map(function(n){ return n.method + ' ' + n.status + ' ' + n.url + '\n' + n.ts; }).join('\n\n')
+        : noneLabel;
+
+      // Count badge in accordion
+      var errorCount = consEntries.filter(function(c){ return c.level === 'error'; }).length + (diag.network || []).length;
+      if (diagCount) {
+        if (errorCount > 0) {
+          diagCount.textContent = String(errorCount);
+          diagCount.classList.remove('hidden');
+        } else {
+          diagCount.classList.add('hidden');
+        }
+      }
+    }
+
+    // Copy diagnostics — with fallback for non-HTTPS contexts
+    if (copyBtn && copyLabel2) {
+      copyBtn.addEventListener('click', function () {
+        var text = [envBlock, consBlock, netBlock].map(function(el){ return el ? el.textContent : ''; }).join('\n\n---\n\n');
+        function onCopied() {
+          copyLabel2.textContent = copiedLabel;
+          setTimeout(function(){ copyLabel2.textContent = copyLabel; }, 2000);
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(onCopied);
+        } else {
+          // Fallback for HTTP / older browsers
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          try { document.execCommand('copy'); onCopied(); } catch(e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    }
+
+    // Submit → open GitHub Issue
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function () {
+        var type    = typeEl ? typeEl.value : 'bug';
+        var title   = titleEl ? titleEl.value.trim() : '';
+        var desc    = descEl  ? descEl.value.trim()  : '';
+        var steps   = stepsEl   ? stepsEl.value.trim()   : '';
+        var expected= expectedEl? expectedEl.value.trim() : '';
+
+        if (!title) { if (titleEl) { titleEl.focus(); } return; }
+
+        var diag = W.__secid_diag || { console: [], network: [], errors: [] };
+        var consEntries = (diag.console || []).concat((diag.errors || []).map(function(e){ return { level:'error', ts:e.ts, msg:e.msg + (e.src ? ' @ '+e.src : '') }; }));
+        var diagText = '**Entorno / Environment**\n```json\n' + JSON.stringify({
+          url: location.href, userAgent: navigator.userAgent,
+          viewport: window.innerWidth + 'x' + window.innerHeight,
+          lang: lang, buildSha: buildSha, version: appVersion,
+          timestamp: new Date().toISOString(),
+        }, null, 2) + '\n```';
+
+        if (consEntries.length) {
+          diagText += '\n\n**Console errors**\n```\n' + consEntries.map(function(c){ return '['+c.level.toUpperCase()+'] '+c.ts+'\n'+c.msg; }).join('\n\n').slice(0, 1500) + '\n```';
+        }
+        if ((diag.network||[]).length) {
+          diagText += '\n\n**Failed requests**\n```\n' + diag.network.map(function(n){ return n.method+' '+n.status+' '+n.url; }).join('\n').slice(0, 800) + '\n```';
+        }
+
+        var body = desc;
+        if (type === 'bug') {
+          if (steps)    body += '\n\n**Pasos / Steps to reproduce**\n' + steps;
+          if (expected) body += '\n\n**Comportamiento esperado / Expected behavior**\n' + expected;
+        }
+        body += '\n\n<details>\n<summary>Diagnostics</summary>\n\n' + diagText + '\n</details>';
+
+        var labelMap = { bug: 'bug', feature: 'enhancement', question: 'question', translation: 'translation' };
+        // Truncate to ~6500 chars — conservative limit for GitHub URL params.
+        // GitHub supports ~8192 chars but proxies/browsers may cut earlier.
+        var params = new URLSearchParams({
+          title: title,
+          body: body.slice(0, 6500),
+          labels: labelMap[type] || 'bug',
+        });
+        window.open('https://github.com/' + repo + '/issues/new?' + params.toString(), '_blank', 'noopener,noreferrer');
+        closeModal();
+      });
+    }
+
+    // Initial badge update
+    W.__secid_updateBadge();
+  });
+})();
+</script>

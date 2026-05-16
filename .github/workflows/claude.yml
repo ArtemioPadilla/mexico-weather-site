@@ -1,0 +1,47 @@
+name: Claude — AI Issue Triage
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  claude:
+    name: Triage with Claude
+    runs-on: ubuntu-latest
+    # Only run on issues (not PRs) and on @claude mentions in comments
+    if: |
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request == null &&
+       contains(github.event.comment.body, '@claude'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # On new issues: triage, add labels, write implementation plan
+          # On @claude mention: follow the instruction in the comment
+          custom_instructions: |
+            You are a helpful engineering assistant for this project.
+
+            When a new issue is opened:
+            1. Add appropriate labels (bug, enhancement, question, etc.)
+            2. Acknowledge the issue with a brief analysis
+            3. Write a concrete implementation plan with steps
+            4. Estimate complexity (small/medium/large)
+            5. If it's a small bug or simple feature, offer to open a PR
+
+            When mentioned in a comment with @claude:
+            Follow the instruction given in the comment.
+
+            Always be concise and actionable. No fluff.
