@@ -187,3 +187,30 @@ export async function getForecast(
 
   return { current, hourly, daily };
 }
+
+export type UvLevel = 'bajo' | 'moderado' | 'alto' | 'muy alto' | 'extremo';
+
+/** Classify a UV index into a rounded value + Spanish risk level. */
+export function uvLabel(uv: number): { value: number; level: UvLevel } {
+  const value = Math.round(uv);
+  let level: UvLevel;
+  if (value <= 2) level = 'bajo';
+  else if (value <= 5) level = 'moderado';
+  else if (value <= 7) level = 'alto';
+  else if (value <= 10) level = 'muy alto';
+  else level = 'extremo';
+  return { value, level };
+}
+
+const WIND_LABELS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'] as const;
+// Arrows point where the wind is going (from-direction rotated 180°).
+const WIND_ARROWS = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘'] as const;
+
+/**
+ * Map a wind direction (degrees the wind comes *from*) to an 8-point Spanish
+ * label and an arrow pointing where the wind is travelling.
+ */
+export function windDir(deg: number): { label: string; arrow: string } {
+  const idx = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
+  return { label: WIND_LABELS[idx], arrow: WIND_ARROWS[idx] };
+}

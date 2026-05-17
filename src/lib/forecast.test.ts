@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildRichForecastUrl, getForecast, HOURLY_LIMIT } from './forecast';
+import {
+  buildRichForecastUrl,
+  getForecast,
+  HOURLY_LIMIT,
+  uvLabel,
+  windDir,
+} from './forecast';
 
 function jsonResponse(body: unknown): Response {
   return {
@@ -193,5 +199,37 @@ describe('getForecast', () => {
         sleep: async () => {},
       }),
     ).rejects.toThrow('Invalid forecast response: missing current');
+  });
+});
+
+describe('uvLabel', () => {
+  it('classifies UV index thresholds', () => {
+    expect(uvLabel(1)).toEqual({ value: 1, level: 'bajo' });
+    expect(uvLabel(2)).toEqual({ value: 2, level: 'bajo' });
+    expect(uvLabel(4)).toEqual({ value: 4, level: 'moderado' });
+    expect(uvLabel(5)).toEqual({ value: 5, level: 'moderado' });
+    expect(uvLabel(6)).toEqual({ value: 6, level: 'alto' });
+    expect(uvLabel(7)).toEqual({ value: 7, level: 'alto' });
+    expect(uvLabel(9)).toEqual({ value: 9, level: 'muy alto' });
+    expect(uvLabel(10)).toEqual({ value: 10, level: 'muy alto' });
+    expect(uvLabel(11)).toEqual({ value: 11, level: 'extremo' });
+  });
+
+  it('rounds the value', () => {
+    expect(uvLabel(6.6).value).toBe(7);
+    expect(uvLabel(7.4)).toEqual({ value: 7, level: 'alto' });
+  });
+});
+
+describe('windDir', () => {
+  it('maps degrees to 8-point label + wind-travel arrow', () => {
+    expect(windDir(0)).toEqual({ label: 'N', arrow: '↓' });
+    expect(windDir(225)).toEqual({ label: 'SO', arrow: '↗' });
+    expect(windDir(360)).toEqual({ label: 'N', arrow: '↓' });
+  });
+
+  it('normalizes negative and out-of-range degrees', () => {
+    expect(windDir(-45)).toEqual({ label: 'NO', arrow: '↘' });
+    expect(windDir(450)).toEqual({ label: 'E', arrow: '←' });
   });
 });
