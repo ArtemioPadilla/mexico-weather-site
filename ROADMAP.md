@@ -2,22 +2,29 @@
 
 ## Done
 
-- Forecast cards for key Mexican cities using Open-Meteo real data.
-- Client-side weather refresh every 10 minutes.
-- Link to SMN RSS alerts.
-- Floating feedback modal with diagnostics capture.
-- Static deployment to GitHub Pages via GitHub Actions.
+- Real weather data from Open-Meteo on city cards, with retry/backoff and
+  graceful error/stale handling.
+- Build-time RSS feed of real SMN avisos, fetched over TLS via a committed
+  intermediate CA, with an informational fallback when SMN is unreachable.
+- Rich location forecast: typed forecast SDK, a shareable `/forecast` detail
+  page, plus search, geolocation and inline forecast peek.
+- SEO and discoverability: sitemap, Open Graph meta, robots, and a
+  Lighthouse CI check (informational, non-blocking).
+- Privacy/legal page (`/privacidad`).
+- Light / dark / system theme with a toggle.
+- Tooling: ESLint, Prettier, Husky pre-commit, Dependabot.
+- Custom domain (`artemiop.com`) with corrected canonical, sitemap, RSS and
+  robots URLs.
+- 69 unit tests (Vitest) covering weather, forecast, geocode, RSS and theme.
 
-## In progress
+## In progress / next
 
-- Weather data robustness: error handling, stale-data indicator, retry logic.
+- End-to-end tests (Playwright).
+- Migration to Tailwind 4 and Astro 6.
 
-## Backlog
+## Deferred / needs decision
 
-- Generate a true RSS feed for weather updates (currently only links to SMN feed).
-- SEO: sitemap, Open Graph meta tags, structured data.
-- Privacy/legal page.
-- Spanish i18n for all UI strings (pages and components).
-- Dark/light mode toggle.
-- Unit and integration tests (Vitest + Playwright).
-- Tooling: lint-staged, Prettier pre-commit hook.
+- Own hosted API with edge caching (#1) — needs a hosting account.
+- Sentry error monitoring (#2) — needs a DSN.
+- Live multi-source CONAGUA merge — infeasible client-side.
+- Favorites, °C/°F toggle, reverse-geocoding — YAGNI for v1.

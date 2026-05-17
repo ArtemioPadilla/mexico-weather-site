@@ -1,10 +1,12 @@
 {
   "ci": {
     "collect": {
-      "staticDistDir": "./dist",
+      "startServerCommand": "npm run preview",
+      "startServerReadyPattern": "ready in",
       "url": [
-        "http://localhost/index.html",
-        "http://localhost/privacidad/index.html"
+        "http://localhost:4321/mexico-weather-site/",
+        "http://localhost:4321/mexico-weather-site/forecast/",
+        "http://localhost:4321/mexico-weather-site/privacidad/"
       ]
     },
     "assert": {

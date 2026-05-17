@@ -1,8 +1,14 @@
 name: Lighthouse CI
 
+# Informational only. Assertions are warn-level and the step is
+# continue-on-error, so this workflow never blocks a merge.
+
 on:
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   lighthouse:
@@ -18,6 +24,7 @@ jobs:
       - run: npm run build
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
+        # Advisory only: never fail the job on regressions.
         continue-on-error: true
         with:
           configPath: ./.lighthouserc.json
