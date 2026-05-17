@@ -6,6 +6,7 @@ import {
   parseRetryAfter,
   backoffDelay,
   buildForecastUrl,
+  requestJsonWithRetry,
   WMO,
 } from './weather';
 
@@ -144,6 +145,68 @@ describe('backoffDelay', () => {
 
   it('caps the delay at maxDelayMs', () => {
     expect(backoffDelay(20, opts, () => 1)).toBe(10000);
+  });
+});
+
+describe('requestJsonWithRetry', () => {
+  const url = 'https://example.test/api';
+
+  it('returns parsed JSON on success without retrying', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ hello: 'world' }));
+    const { sleep, delays } = makeSleep();
+
+    const result = await requestJsonWithRetry<{ hello: string }>(url, {
+      fetch: fetchMock as unknown as typeof fetch,
+      sleep,
+    });
+
+    expect(result).toEqual({ hello: 'world' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(url, { cache: 'no-store' });
+    expect(delays).toEqual([]);
+  });
+
+  it('honors Retry-After: 2 on HTTP 429 then succeeds', async () => {
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      headers: { get: (h: string) => (h === 'Retry-After' ? '2' : null) },
+      json: async () => ({}),
+    } as unknown as Response;
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(rateLimited)
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const { sleep, delays } = makeSleep();
+
+    const result = await requestJsonWithRetry<{ ok: boolean }>(url, {
+      fetch: fetchMock as unknown as typeof fetch,
+      sleep,
+      random: () => 1,
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(delays).toEqual([2000]);
+  });
+
+  it('throws after exhausting all attempts', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new Error('persistent failure');
+    });
+    const { sleep, delays } = makeSleep();
+
+    await expect(
+      requestJsonWithRetry(
+        url,
+        { fetch: fetchMock as unknown as typeof fetch, sleep, random: () => 1 },
+        { attempts: 3, baseDelayMs: 500 },
+      ),
+    ).rejects.toThrow('persistent failure');
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(delays).toEqual([500, 1000]);
   });
 });
 

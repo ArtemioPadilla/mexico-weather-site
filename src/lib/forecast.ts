@@ -1,0 +1,225 @@
+// DOM-free Open-Meteo rich forecast SDK: current + hourly + daily.
+// Reuses the shared retrying JSON requester and WMO mapping from weather.ts.
+
+import {
+  type RequestDeps,
+  type RetryOptions,
+  DEFAULT_RETRY,
+  requestJsonWithRetry,
+  describeWeatherCode,
+} from './weather';
+
+export interface ForecastLocation {
+  lat: string | number;
+  lng: string | number;
+  tz?: string;
+}
+
+export interface CurrentWx {
+  temperature: number | null;
+  feelsLike: number | null;
+  weatherCode: number | null;
+  condition: string;
+  precipProbability: number;
+  windSpeed: number;
+  windGusts: number;
+  windDir: number;
+  uvIndex: number;
+  cloudCover: number;
+  humidity: number;
+  pressure: number | null;
+  visibilityKm: number;
+}
+
+export interface HourWx {
+  time: string;
+  temperature: number | null;
+  weatherCode: number | null;
+  condition: string;
+  precipProbability: number;
+  windSpeed: number;
+}
+
+export interface DayWx {
+  date: string;
+  weatherCode: number | null;
+  condition: string;
+  tmax: number | null;
+  tmin: number | null;
+  precipProbabilityMax: number;
+  uvMax: number;
+  windMax: number;
+  sunrise: string | null;
+  sunset: string | null;
+}
+
+export interface Forecast {
+  current: CurrentWx;
+  hourly: HourWx[];
+  daily: DayWx[];
+}
+
+/** Maximum number of hourly entries returned. */
+export const HOURLY_LIMIT = 48;
+
+const CURRENT_VARS = [
+  'temperature_2m',
+  'apparent_temperature',
+  'weather_code',
+  'precipitation_probability',
+  'wind_speed_10m',
+  'wind_gusts_10m',
+  'wind_direction_10m',
+  'uv_index',
+  'cloud_cover',
+  'relative_humidity_2m',
+  'surface_pressure',
+  'visibility',
+].join(',');
+
+const HOURLY_VARS = [
+  'temperature_2m',
+  'weather_code',
+  'precipitation_probability',
+  'wind_speed_10m',
+].join(',');
+
+const DAILY_VARS = [
+  'weather_code',
+  'temperature_2m_max',
+  'temperature_2m_min',
+  'precipitation_probability_max',
+  'uv_index_max',
+  'wind_speed_10m_max',
+  'sunrise',
+  'sunset',
+].join(',');
+
+/** Build the Open-Meteo forecast URL with current/hourly/daily variables. */
+export function buildRichForecastUrl(loc: ForecastLocation): string {
+  const params = new URLSearchParams({
+    latitude: String(loc.lat),
+    longitude: String(loc.lng),
+    timezone: loc.tz || 'auto',
+    forecast_days: '7',
+    current: CURRENT_VARS,
+    hourly: HOURLY_VARS,
+    daily: DAILY_VARS,
+  });
+  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+}
+
+const num = (v: unknown): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : 0;
+
+// For ambiguous readings where 0 is a plausible real value (temperature,
+// pressure): a missing/non-finite value becomes null rather than 0.
+const numOrNull = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isFinite(v) ? v : null;
+
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+/**
+ * Fetch and parse a full forecast (current conditions, next 48 hours, 7-day
+ * outlook). Throws when the response lacks a `current` block.
+ */
+export async function getForecast(
+  loc: ForecastLocation,
+  deps: RequestDeps,
+  retry: RetryOptions = DEFAULT_RETRY,
+): Promise<Forecast> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await requestJsonWithRetry(
+    buildRichForecastUrl(loc),
+    deps,
+    retry,
+  );
+
+  if (!data || !data.current) {
+    throw new Error('Invalid forecast response: missing current');
+  }
+
+  const c = data.current;
+  const cWc = numOrNull(c.weather_code);
+  const current: CurrentWx = {
+    temperature: numOrNull(c.temperature_2m),
+    feelsLike: numOrNull(c.apparent_temperature),
+    weatherCode: cWc,
+    condition: cWc === null ? '—' : describeWeatherCode(cWc),
+    precipProbability: num(c.precipitation_probability),
+    windSpeed: num(c.wind_speed_10m),
+    windGusts: num(c.wind_gusts_10m),
+    windDir: num(c.wind_direction_10m),
+    uvIndex: num(c.uv_index),
+    cloudCover: num(c.cloud_cover),
+    humidity: num(c.relative_humidity_2m),
+    pressure: numOrNull(c.surface_pressure),
+    // Open-Meteo visibility is in metres; show km with 1 decimal.
+    visibilityKm: Math.round(num(c.visibility) / 100) / 10,
+  };
+
+  const h = data.hourly ?? {};
+  const hTimes: unknown[] = Array.isArray(h.time) ? h.time : [];
+  const hourly: HourWx[] = hTimes
+    .slice(0, HOURLY_LIMIT)
+    .map((_, i): HourWx => {
+      const code = numOrNull(h.weather_code?.[i]);
+      return {
+        time: str(h.time?.[i]),
+        temperature: numOrNull(h.temperature_2m?.[i]),
+        weatherCode: code,
+        condition: code === null ? '—' : describeWeatherCode(code),
+        precipProbability: num(h.precipitation_probability?.[i]),
+        windSpeed: num(h.wind_speed_10m?.[i]),
+      };
+    });
+
+  const d = data.daily ?? {};
+  const dDates: unknown[] = Array.isArray(d.time) ? d.time : [];
+  const daily: DayWx[] = dDates.map((_, i): DayWx => {
+    const code = numOrNull(d.weather_code?.[i]);
+    const sunrise = d.sunrise?.[i];
+    const sunset = d.sunset?.[i];
+    return {
+      date: str(d.time?.[i]),
+      weatherCode: code,
+      condition: code === null ? '—' : describeWeatherCode(code),
+      tmax: numOrNull(d.temperature_2m_max?.[i]),
+      tmin: numOrNull(d.temperature_2m_min?.[i]),
+      precipProbabilityMax: num(d.precipitation_probability_max?.[i]),
+      uvMax: num(d.uv_index_max?.[i]),
+      windMax: num(d.wind_speed_10m_max?.[i]),
+      sunrise: typeof sunrise === 'string' ? sunrise : null,
+      sunset: typeof sunset === 'string' ? sunset : null,
+    };
+  });
+
+  return { current, hourly, daily };
+}
+
+export type UvLevel = 'bajo' | 'moderado' | 'alto' | 'muy alto' | 'extremo';
+
+/** Classify a UV index into a rounded value + Spanish risk level. */
+export function uvLabel(uv: number): { value: number; level: UvLevel } {
+  const value = Math.round(uv);
+  let level: UvLevel;
+  if (value <= 2) level = 'bajo';
+  else if (value <= 5) level = 'moderado';
+  else if (value <= 7) level = 'alto';
+  else if (value <= 10) level = 'muy alto';
+  else level = 'extremo';
+  return { value, level };
+}
+
+const WIND_LABELS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'] as const;
+// Arrows point where the wind is going (from-direction rotated 180°).
+const WIND_ARROWS = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘'] as const;
+
+/**
+ * Map a wind direction (degrees the wind comes *from*) to an 8-point Spanish
+ * label and an arrow pointing where the wind is travelling.
+ */
+export function windDir(deg: number): { label: string; arrow: string } {
+  const idx = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
+  return { label: WIND_LABELS[idx], arrow: WIND_ARROWS[idx] };
+}

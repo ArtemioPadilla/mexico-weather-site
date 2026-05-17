@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { cities } from '../data/cities';
+import { ui } from '../i18n/ui';
+const t = ui.es;
 ---
 
 <BaseLayout title="Clima México 🇲🇽" description="Alertas y pronósticos meteorológicos para México" lang="es">
@@ -18,6 +20,14 @@ import { cities } from '../data/cities';
         <p class="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
           Pronósticos y alertas meteorológicas del SMN + Open-Meteo para las principales ciudades de México.
         </p>
+        <div class="max-w-xl mx-auto mt-6">
+          <div class="flex gap-2">
+            <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ac" aria-autocomplete="list" aria-label={t.search_placeholder} placeholder={t.search_placeholder} class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button id="geo" type="button" class="bg-gray-900 border border-gray-700 rounded-lg px-3 text-sm text-blue-300 hover:bg-gray-800 motion-reduce:transition-none"><span aria-hidden="true">📍</span> {t.use_my_location}</button>
+          </div>
+          <ul id="ac" role="listbox" class="hidden mt-1 bg-gray-900 border border-gray-700 rounded-lg overflow-hidden"></ul>
+          <p id="qmsg" class="hidden mt-1 text-xs text-gray-500" aria-live="polite"></p>
+        </div>
         <p id="js-updated-at" class="text-xs text-gray-500" aria-live="polite">Cargando datos más recientes...</p>
       </div>
 
@@ -69,14 +79,9 @@ import { cities } from '../data/cities';
                 <p class="text-sm text-gray-400 js-condition">—</p>
                 <p class="text-sm text-blue-400">💧 <span class="js-rain">--</span>% lluvia</p>
               </div>
-              <a
-                href={`https://open-meteo.com/en/docs?latitude=${city.lat}&longitude=${city.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=America/Mexico_City`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                Ver en Open-Meteo →
-              </a>
+              <button type="button" class="js-peek text-xs text-blue-400 hover:text-blue-300 mt-1 text-left">▾ {t.quick_peek}</button>
+              <div class="js-peekbox hidden mt-2 text-xs text-gray-300 space-y-1"></div>
+              <a class="js-full inline-block mt-2 text-xs text-blue-400 border border-blue-900 rounded px-2 py-1" href="#">{t.full_forecast} →</a>
             </div>
           ))}
 
@@ -119,12 +124,36 @@ import { cities } from '../data/cities';
 
   <script>
     // Bundled module script (NOT is:inline) so the import is processed by Astro/Vite.
-    import { fetchWeather } from '../lib/weather';
+    import { getForecast, uvLabel, windDir } from '../lib/forecast';
+    import { geocode } from '../lib/geocode';
+    import { ui } from '../i18n/ui';
+
+    const t = ui.es;
 
     const REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
     const cards = Array.from(document.querySelectorAll('[data-city-card]'));
     const updatedAt = document.getElementById('js-updated-at');
+
+    // Injected request deps shared by forecast + geocode SDK calls.
+    const deps = {
+      fetch: window.fetch.bind(window),
+      sleep: (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms)),
+    };
+
+    // Strip a trailing slash from the configured base path so we can safely
+    // concatenate route paths.
+    const base = (import.meta.env.BASE_URL as string).replace(/\/$/, '');
+
+    function fullHref(lat: string, lng: string, tz: string, name: string): string {
+      const p = new URLSearchParams({ lat, lng, tz, name });
+      return base + '/forecast?' + p.toString();
+    }
+
+    // Round a possibly-null number for display; null/undefined → em dash.
+    function fmt(n: number | null | undefined): string {
+      return n == null ? '—' : String(Math.round(n));
+    }
 
     function setUpdatedAtMessage() {
       if (!updatedAt) return;
@@ -160,9 +189,23 @@ import { cities } from '../data/cities';
       setStatusMessage(card, 'Error al cargar. Se reintentará automáticamente.', true);
     }
 
+    interface PeekData {
+      windSpeed: number;
+      windDir: number;
+      uvIndex: number;
+      cloudCover: number;
+      humidity: number;
+    }
+
     function renderSuccess(
       card: Element,
-      payload: { tmax: number; tmin: number; rain: number; condition: string },
+      payload: {
+        tmax: number | null;
+        tmin: number | null;
+        rain: number;
+        condition: string;
+        peek: PeekData;
+      },
     ) {
       const status = card.querySelector('.js-status');
       const weather = card.querySelector('.js-weather');
@@ -171,13 +214,63 @@ import { cities } from '../data/cities';
       const rain = card.querySelector('.js-rain');
       const condition = card.querySelector('.js-condition');
 
-      if (tmax) tmax.textContent = String(payload.tmax);
-      if (tmin) tmin.textContent = String(payload.tmin);
-      if (rain) rain.textContent = String(payload.rain);
+      if (tmax) tmax.textContent = fmt(payload.tmax);
+      if (tmin) tmin.textContent = fmt(payload.tmin);
+      if (rain) rain.textContent = fmt(payload.rain);
       if (condition) condition.textContent = payload.condition;
       if (status) status.classList.add('hidden');
       if (weather) weather.classList.remove('hidden');
+
+      // Cache the latest peek figures on the card for the toggle handler.
+      (card as HTMLElement).dataset.peek = JSON.stringify(payload.peek);
+      const box = card.querySelector('.js-peekbox');
+      // Refresh the peek box in place if it is currently open.
+      if (box && !box.classList.contains('hidden')) fillPeek(card);
     }
+
+    // Build the quick-peek summary using textContent only (no innerHTML).
+    function fillPeek(card: Element) {
+      const box = card.querySelector('.js-peekbox');
+      if (!box) return;
+      const raw = (card as HTMLElement).dataset.peek;
+      box.textContent = '';
+      if (!raw) {
+        const p = document.createElement('p');
+        p.textContent = t.loading;
+        box.appendChild(p);
+        return;
+      }
+      const d: PeekData = JSON.parse(raw);
+      const wd = windDir(d.windDir);
+      const uv = uvLabel(d.uvIndex);
+      const line = document.createElement('p');
+      line.textContent =
+        `💨 ${Math.round(d.windSpeed)} km/h ${wd.label}` +
+        ` · ☀️ UV ${uv.value} (${uv.level})` +
+        ` · ☁️ ${Math.round(d.cloudCover)}%` +
+        ` · 💦 ${Math.round(d.humidity)}%`;
+      box.appendChild(line);
+    }
+
+    // Wire each card's peek toggle and full-forecast link.
+    cards.forEach((card) => {
+      const h3 = card.querySelector('h3');
+      const name = h3 ? (h3.textContent || '').trim() : '';
+      const lat = card.getAttribute('data-lat') || '';
+      const lng = card.getAttribute('data-lng') || '';
+      const tz = card.getAttribute('data-tz') || 'America/Mexico_City';
+      const full = card.querySelector('.js-full') as HTMLAnchorElement | null;
+      if (full) full.href = fullHref(lat, lng, tz, name);
+
+      const peekBtn = card.querySelector('.js-peek');
+      const box = card.querySelector('.js-peekbox');
+      if (peekBtn && box) {
+        peekBtn.addEventListener('click', () => {
+          const hidden = box.classList.toggle('hidden');
+          if (!hidden) fillPeek(card);
+        });
+      }
+    });
 
     async function refreshCard(card: Element): Promise<boolean> {
       const lat = card.getAttribute('data-lat');
@@ -186,8 +279,8 @@ import { cities } from '../data/cities';
       if (!lat || !lng) return false;
 
       try {
-        const weather = await fetchWeather(
-          { lat, lng, tz },
+        const f = await getForecast(
+          { lat: +lat, lng: +lng, tz },
           {
             fetch: window.fetch.bind(window),
             // Show an accurate "retrying" message before each backoff wait.
@@ -198,7 +291,20 @@ import { cities } from '../data/cities';
               }),
           },
         );
-        renderSuccess(card, weather);
+        const day = f.daily[0];
+        renderSuccess(card, {
+          tmax: day?.tmax ?? null,
+          tmin: day?.tmin ?? null,
+          rain: day?.precipProbabilityMax ?? 0,
+          condition: f.current.condition,
+          peek: {
+            windSpeed: f.current.windSpeed,
+            windDir: f.current.windDir,
+            uvIndex: f.current.uvIndex,
+            cloudCover: f.current.cloudCover,
+            humidity: f.current.humidity,
+          },
+        });
         return true;
       } catch {
         // All retry attempts exhausted.
@@ -216,6 +322,182 @@ import { cities } from '../data/cities';
       } else {
         setUpdateFailedMessage();
       }
+    }
+
+    // ---- Geocoding autocomplete combobox ----
+    const qInput = document.getElementById('q') as HTMLInputElement | null;
+    const acList = document.getElementById('ac') as HTMLUListElement | null;
+    const qMsg = document.getElementById('qmsg') as HTMLParagraphElement | null;
+    const geoBtn = document.getElementById('geo') as HTMLButtonElement | null;
+
+    type GeoItem = {
+      name: string;
+      admin1?: string;
+      country?: string;
+      lat: number;
+      lng: number;
+      tz: string;
+    };
+
+    let results: GeoItem[] = [];
+    let active = -1;
+    let debounceId = 0;
+    let searchGen = 0;
+
+    function showMsg(text: string) {
+      if (!qMsg) return;
+      qMsg.textContent = text;
+      qMsg.classList.remove('hidden');
+    }
+
+    function hideMsg() {
+      if (!qMsg) return;
+      qMsg.textContent = '';
+      qMsg.classList.add('hidden');
+    }
+
+    function closeList() {
+      if (!acList || !qInput) return;
+      acList.classList.add('hidden');
+      acList.textContent = '';
+      qInput.setAttribute('aria-expanded', 'false');
+      qInput.removeAttribute('aria-activedescendant');
+      results = [];
+      active = -1;
+    }
+
+    function highlight() {
+      if (!acList || !qInput) return;
+      Array.from(acList.children).forEach((li, i) => {
+        if (i === active) {
+          li.classList.add('bg-gray-800');
+          li.setAttribute('aria-selected', 'true');
+          qInput.setAttribute('aria-activedescendant', li.id);
+        } else {
+          li.classList.remove('bg-gray-800');
+          li.setAttribute('aria-selected', 'false');
+        }
+      });
+      if (active < 0) qInput.removeAttribute('aria-activedescendant');
+    }
+
+    function go(r: GeoItem) {
+      location.href = fullHref(String(r.lat), String(r.lng), r.tz, r.name);
+    }
+
+    function renderList() {
+      if (!acList || !qInput) return;
+      acList.textContent = '';
+      results.forEach((r, i) => {
+        const li = document.createElement('li');
+        li.id = 'ac-' + i;
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', 'false');
+        li.className =
+          'px-3 py-2 text-sm text-gray-200 cursor-pointer hover:bg-gray-800';
+        li.textContent = [r.name, r.admin1, r.country]
+          .filter(Boolean)
+          .join(', ');
+        li.addEventListener('click', () => go(r));
+        acList.appendChild(li);
+      });
+      acList.classList.remove('hidden');
+      qInput.setAttribute('aria-expanded', 'true');
+      active = -1;
+    }
+
+    async function runSearch(term: string) {
+      const gen = ++searchGen;
+      try {
+        const res = await geocode(term, deps);
+        if (gen !== searchGen) return;
+        if (!res.length) {
+          closeList();
+          showMsg(`${t.no_results} «${term}»`);
+          return;
+        }
+        results = res;
+        hideMsg();
+        renderList();
+      } catch {
+        if (gen !== searchGen) return;
+        closeList();
+        showMsg(`${t.no_results} «${term}»`);
+      }
+    }
+
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        const term = qInput.value.trim();
+        window.clearTimeout(debounceId);
+        if (term === '') {
+          hideMsg();
+          closeList();
+          return;
+        }
+        debounceId = window.setTimeout(() => runSearch(term), 300);
+      });
+
+      qInput.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (results.length === 0) {
+          if (e.key === 'Escape') closeList();
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          active = (active + 1) % results.length;
+          highlight();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          active = active <= 0 ? results.length - 1 : active - 1;
+          highlight();
+        } else if (e.key === 'Enter') {
+          if (active >= 0 && active < results.length) {
+            e.preventDefault();
+            go(results[active]);
+          }
+        } else if (e.key === 'Escape') {
+          closeList();
+        }
+      });
+    }
+
+    // Click-outside closes the suggestion list.
+    document.addEventListener('click', (e) => {
+      const target = e.target as Node;
+      if (
+        qInput &&
+        acList &&
+        !qInput.contains(target) &&
+        !acList.contains(target)
+      ) {
+        closeList();
+      }
+    });
+
+    // ---- Use my location ----
+    if (geoBtn) {
+      geoBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showMsg(t.geo_denied);
+          return;
+        }
+        showMsg(t.searching);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            location.href = fullHref(
+              String(pos.coords.latitude),
+              String(pos.coords.longitude),
+              'auto',
+              'Tu ubicación',
+            );
+          },
+          () => {
+            showMsg(t.geo_denied);
+          },
+          { timeout: 10000 },
+        );
+      });
     }
 
     refreshAll();
