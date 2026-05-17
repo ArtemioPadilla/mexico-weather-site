@@ -11,6 +11,8 @@ export default [
       '.astro/**',
       'node_modules/**',
       '.husky/**',
+      '.claude/**',
+      '.superpowers/**',
       'package-lock.json',
     ],
   },

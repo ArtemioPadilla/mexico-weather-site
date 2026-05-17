@@ -29,6 +29,11 @@ jobs:
         env:
           PUBLIC_BUILD_SHA: ${{ github.sha }}
           PUBLIC_VERSION: ${{ github.ref_name }}
+          # smn.conagua.gob.mx serves an incomplete TLS chain (missing the
+          # GeoTrust TLS RSA CA G1 intermediate). Supply the genuine
+          # intermediate so the build-time RSS fetch gets REAL SMN avisos with
+          # TLS verification fully enabled (no rejectUnauthorized:false).
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/src/data/smn-ca.pem
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
