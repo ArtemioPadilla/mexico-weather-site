@@ -1,0 +1,276 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ui } from '../i18n/ui';
+
+// keep in sync with the other lang declaration in this file
+const lang = 'es' as const;
+const t = ui[lang];
+---
+
+<BaseLayout
+  title="Pronóstico — Clima México 🇲🇽"
+  description="Pronóstico detallado por ubicación"
+  lang={lang}
+>
+  <main class="min-h-screen bg-gray-950 text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <a
+        href={import.meta.env.BASE_URL}
+        class="inline-block text-sm text-blue-400 hover:underline"
+        >← {t.back_home}</a
+      >
+
+      <div
+        id="fc-empty"
+        class="hidden rounded-lg border border-gray-800 bg-gray-900 p-6 text-center space-y-4"
+      >
+        <p class="text-gray-300">{t.pick_location}</p>
+        <a
+          href={import.meta.env.BASE_URL}
+          class="inline-block text-sm text-blue-400 hover:underline"
+          >← {t.back_home}</a
+        >
+      </div>
+
+      <p id="fc-status" aria-live="polite" class="text-gray-500">{t.loading}</p>
+
+      <section id="fc-root" class="hidden space-y-6" aria-live="polite"></section>
+    </div>
+  </main>
+
+  <script>
+    import { getForecast, uvLabel, windDir } from '../lib/forecast';
+    import { ui } from '../i18n/ui';
+
+    // keep in sync with the other lang declaration in this file
+    const lang: 'es' | 'en' = 'es';
+    const t = ui[lang];
+    const dateLocale = lang === 'es' ? 'es-MX' : 'en-US';
+
+    const statusEl = document.getElementById('fc-status');
+    const rootEl = document.getElementById('fc-root');
+    const emptyEl = document.getElementById('fc-empty');
+
+    function showEmpty(): void {
+      statusEl?.classList.add('hidden');
+      emptyEl?.classList.remove('hidden');
+    }
+
+    // --- helpers --------------------------------------------------------
+    function esc(s: string): string {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmt(n: number | null): string {
+      return n === null ? '—' : String(Math.round(n));
+    }
+
+    function hourLabel(iso: string, idx: number): string {
+      return idx === 0 ? t.current : iso.slice(11, 13) + 'h';
+    }
+
+    function dayLabel(iso: string, idx: number): string {
+      if (idx === 0) return t.today;
+      if (!iso) return '—';
+      const d = new Date(iso + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString(dateLocale, { weekday: 'long' });
+    }
+
+    function timeOnly(s: string | null): string {
+      return s ? s.slice(11) : '—';
+    }
+
+    // Pull the trailing emoji from a WMO condition string ("Lluvia 🌧️").
+    function emoji(condition: string): string {
+      const parts = condition.trim().split(/\s+/);
+      const last = parts[parts.length - 1];
+      return last && /\p{Emoji}/u.test(last) ? last : '·';
+    }
+
+    function sparkline(temps: number[]): string {
+      const pts = temps.filter((n) => n !== null && Number.isFinite(n));
+      if (pts.length < 2) return '';
+      const min = Math.min(...pts);
+      const max = Math.max(...pts);
+      const span = max - min || 1;
+      const w = 300;
+      const h = 36;
+      const step = w / (pts.length - 1);
+      const coords = pts
+        .map((v, i) => {
+          const x = i * step;
+          const y = h - 2 - ((v - min) / span) * (h - 4);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(' ');
+      return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-9 mt-2" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#60a5fa" stroke-width="2" points="${coords}" /></svg>`;
+    }
+
+    interface RenderLoc {
+      lat: number;
+      lng: number;
+      tz: string;
+      name: string;
+    }
+
+    async function render(loc: RenderLoc): Promise<void> {
+      try {
+        const fc = await getForecast(
+          { lat: loc.lat, lng: loc.lng, tz: loc.tz },
+          {
+            fetch: window.fetch.bind(window),
+            sleep: (ms: number) =>
+              new Promise<void>((r) => setTimeout(r, ms)),
+          },
+        );
+
+        const { current, hourly, daily } = fc;
+        const safeName = (loc.name || '').replace(/[\x00-\x1f\x7f]/g, '').trim().slice(0, 100);
+        const title = safeName || `${loc.lat}, ${loc.lng}`;
+        document.title = title + ' — Clima México 🇲🇽';
+
+        const d0 = daily[0];
+
+        const currentHtml = `
+          <header class="space-y-1">
+            <h1 class="text-2xl font-bold">${esc(title)}</h1>
+            <p class="text-xs text-gray-500">${esc(loc.lat + ', ' + loc.lng)}</p>
+            <div class="flex items-end gap-3 pt-2">
+              <span class="text-6xl font-bold">${fmt(current.temperature)}°</span>
+              <span class="text-sm text-gray-400 pb-2">${esc(t.feels_like)} ${fmt(current.feelsLike)}°</span>
+            </div>
+            <p class="text-lg text-gray-200">${esc(current.condition)}</p>
+            <p class="text-xs text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
+          </header>`;
+
+        // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().
+        const hourCells = hourly
+          .map((hw, i) => {
+            const label = esc(hourLabel(hw.time, i));
+            return `<div class="min-w-[62px] flex-shrink-0 rounded-md bg-gray-900 border border-gray-800 p-2 text-center text-xs space-y-1">
+              <div class="text-gray-400">${label}</div>
+              <div class="text-base">${esc(emoji(hw.condition))}</div>
+              <div class="font-semibold">${fmt(hw.temperature)}°</div>
+              <div class="text-blue-400">${Math.round(hw.precipProbability)}%</div>
+              <div class="text-gray-500">${Math.round(hw.windSpeed)} km/h</div>
+            </div>`;
+          })
+          .join('');
+
+        const hourlyHtml = `
+          <section class="space-y-2">
+            <h2 class="text-lg font-semibold">${esc(t.hourly_48h)}</h2>
+            <div tabindex="0" role="group" aria-label="${esc(t.hourly_48h)}" class="flex gap-2 overflow-x-auto pb-2">
+              ${hourCells}
+            </div>
+            ${sparkline(
+              hourly
+                .map((hw) => hw.temperature)
+                .filter((n): n is number => n !== null),
+            )}
+          </section>`;
+
+        // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().
+        const dayRows = daily
+          .map((dw, i) => {
+            return `<div class="grid grid-cols-[5rem_1.5rem_1fr_3rem_5rem] items-center gap-2 py-1.5 border-b border-gray-800 text-sm">
+              <span class="capitalize text-gray-300">${esc(dayLabel(dw.date, i))}</span>
+              <span class="text-center">${esc(emoji(dw.condition))}</span>
+              <span class="h-1 rounded bg-gray-800"></span>
+              <span class="text-blue-400 text-right">💧${Math.round(dw.precipProbabilityMax)}%</span>
+              <span class="text-right text-gray-300">${fmt(dw.tmin)}° / ${fmt(dw.tmax)}°</span>
+            </div>`;
+          })
+          .join('');
+
+        const sevenHtml = `
+          <section class="space-y-1">
+            <h2 class="text-lg font-semibold">${esc(t.seven_days)}</h2>
+            ${dayRows}
+          </section>`;
+
+        const wd = windDir(current.windDir);
+        const uv = uvLabel(current.uvIndex);
+
+        const detailHtml = `
+          <section class="space-y-2">
+            <h2 class="text-lg font-semibold">${esc(t.detail)}</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="rounded-md bg-gray-900 border border-gray-800 p-3 space-y-1">
+                <div class="text-xs text-gray-500">${esc(t.wind)}</div>
+                <div class="text-lg font-semibold">${Math.round(current.windSpeed)} km/h</div>
+                <div class="text-xs text-gray-400">${esc(wd.arrow)} ${esc(wd.label)} · ${esc(t.gusts)} ${Math.round(current.windGusts)} km/h</div>
+              </div>
+              <div class="rounded-md bg-gray-900 border border-gray-800 p-3 space-y-1">
+                <div class="text-xs text-gray-500">${esc(t.uv_index)}</div>
+                <div class="text-lg font-semibold">${esc(String(uv.value))}</div>
+                <div class="text-xs text-gray-400">${esc(uv.level)}</div>
+              </div>
+              <div class="rounded-md bg-gray-900 border border-gray-800 p-3 space-y-1">
+                <div class="text-xs text-gray-500">${esc(t.sky_air)}</div>
+                <div class="text-lg font-semibold">${Math.round(current.cloudCover)}% ${esc(t.cloud_cover)}</div>
+                <div class="text-xs text-gray-400">${esc(t.humidity)} ${Math.round(current.humidity)}% · ${esc(t.pressure)} ${fmt(current.pressure)} hPa · ${esc(t.visibility)} ${esc(String(current.visibilityKm))} km</div>
+              </div>
+            </div>
+          </section>`;
+
+        const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+        const contextHtml = `
+          <div class="rounded-md border border-yellow-600/60 bg-yellow-600/10 p-3 text-sm text-yellow-200">
+            ⚠️ Contexto SMN/CONAGUA — avisos vigentes:
+            <a href="${esc(base)}/rss.xml" target="_blank" rel="noopener noreferrer" class="underline">rss.xml</a>
+          </div>
+          <footer class="border-t border-gray-800 mt-4 pt-3 text-center text-[11px] text-gray-600">Datos: Open-Meteo (ECMWF/DWD/GFS) · Alertas: SMN / CONAGUA · Sin cookies · Sin rastreo</footer>`;
+
+        if (rootEl) {
+          rootEl.innerHTML =
+            currentHtml +
+            hourlyHtml +
+            sevenHtml +
+            detailHtml +
+            contextHtml;
+          statusEl?.classList.add('hidden');
+          rootEl.classList.remove('hidden');
+        }
+      } catch {
+        if (statusEl) {
+          statusEl.textContent = t.load_error;
+          statusEl.classList.add('text-red-400');
+          statusEl.classList.remove('text-gray-500');
+        }
+      }
+    }
+
+    // --- param parsing --------------------------------------------------
+    const params = new URLSearchParams(location.search);
+    const latRaw = params.get('lat');
+    const lngRaw = params.get('lng');
+    const name = params.get('name') || '';
+    const tz = params.get('tz') || 'auto';
+
+    const lat = latRaw === null ? NaN : Number(latRaw);
+    const lng = lngRaw === null ? NaN : Number(lngRaw);
+
+    const valid =
+      latRaw !== null &&
+      lngRaw !== null &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180;
+
+    if (!valid) {
+      showEmpty();
+    } else {
+      void render({ lat, lng, tz, name });
+    }
+  </script>
+</BaseLayout>

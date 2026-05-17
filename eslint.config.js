@@ -40,6 +40,12 @@ export default [
       '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      // forecast.astro intentionally strips ASCII control characters
+      // (\x00-\x1f, \x7f) from location names before injecting them into
+      // the DOM — a deliberate input-sanitization safeguard, not an
+      // accidental control char. This is a heuristic style rule, not a
+      // correctness rule, so allow control chars in regex literals.
+      'no-control-regex': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
