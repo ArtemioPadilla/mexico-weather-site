@@ -1,5 +1,6 @@
 ---
 import FeedbackFAB from '../components/common/FeedbackFAB.astro';
+import ThemeToggle from '../components/common/ThemeToggle.astro';
 import { siteBase } from '../utils/paths';
 
 interface Props {
@@ -30,7 +31,7 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
 ---
 
 <!doctype html>
-<html lang={lang} class="dark">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,6 +40,22 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <link rel="canonical" href={canonical} />
+    {/* Anti-FOUC: resolver y aplicar el tema antes del primer pintado. */}
+    <script is:inline>
+      (function () {
+        var pref;
+        // Key MUST match THEME_STORAGE_KEY in src/lib/theme.ts (inline script cannot import).
+        try { pref = localStorage.getItem('theme'); } catch (e) { pref = null; }
+        if (pref !== 'light' && pref !== 'dark' && pref !== 'system') {
+          pref = 'system';
+        }
+        var prefersDark =
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = pref === 'dark' || (pref !== 'light' && prefersDark);
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
@@ -55,7 +72,8 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
   </head>
-  <body class="min-h-screen bg-gray-950 text-gray-100 antialiased">
+  <body class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased">
+    <ThemeToggle lang={lang} />
     <slot />
     <FeedbackFAB lang={lang} />
   </body>
