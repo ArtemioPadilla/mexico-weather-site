@@ -26,11 +26,9 @@ const {
     {/* Anti-FOUC: resolver y aplicar el tema antes del primer pintado. */}
     <script is:inline>
       (function () {
-        try {
-          var pref = localStorage.getItem('theme');
-        } catch (e) {
-          var pref = null;
-        }
+        var pref;
+        // Key MUST match THEME_STORAGE_KEY in src/lib/theme.ts (inline script cannot import).
+        try { pref = localStorage.getItem('theme'); } catch (e) { pref = null; }
         if (pref !== 'light' && pref !== 'dark' && pref !== 'system') {
           pref = 'system';
         }

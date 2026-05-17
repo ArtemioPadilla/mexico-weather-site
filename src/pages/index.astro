@@ -141,6 +141,7 @@ const cities = [
         const status = card.querySelector('.js-status');
         const weather = card.querySelector('.js-weather');
         if (status) {
+          status.classList.remove('hidden');
           status.textContent = 'Error cargando datos. Reintentando...';
           status.classList.remove('text-gray-600', 'dark:text-gray-500');
           status.classList.add('text-red-600', 'dark:text-red-400');
@@ -160,7 +161,10 @@ const cities = [
         if (tmin) tmin.textContent = String(payload.tmin);
         if (rain) rain.textContent = String(payload.rain);
         if (condition) condition.textContent = payload.condition;
-        if (status) status.classList.add('hidden');
+        if (status) {
+          status.classList.remove('text-red-600', 'dark:text-red-400');
+          status.classList.add('hidden');
+        }
         if (weather) weather.classList.remove('hidden');
       }
 

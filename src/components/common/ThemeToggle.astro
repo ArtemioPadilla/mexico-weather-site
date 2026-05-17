@@ -181,6 +181,11 @@ const tr = {
       }
     });
 
+    // Sincronizar con cambios de tema en otras pestañas.
+    window.addEventListener('storage', (e) => {
+      if (e.key === THEME_STORAGE_KEY) render(normalizePreference(e.newValue));
+    });
+
     // Sincronizar el estado inicial del botón (la clase .dark ya fue
     // fijada por el script anti-FOUC en el <head>).
     render(readPreference());
