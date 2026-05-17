@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//Users/artemiopadilla/.claude/plugins/marketplaces/agent-triforce/**)",
-      "Bash(find . -name \"marketplace.json\" -maxdepth 3)",
-      "Bash(cat agent-triforce/.claude-plugin/plugin.json)"
-    ]
-  }
-}
