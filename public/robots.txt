@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://artemiopadilla.github.io/mexico-weather-site/sitemap.xml

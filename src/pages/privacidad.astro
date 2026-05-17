@@ -1,0 +1,120 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteBase } from '../utils/paths';
+
+const home = siteBase();
+---
+
+<BaseLayout
+  title="Privacidad — Clima México 🇲🇽"
+  description="Aviso de privacidad de Clima México: sin cookies, sin rastreo, sin cuentas ni datos personales."
+  lang="es"
+>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-12 space-y-10">
+      <header class="space-y-3">
+        <a
+          href={home}
+          class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          ← Volver al inicio
+        </a>
+        <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">Privacidad 🔒</h1>
+        <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+          Clima México es un sitio estático que respeta tu privacidad por diseño.
+          No usamos cookies, no te rastreamos y no recopilamos datos personales.
+        </p>
+      </header>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Qué NO hacemos</h2>
+        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed list-disc pl-5">
+          <li>No usamos cookies ni almacenamiento del navegador con fines de seguimiento.</li>
+          <li>No usamos analítica, píxeles de rastreo ni publicidad.</li>
+          <li>No hay cuentas, registros ni inicio de sesión.</li>
+          <li>No recopilamos ni almacenamos información personal de ningún tipo.</li>
+        </ul>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Datos meteorológicos</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          Los pronósticos se consultan directamente desde tu navegador a la API
+          pública de <a
+            href="https://open-meteo.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300">Open-Meteo</a
+          >. Esa petición la realiza tu propio dispositivo; nosotros no operamos un
+          servidor intermedio que registre tu actividad. Open-Meteo aplica su propia
+          política de privacidad para esas solicitudes.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Ubicación</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          El sitio no solicita tu ubicación de forma automática. Si en algún momento
+          se ofrece una función basada en geolocalización, esta se activa únicamente
+          tras una acción explícita tuya, y la coordenada se usa solo en tu navegador:
+          nunca se guarda ni se envía a ningún servidor nuestro.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Botón de comentarios</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          El botón para reportar un problema abre un formulario de incidencia
+          previamente rellenado en GitHub. Tú decides si lo envías o no. Si lo envías,
+          el contenido queda sujeto a la
+          <a
+            href="https://docs.github.com/es/site-policy/privacy-policies/github-general-privacy-statement"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+            >política de privacidad de GitHub</a
+          >.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Fuentes de datos</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          Agradecemos a los siguientes proveedores de datos abiertos:
+        </p>
+        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed list-disc pl-5">
+          <li>
+            <a
+              href="https://open-meteo.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+              >Open-Meteo</a
+            > — pronósticos basados en los modelos ECMWF, DWD y GFS.
+          </li>
+          <li>
+            <a
+              href="https://smn.conagua.gob.mx"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+              >SMN / CONAGUA</a
+            > — Servicio Meteorológico Nacional de México.
+          </li>
+        </ul>
+      </section>
+
+      <footer class="border-t border-gray-200 pt-6 dark:border-gray-800">
+        <a
+          href={home}
+          class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          ← Volver al inicio
+        </a>
+        <p class="text-xs text-gray-400 mt-3 dark:text-gray-700">
+          Datos libres • Sin cookies • Sin rastreo
+        </p>
+      </footer>
+    </div>
+  </main>
+</BaseLayout>

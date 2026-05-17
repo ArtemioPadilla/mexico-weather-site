@@ -7,9 +7,9 @@ with a built-in feedback button that opens pre-filled GitHub issues.
 
 ## Features
 
-- Forecast cards for key Mexican cities.
+- Search any location + "use my location" with current / 48h-hourly / 7-day forecast (wind, UV, sky & air).
 - Client-side weather refresh every 10 minutes.
-- Link to SMN RSS alerts.
+- Build-time generated RSS 2.0 feed of SMN weather alerts at `/rss.xml`.
 - Floating feedback modal with diagnostics capture.
 - Static deployment to GitHub Pages.
 
@@ -41,6 +41,10 @@ Then open the local URL shown in your terminal.
 - `npm run build`: Build static files into `dist`.
 - `npm run preview`: Preview the production build.
 - `npm test`: Run tests with Vitest.
+
+## Code style
+
+ESLint and Prettier are configured for this project (`npm run lint`, `npm run format`). A Husky pre-commit hook runs ESLint --fix on staged JS/TS/Astro files and Prettier on staged JSON/CSS config files. The repository is not yet fully Prettier-formatted, so `format:check` and a full `npm run format` are intentionally not enforced in CI — running them would produce a large diff unrelated to feature work.
 
 ## Deployment
 

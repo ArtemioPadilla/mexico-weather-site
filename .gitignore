@@ -4,3 +4,5 @@ node_modules/
 dist/
 .astro/
 *.log
+.claude/settings.local.json
+.superpowers/
