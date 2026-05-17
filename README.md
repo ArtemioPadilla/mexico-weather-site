@@ -7,7 +7,7 @@ with a built-in feedback button that opens pre-filled GitHub issues.
 
 ## Features
 
-- Forecast cards for key Mexican cities.
+- Search any location + "use my location" with current / 48h-hourly / 7-day forecast (wind, UV, sky & air).
 - Client-side weather refresh every 10 minutes.
 - Link to SMN RSS alerts.
 - Floating feedback modal with diagnostics capture.

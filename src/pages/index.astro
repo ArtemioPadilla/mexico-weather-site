@@ -328,6 +328,7 @@ const t = ui.es;
     const qInput = document.getElementById('q') as HTMLInputElement | null;
     const acList = document.getElementById('ac') as HTMLUListElement | null;
     const qMsg = document.getElementById('qmsg') as HTMLParagraphElement | null;
+    const geoBtn = document.getElementById('geo') as HTMLButtonElement | null;
 
     type GeoItem = {
       name: string;
@@ -466,6 +467,31 @@ const t = ui.es;
         closeList();
       }
     });
+
+    // ---- Use my location ----
+    if (geoBtn) {
+      geoBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showMsg(t.geo_denied);
+          return;
+        }
+        showMsg(t.searching);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            location.href = fullHref(
+              String(pos.coords.latitude),
+              String(pos.coords.longitude),
+              'auto',
+              'Tu ubicación',
+            );
+          },
+          () => {
+            showMsg(t.geo_denied);
+          },
+          { timeout: 10000 },
+        );
+      });
+    }
 
     refreshAll();
     window.setInterval(refreshAll, REFRESH_INTERVAL_MS);
