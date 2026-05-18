@@ -182,7 +182,7 @@ export async function getForecast(
       // show the last HOURLY_LIMIT hours rather than the first.
       startIdx = Math.max(0, hTimes.length - HOURLY_LIMIT);
     }
-    // found === 0 → already anchored at start; keep startIdx 0.
+    // found === 0: either the current hour is exactly the first slot (ideal), or the hourly array starts after current.time (API generation lag) — keeping startIdx 0 is the only sensible choice in both.
   }
   // No current.time → startIdx 0 (legacy behavior).
 

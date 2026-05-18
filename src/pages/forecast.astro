@@ -201,9 +201,11 @@ const t = ui[lang];
 
         function barFill(tmin: number | null, tmax: number | null): string {
           if (tmin === null || tmax === null) return '';
-          const l = ((tmin - weekMin) / span) * 100;
-          const r = 100 - ((tmax - weekMin) / span) * 100;
-          return `<i style="position:absolute;left:${l.toFixed(1)}%;right:${Math.max(0, r).toFixed(1)}%;height:100%;border-radius:9999px;background:linear-gradient(90deg,#60a5fa,#fbbf24,#f97316)"></i>`;
+          const lo = Math.min(100, Math.max(0, ((tmin - weekMin) / span) * 100));
+          const hi = Math.min(100, Math.max(0, ((tmax - weekMin) / span) * 100));
+          const left = Math.min(lo, hi);
+          const width = Math.max(1, Math.abs(hi - lo)); // ≥1% so a valid same-temp/glitch day still shows a sliver
+          return `<i style="position:absolute;left:${left.toFixed(1)}%;width:${width.toFixed(1)}%;height:100%;border-radius:9999px;background:linear-gradient(90deg,#60a5fa,#fbbf24,#f97316)"></i>`;
         }
 
         // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().

@@ -283,13 +283,13 @@ describe('getForecast hourly anchoring', () => {
     const wc: number[] = [];
     const pp: number[] = [];
     const ws: number[] = [];
-    const start = new Date(firstHour + ':00');
+    const start = new Date(firstHour + ':00Z');
     for (let i = 0; i < n; i++) {
       const d = new Date(start.getTime() + i * 3600_000);
       const pad = (x: number) => String(x).padStart(2, '0');
       const iso =
-        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-        `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
+        `T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
       time.push(iso);
       t2m.push(20 + i);
       wc.push(2);
