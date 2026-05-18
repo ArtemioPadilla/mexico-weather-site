@@ -105,12 +105,22 @@ const home = siteBase();
       </section>
 
       <footer class="border-t border-gray-200 pt-6 dark:border-gray-800">
-        <a
-          href={home}
-          class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          ← Volver al inicio
-        </a>
+        <div class="flex flex-wrap items-center gap-4">
+          <a
+            href={home}
+            class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            ← Volver al inicio
+          </a>
+          <a
+            href="https://artemiop.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Artemio Padilla
+          </a>
+        </div>
         <p class="text-xs text-gray-400 mt-3 dark:text-gray-700">
           Datos libres • Sin cookies • Sin rastreo
         </p>

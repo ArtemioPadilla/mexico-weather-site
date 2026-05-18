@@ -121,12 +121,23 @@ const base = siteBase();
         <p class="text-xs text-gray-400 mt-2 dark:text-gray-700">
           Datos libres • Sin cookies • Sin rastreo
         </p>
-        <a
-          href={`${base}privacidad/`}
-          class="inline-block text-xs text-gray-600 hover:text-gray-900 transition-colors mt-1 dark:text-gray-500 dark:hover:text-gray-300"
-        >
-          Privacidad
-        </a>
+        <div class="flex flex-wrap justify-center gap-4 text-xs text-gray-600 dark:text-gray-500 mt-1">
+          <a
+            href={`${base}privacidad/`}
+            class="hover:text-gray-900 transition-colors dark:hover:text-gray-300"
+          >
+            Privacidad
+          </a>
+          <span>•</span>
+          <a
+            href="https://artemiop.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-gray-900 transition-colors dark:hover:text-gray-300"
+          >
+            Artemio Padilla
+          </a>
+        </div>
       </footer>
     </div>
   </main>
