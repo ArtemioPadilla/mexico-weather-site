@@ -187,13 +187,32 @@ const t = ui[lang];
             )}
           </section>`;
 
+        // 7-day temperature range bar: normalize each day's tmin–tmax
+        // against the week's overall min/max so the fill spans the row.
+        const dMins = daily
+          .map((d) => d.tmin)
+          .filter((v): v is number => v !== null);
+        const dMaxs = daily
+          .map((d) => d.tmax)
+          .filter((v): v is number => v !== null);
+        const weekMin = dMins.length ? Math.min(...dMins) : 0;
+        const weekMax = dMaxs.length ? Math.max(...dMaxs) : 1;
+        const span = weekMax - weekMin || 1;
+
+        function barFill(tmin: number | null, tmax: number | null): string {
+          if (tmin === null || tmax === null) return '';
+          const l = ((tmin - weekMin) / span) * 100;
+          const r = 100 - ((tmax - weekMin) / span) * 100;
+          return `<i style="position:absolute;left:${l.toFixed(1)}%;right:${Math.max(0, r).toFixed(1)}%;height:100%;border-radius:9999px;background:linear-gradient(90deg,#60a5fa,#fbbf24,#f97316)"></i>`;
+        }
+
         // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().
         const dayRows = daily
           .map((dw, i) => {
             return `<div class="grid grid-cols-[5rem_1.5rem_1fr_3rem_5rem] items-center gap-2 py-1.5 border-b border-gray-200 dark:border-gray-800 text-sm">
               <span class="capitalize text-gray-700 dark:text-gray-300">${esc(dayLabel(dw.date, i))}</span>
               <span class="text-center">${esc(emoji(dw.condition))}</span>
-              <span class="h-1 rounded bg-gray-300 dark:bg-gray-800"></span>
+              <span class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">${barFill(dw.tmin, dw.tmax)}</span>
               <span class="text-blue-600 dark:text-blue-400 text-right">💧${Math.round(dw.precipProbabilityMax)}%</span>
               <span class="text-right text-gray-700 dark:text-gray-300">${fmt(dw.tmin)}° / ${fmt(dw.tmax)}°</span>
             </div>`;
