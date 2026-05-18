@@ -65,6 +65,89 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
       })();
     </script>
 
+    {/*
+     * Register our OWN scoped service worker so the weather pages are
+     * permanently isolated from the parent user site's root-scoped PWA
+     * service worker (https://artemiop.com/sw.js, scope "/"). The browser
+     * gives control of a client to the most specifically-scoped
+     * registration, so a worker scoped to /mexico-weather-site/ always wins
+     * over the parent "/". This is purely an enhancement: every statement is
+     * wrapped in try/catch and deferred to `load`, so any failure is inert
+     * and never blocks rendering.
+     */}
+    <script is:inline define:vars={{ base }}>
+      (function () {
+        try {
+          if (!('serviceWorker' in navigator)) return;
+          // base is import.meta.env.BASE_URL normalized with a trailing
+          // slash (siteBase()), e.g. "/mexico-weather-site/".
+          var swUrl = new URL(base + 'sw.js', location.origin).href;
+
+          // One-shot migration guard. If a stale PARENT root SW currently
+          // controls this page, swapping in our worker requires exactly ONE
+          // reload to put the page under fresh control. This sessionStorage
+          // flag is checked FIRST and set BEFORE any reload, so at most one
+          // migration reload can ever happen per browsing session — it
+          // cannot loop even if controllerchange fires repeatedly.
+          var MIGRATED_KEY = 'secid-sw-migrated';
+          var alreadyMigrated = false;
+          try {
+            alreadyMigrated =
+              sessionStorage.getItem(MIGRATED_KEY) === '1';
+          } catch (e) {
+            // sessionStorage unavailable (private mode / blocked). Treat as
+            // "already migrated" so we NEVER reload without a working guard.
+            alreadyMigrated = true;
+          }
+
+          // Is the page currently controlled by a *parent* SW (any SW whose
+          // script is NOT our own sw.js)? Only then is a migration reload
+          // meaningful. If uncontrolled or already controlled by us: nothing.
+          var controller = navigator.serviceWorker.controller;
+          var controlledByParent =
+            !!controller &&
+            typeof controller.scriptURL === 'string' &&
+            controller.scriptURL.indexOf('/sw.js') !== -1 &&
+            controller.scriptURL !== swUrl;
+
+          window.addEventListener('load', function () {
+            navigator.serviceWorker
+              .register(swUrl, { scope: base })
+              .then(function () {
+                if (!controlledByParent || alreadyMigrated) return;
+                navigator.serviceWorker.addEventListener(
+                  'controllerchange',
+                  function onChange() {
+                    navigator.serviceWorker.removeEventListener(
+                      'controllerchange',
+                      onChange
+                    );
+                    var blocked = false;
+                    try {
+                      // Set the guard BEFORE reloading. On the next load
+                      // alreadyMigrated is true, so this branch is skipped
+                      // forever this session: a single reload, never a loop.
+                      sessionStorage.setItem(MIGRATED_KEY, '1');
+                    } catch (e) {
+                      // Cannot persist the guard → do NOT reload, since an
+                      // unguarded reload could loop. Safe: our SW still
+                      // controls subsequent navigations.
+                      blocked = true;
+                    }
+                    if (!blocked) location.reload();
+                  }
+                );
+              })
+              .catch(function () {
+                /* registration failed — enhancement only, ignore */
+              });
+          });
+        } catch (e) {
+          /* never let SW isolation break the page */
+        }
+      })();
+    </script>
+
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
