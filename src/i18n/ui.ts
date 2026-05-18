@@ -26,6 +26,15 @@ export interface UiStrings {
   pick_location: string;
   loading: string;
   load_error: string;
+  map_title: string;
+  map_nav: string;
+  map_teaser_heading: string;
+  map_teaser_cta: string;
+  map_layer_base: string;
+  map_search_placeholder: string;
+  map_locate: string;
+  map_popup_full_forecast: string;
+  map_layer_unavailable: string;
 }
 
 export const ui: Record<'es' | 'en', UiStrings> = {
@@ -57,6 +66,15 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     pick_location: 'Busca una ubicación para ver su pronóstico.',
     loading: 'Cargando pronóstico…',
     load_error: 'Error al cargar. Se reintentará automáticamente.',
+    map_title: 'Mapa del tiempo',
+    map_nav: 'Mapa',
+    map_teaser_heading: 'Mapa interactivo del tiempo',
+    map_teaser_cta: 'Ver mapa interactivo',
+    map_layer_base: 'Mapa base',
+    map_search_placeholder: 'Buscar un lugar en el mapa…',
+    map_locate: 'Mi ubicación',
+    map_popup_full_forecast: 'Ver pronóstico completo',
+    map_layer_unavailable: 'Capa no disponible',
   },
   en: {
     search_placeholder: 'Search any city or place…',
@@ -86,5 +104,14 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     pick_location: 'Search for a location to see its forecast.',
     loading: 'Loading forecast…',
     load_error: 'Failed to load. It will retry automatically.',
+    map_title: 'Weather map',
+    map_nav: 'Map',
+    map_teaser_heading: 'Interactive weather map',
+    map_teaser_cta: 'Open interactive map',
+    map_layer_base: 'Base map',
+    map_search_placeholder: 'Search a place on the map…',
+    map_locate: 'My location',
+    map_popup_full_forecast: 'See full forecast',
+    map_layer_unavailable: 'Layer unavailable',
   },
 };

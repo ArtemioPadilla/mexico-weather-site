@@ -20,13 +20,14 @@
     "*.{json,css}": "prettier --write"
   },
   "dependencies": {
-    "astro": "^6.3.3"
+    "astro": "^6.3.3",
+    "maplibre-gl": "^4.7.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@eslint/js": "^10.0.1",
-    "@tailwindcss/vite": "^4.3.0",
     "@playwright/test": "1.60.0",
+    "@tailwindcss/vite": "^4.3.0",
     "astro-eslint-parser": "^1.4.0",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
