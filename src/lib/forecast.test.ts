@@ -274,6 +274,95 @@ describe('getForecast', () => {
   });
 });
 
+describe('getForecast hourly anchoring', () => {
+  // Build >=60 contiguous hourly entries starting at `firstHour`
+  // (e.g. '2026-05-18T00:00'), incrementing one hour at a time.
+  function contiguousHours(firstHour: string, n: number) {
+    const time: string[] = [];
+    const t2m: number[] = [];
+    const wc: number[] = [];
+    const pp: number[] = [];
+    const ws: number[] = [];
+    const start = new Date(firstHour + ':00');
+    for (let i = 0; i < n; i++) {
+      const d = new Date(start.getTime() + i * 3600_000);
+      const pad = (x: number) => String(x).padStart(2, '0');
+      const iso =
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+        `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      time.push(iso);
+      t2m.push(20 + i);
+      wc.push(2);
+      pp.push(10);
+      ws.push(5);
+    }
+    return {
+      time,
+      temperature_2m: t2m,
+      weather_code: wc,
+      precipitation_probability: pp,
+      wind_speed_10m: ws,
+    };
+  }
+
+  function anchorPayload(firstHour: string, currentTime?: string) {
+    const current: Record<string, unknown> = {
+      temperature_2m: 24.6,
+      apparent_temperature: 25.1,
+      weather_code: 3,
+      precipitation_probability: 30,
+      wind_speed_10m: 12.4,
+      wind_gusts_10m: 22.2,
+      wind_direction_10m: 225,
+      uv_index: 6.3,
+      cloud_cover: 75,
+      relative_humidity_2m: 60,
+      surface_pressure: 1013.2,
+      visibility: 24000,
+    };
+    if (typeof currentTime === 'string') current.time = currentTime;
+    return {
+      current,
+      hourly: contiguousHours(firstHour, 72),
+      daily: {
+        time: ['2026-05-18'],
+        weather_code: [3],
+        temperature_2m_max: [28],
+        temperature_2m_min: [14],
+        precipitation_probability_max: [30],
+        uv_index_max: [7],
+        wind_speed_10m_max: [18],
+        sunrise: ['2026-05-18T06:10'],
+        sunset: ['2026-05-18T20:01'],
+      },
+    };
+  }
+
+  it('anchors hourly[0] to the current local hour', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(anchorPayload('2026-05-18T00:00', '2026-05-18T14:30')),
+    );
+    const fc = await getForecast(loc, {
+      fetch: fetchMock as unknown as typeof fetch,
+      sleep: async () => {},
+    });
+    expect(fc.hourly[0].time.slice(0, 13)).toBe('2026-05-18T14');
+    expect(fc.hourly.length).toBe(48);
+  });
+
+  it('falls back to hourly[0] = start when current.time is absent', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(anchorPayload('2026-05-18T00:00')),
+    );
+    const fc = await getForecast(loc, {
+      fetch: fetchMock as unknown as typeof fetch,
+      sleep: async () => {},
+    });
+    expect(fc.hourly[0].time.slice(0, 13)).toBe('2026-05-18T00');
+    expect(fc.hourly.length).toBe(48);
+  });
+});
+
 describe('uvLabel', () => {
   it('classifies UV index thresholds', () => {
     expect(uvLabel(1)).toEqual({ value: 1, level: 'bajo' });
