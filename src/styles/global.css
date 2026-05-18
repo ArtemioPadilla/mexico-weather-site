@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+/*
+ * Class-based dark mode (ported from tailwind.config.mjs `darkMode: 'class'`).
+ * The `.dark` class is toggled on <html> by the anti-FOUC inline script in
+ * BaseLayout and by ThemeToggle, so `dark:` utilities must key off that class
+ * (NOT the media query). This restores the v3 behaviour exactly.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Custom `primary` palette ported verbatim from the old
+ * tailwind.config.mjs `theme.extend.colors.primary`. Exact same hex values so
+ * bg-primary-600, text-primary-400, ring-primary-500, hover:bg-primary-50,
+ * etc. resolve identically to the v3 build.
+ *
+ * Note: `bg-primary-50` is used (FeedbackFAB) but was never defined in v3
+ * either, so it resolved to nothing. Kept identical (undefined) to preserve
+ * the existing rendered output rather than introducing a new colour.
+ */
+@theme {
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+}
+
+/*
+ * Tailwind v4 changed the default border/divide color from `gray-200` to
+ * `currentColor`. The markup uses many bare `border` utilities that relied on
+ * the v3 gray-200 default. This is the documented v4 compatibility shim to
+ * keep borders/dividers visually identical to the v3 build.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}

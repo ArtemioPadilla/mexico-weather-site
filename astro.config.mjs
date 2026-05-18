@@ -1,9 +1,11 @@
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://artemiop.com',
   base: '/mexico-weather-site',
-  integrations: [tailwind()],
   output: 'static',
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });
