@@ -34,6 +34,18 @@ const base = siteBase();
         <p id="js-updated-at" class="text-xs text-gray-600 dark:text-gray-500" aria-live="polite">Cargando datos más recientes...</p>
       </div>
 
+      <!-- Mapa teaser -->
+      <a
+        href={`${base}mapa`}
+        class="block rounded-xl border border-blue-500/40 bg-blue-500/5 p-6 text-center transition hover:bg-blue-500/10 motion-reduce:transition-none dark:border-blue-500/30"
+      >
+        <div class="text-3xl">🗺️</div>
+        <h2 class="mt-2 text-xl font-semibold">{t.map_teaser_heading}</h2>
+        <p class="mt-2 inline-block text-sm font-medium text-blue-600 dark:text-blue-400">
+          {t.map_teaser_cta} →
+        </p>
+      </a>
+
       <!-- Alertas activas -->
       <div class="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-5 space-y-3 dark:border-yellow-500/30">
         <div class="flex items-center gap-2">
