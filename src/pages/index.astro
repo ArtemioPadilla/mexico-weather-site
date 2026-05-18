@@ -56,7 +56,7 @@ const base = siteBase();
         </a>
       </div>
 
-      <script id="preset-data" type="application/json" is:inline set:html={JSON.stringify(cities)}></script>
+      <script id="preset-data" type="application/json" is:inline set:html={JSON.stringify(cities).replace(/</g, '\\u003c')}></script>
 
       <!-- Tus lugares (favoritos, llenado por el cliente) -->
       <section id="fav-section" class="hidden mb-8" aria-label="Tus lugares">
@@ -131,7 +131,7 @@ const base = siteBase();
     // Bundled module script (NOT is:inline) so the import is processed by Astro/Vite.
     import { getForecast, uvLabel, windDir } from '../lib/forecast';
     import { geocode } from '../lib/geocode';
-    import { list, has, toggle, type Favorite } from '../lib/favorites';
+    import { list, has, toggle, remove, type Favorite } from '../lib/favorites';
     import { ui } from '../i18n/ui';
 
     const t = ui.es;
@@ -463,9 +463,21 @@ const base = siteBase();
       });
     }
 
-    async function refreshAll() {
+    // Favorite card elements currently in the DOM. Kept parallel to
+    // presetCards so the interval can refresh them too. Rebuilt by
+    // renderFavorites(); never re-fetched there beyond the one-shot.
+    let favCards: HTMLElement[] = [];
+
+    // includeFavs=false on the very first call: favorites were already
+    // fetched once by renderFavorites(), so skipping them here avoids a
+    // double initial fetch. The interval passes true so favorite cards
+    // stay live alongside presets.
+    async function refreshAll(includeFavs = true) {
+      const cards = includeFavs
+        ? presetCards.concat(favCards)
+        : presetCards;
       const results = await Promise.all(
-        presetCards.map((card) => refreshCityCard(card, cardLoc(card))),
+        cards.map((card) => refreshCityCard(card, cardLoc(card))),
       );
       // Only stamp a fresh timestamp when at least one card succeeded this
       // cycle; during a total outage show an accurate failure message instead.
@@ -543,6 +555,7 @@ const base = siteBase();
       if (!favSection || !favGrid) return;
       const favs = list(store);
       favGrid.textContent = '';
+      favCards = [];
       if (favs.length === 0) {
         favSection.classList.add('hidden');
         return;
@@ -565,14 +578,7 @@ const base = siteBase();
         rm.title = 'Quitar de favoritos';
         rm.textContent = '✕';
         rm.addEventListener('click', () => {
-          toggle(store, {
-            lat: f.lat,
-            lng: f.lng,
-            name: f.name,
-            admin: f.admin,
-            tz: f.tz,
-            addedAt: f.addedAt,
-          });
+          remove(store, f.lat, f.lng);
           if (favMsg) favMsg.textContent = '';
           renderFavorites();
           syncAllStars();
@@ -583,6 +589,7 @@ const base = siteBase();
         if (star) wireStar(star);
 
         favGrid.appendChild(card);
+        favCards.push(card);
         void refreshCityCard(card, cardLoc(card));
       });
       syncAllStars();
@@ -594,7 +601,6 @@ const base = siteBase();
       if (star) wireStar(star);
     });
     renderFavorites();
-    syncAllStars();
 
     // ---- Geocoding autocomplete combobox ----
     const qInput = document.getElementById('q') as HTMLInputElement | null;
@@ -806,7 +812,9 @@ const base = siteBase();
       });
     }
 
-    refreshAll();
-    window.setInterval(refreshAll, REFRESH_INTERVAL_MS);
+    // Initial pass: presets only (favorites already fetched once by
+    // renderFavorites). The interval then refreshes presets + favCards.
+    refreshAll(false);
+    window.setInterval(() => refreshAll(true), REFRESH_INTERVAL_MS);
   </script>
 </BaseLayout>

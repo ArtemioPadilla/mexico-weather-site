@@ -106,6 +106,23 @@ describe('load', () => {
   });
 });
 
+describe('non-finite coordinates', () => {
+  it('excludes NaN/Infinity entries on reload, valid entry survives', () => {
+    const s = memStore();
+    // add() does not guard non-finite coords, so these persist...
+    add(s, fav({ lat: NaN, lng: 1, name: 'nan-lat' }));
+    add(s, fav({ lat: 2, lng: Infinity, name: 'inf-lng' }));
+    // ...but isFavorite filters them out on the next load.
+    expect(list(s)).toHaveLength(0);
+
+    const valid = fav({ lat: 25.5, lng: -103.5, name: 'Valid' });
+    add(s, valid);
+    const out = list(s);
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toBe('Valid');
+  });
+});
+
 describe('save / load round-trip', () => {
   it('persists and reloads favorites', () => {
     const s = memStore();

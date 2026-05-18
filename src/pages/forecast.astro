@@ -297,7 +297,7 @@ const t = ui[lang];
           }
           if (favBtn) {
             favBtn.addEventListener('click', () => {
-              toggle(store, fav);
+              toggle(store, { ...fav, addedAt: Date.now() });
               sync();
             });
             sync();
