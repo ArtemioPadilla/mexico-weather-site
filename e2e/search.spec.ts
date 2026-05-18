@@ -51,6 +51,13 @@ test.describe('search & forecast (deterministic, mocked Open-Meteo)', () => {
       page.getByRole('heading', { name: '7 días' }),
     ).toBeVisible();
 
+    // The 7-day rows must render a temperature-range bar fill: at least one
+    // <i> with an inline `left:` style under the #fc-root section.
+    const barFill = page.locator('#fc-root i[style*="left:"]').first();
+    await expect(barFill).toHaveCount(1);
+    const style = (await barFill.getAttribute('style')) ?? '';
+    expect(style).toMatch(/left:\d/);
+
     // Hourly (48 h) section.
     await expect(
       page.getByRole('heading', { name: /Por hora/ }),

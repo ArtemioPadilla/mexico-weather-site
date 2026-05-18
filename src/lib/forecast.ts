@@ -160,9 +160,36 @@ export async function getForecast(
 
   const h = data.hourly ?? {};
   const hTimes: unknown[] = Array.isArray(h.time) ? h.time : [];
+
+  // Open-Meteo hourly.time starts at 00:00 *today* in the location's tz,
+  // so without anchoring the strip would show 00:00→47h and mislabel idx 0
+  // as "now". Anchor to the first hour at/after the current local hour.
+  // The string compare is valid because current.time and hourly.time use
+  // the same timezone and the same lexicographically-sortable
+  // `YYYY-MM-DDTHH:mm` format, so comparing the `YYYY-MM-DDTHH` prefixes
+  // orders them chronologically.
+  const cHourPrefix =
+    typeof c.time === 'string' ? (c.time as string).slice(0, 13) : '';
+  let startIdx = 0;
+  if (cHourPrefix) {
+    const found = hTimes.findIndex(
+      (t) => typeof t === 'string' && t.slice(0, 13) >= cHourPrefix,
+    );
+    if (found > 0) {
+      startIdx = found;
+    } else if (found === -1 && hTimes.length > HOURLY_LIMIT) {
+      // No matching hour (e.g. current.time past the forecast window):
+      // show the last HOURLY_LIMIT hours rather than the first.
+      startIdx = Math.max(0, hTimes.length - HOURLY_LIMIT);
+    }
+    // found === 0: either the current hour is exactly the first slot (ideal), or the hourly array starts after current.time (API generation lag) — keeping startIdx 0 is the only sensible choice in both.
+  }
+  // No current.time → startIdx 0 (legacy behavior).
+
   const hourly: HourWx[] = hTimes
-    .slice(0, HOURLY_LIMIT)
-    .map((_, i): HourWx => {
+    .slice(startIdx, startIdx + HOURLY_LIMIT)
+    .map((_, localIndex): HourWx => {
+      const i = startIdx + localIndex;
       const code = numOrNull(h.weather_code?.[i]);
       return {
         time: str(h.time?.[i]),
