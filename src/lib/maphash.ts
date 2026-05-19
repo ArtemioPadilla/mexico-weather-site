@@ -1,6 +1,8 @@
 // Pure, DOM-free encode/decode + validation for the /mapa shareable URL hash.
 // Format: #view=<lat>,<lng>,<zoom>z&layer=<id>[&t=<ISO>]
 
+import { LAYER_IDS } from './maplayers';
+
 export interface MapHashState {
   lat: number;
   lng: number;
@@ -8,9 +10,6 @@ export interface MapHashState {
   layer: string;
   t: string | null;
 }
-
-/** Layer ids valid in Slice 1. Extended in later slices. */
-export const KNOWN_LAYERS = ['base'] as const;
 
 /** Default view: centred on Mexico, country-level zoom. */
 export const DEFAULT_VIEW: MapHashState = {
@@ -42,7 +41,7 @@ export function parseMapHash(hash: string): MapHashState {
   }
 
   const rawLayer = params.get('layer') ?? 'base';
-  const layer = (KNOWN_LAYERS as readonly string[]).includes(rawLayer) ? rawLayer : 'base';
+  const layer = (LAYER_IDS as readonly string[]).includes(rawLayer) ? rawLayer : 'base';
 
   const t = params.get('t');
   return { lat, lng, zoom, layer, t: t && t.length > 0 ? t : null };

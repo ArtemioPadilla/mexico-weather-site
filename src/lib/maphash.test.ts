@@ -36,6 +36,10 @@ describe('parseMapHash', () => {
   it('falls back to base for an unknown layer id', () => {
     expect(parseMapHash('#view=0,0,3z&layer=bogus').layer).toBe('base');
   });
+
+  it('preserves a registry-known layer id (radar)', () => {
+    expect(parseMapHash('#view=0,0,3z&layer=radar').layer).toBe('radar');
+  });
 });
 
 describe('buildMapHash', () => {

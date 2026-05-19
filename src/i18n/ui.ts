@@ -35,6 +35,13 @@ export interface UiStrings {
   map_locate: string;
   map_popup_full_forecast: string;
   map_layer_unavailable: string;
+  map_layers: string;
+  map_layer_radar: string;
+  map_opacity: string;
+  legend_light: string;
+  legend_moderate: string;
+  legend_heavy: string;
+  legend_snow: string;
 }
 
 export const ui: Record<'es' | 'en', UiStrings> = {
@@ -75,6 +82,13 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     map_locate: 'Mi ubicación',
     map_popup_full_forecast: 'Ver pronóstico completo',
     map_layer_unavailable: 'Capa no disponible',
+    map_layers: 'Capas',
+    map_layer_radar: 'Radar',
+    map_opacity: 'Opacidad',
+    legend_light: 'Ligera',
+    legend_moderate: 'Moderada',
+    legend_heavy: 'Intensa',
+    legend_snow: 'Nieve',
   },
   en: {
     search_placeholder: 'Search any city or place…',
@@ -113,5 +127,12 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     map_locate: 'My location',
     map_popup_full_forecast: 'See full forecast',
     map_layer_unavailable: 'Layer unavailable',
+    map_layers: 'Layers',
+    map_layer_radar: 'Radar',
+    map_opacity: 'Opacity',
+    legend_light: 'Light',
+    legend_moderate: 'Moderate',
+    legend_heavy: 'Heavy',
+    legend_snow: 'Snow',
   },
 };
