@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Tue, 19 May 2026 15:31:22 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 19 May 2026 17:20:53 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -43,7 +43,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h con posible formación de torbellinos o tornados: Coah (norte), NL (norte) y Tamps (noroeste y norte).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Continuará la onda de calor en 16 entidades del país]]></description>
-      <pubDate>Tue, 19 May 2026 09:31:10 -0600</pubDate>
+      <pubDate>Tue, 19 May 2026 11:20:42 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-19-8032</guid>
       <category>Alerta</category>
     </item>
