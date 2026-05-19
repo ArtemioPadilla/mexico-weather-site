@@ -12,8 +12,12 @@ const RAINVIEWER_MANIFEST = JSON.stringify({
   generated: 1779138033,
   host: 'https://tilecache.rainviewer.com',
   radar: {
-    past: [{ time: 1779130800, path: '/v2/radar/test' }],
-    nowcast: [],
+    past: [
+      { time: 1779130200, path: '/v2/radar/p1' },
+      { time: 1779130500, path: '/v2/radar/p2' },
+      { time: 1779130800, path: '/v2/radar/p3' },
+    ],
+    nowcast: [{ time: 1779131100, path: '/v2/radar/f1' }],
   },
   satellite: { infrared: [{ time: 1779130800, path: '/v2/satellite/test' }] },
 });
@@ -85,5 +89,38 @@ test.describe('mapa page', () => {
     await expect(page.locator('#layerbtn-radar')).toHaveAttribute('aria-pressed', 'false');
     // Satellite is imagery, not intensity-coded: the radar legend stays hidden.
     await expect(page.locator('#legend')).toBeHidden();
+  });
+
+  test('timeline appears for radar and the range scrubs frames', async ({ page }) => {
+    await page.route('**/api.rainviewer.com/public/weather-maps.json', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: RAINVIEWER_MANIFEST }),
+    );
+    await page.route('**/tilecache.rainviewer.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: TRANSPARENT_PNG }),
+    );
+
+    await page.goto('mapa/');
+    await page.waitForResponse('**/api.rainviewer.com/public/weather-maps.json');
+
+    // Timeline is hidden until a raster layer is active.
+    await expect(page.locator('#timeline')).toBeHidden();
+
+    await page.locator('#layerbtn-radar').click();
+    await expect(page.locator('#timeline')).toBeVisible();
+
+    const range = page.locator('#tl-range');
+    // 4 radar frames (3 past + 1 nowcast) → max index 3.
+    await expect(range).toHaveAttribute('max', '3');
+    const label = page.locator('#tl-time');
+    const before = await label.textContent();
+
+    // Step to the first (oldest) frame via the prev button.
+    await page.locator('#tl-prev').click();
+    await expect(range).toHaveValue('0');
+    await expect(label).not.toHaveText(before ?? '');
+
+    // Switching back to Base hides the timeline.
+    await page.locator('#layerbtn-base').click();
+    await expect(page.locator('#timeline')).toBeHidden();
   });
 });

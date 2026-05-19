@@ -413,7 +413,8 @@ const t = ui[lang];
     document.getElementById('tl-prev')?.addEventListener('click', () => {
       if (tlFrames.length) {
         tlStop();
-        applyFrame(frameIndex - 1);
+        // Wrap from the last frame back to the first (oldest) frame.
+        applyFrame(frameIndex >= tlFrames.length - 1 ? 0 : frameIndex - 1);
       }
     });
     document.getElementById('tl-next')?.addEventListener('click', () => {
