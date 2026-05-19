@@ -5,16 +5,24 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Tue, 19 May 2026 03:31:19 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 19 May 2026 05:44:58 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
-      <title>⚠️ Alerta SMN: Temperaturas máximas de 40 a 45 °C: Chihuahua, Coahuila, Durango, Sinaloa, Nayarit, Michoacán, Guerrero, Oaxaca, Chiapas, Veracruz, Tabasco, Campeche y Yucatán.</title>
+      <title>⚠️ Alerta SMN: Viento con rachas de 60 a 80 km/h y tolvaneras: Sonora y Chihuahua. Temperaturas mínimas de -5 a 0 °C con heladas: sierras de Baja California, Chihuahua y Durango.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Hoy lunes, continuará la onda de calor en 19 estados de la República Mexicana]]></description>
-      <pubDate>Mon, 18 May 2026 21:31:05 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-18-af2f</guid>
+      <description><![CDATA[Para mañana continuará la onda de calor en Coahuila, Zacatecas, Durango, Sinaloa, Nayarit, Jalisco, Colima, Michoacán, Guerrero, Morelos, Puebla, Veracruz, Oaxac...]]></description>
+      <pubDate>Mon, 18 May 2026 23:44:42 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-18-0283</guid>
       <category>Alerta</category>
+    </item>
+    <item>
+      <title>📋 SMN Reporte Vespertino 18 MAY 2026: Se pronostican lluvias de fuertes a muy fuertes en zonas del noroeste, oriente, centro y sureste de México</title>
+      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_18.pdf</link>
+      <description><![CDATA[Se pronostican lluvias de fuertes a muy fuertes en zonas del noroeste, oriente, centro y sureste de México — Reporte Vespertino del 18 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_18.pdf]]></description>
+      <pubDate>Mon, 18 May 2026 17:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_05_18</guid>
+      <category>Comunicado</category>
     </item>
     <item>
       <title>🌩️ Pronóstico Meteorológico General — SMN | No. 276 | 18 de Mayo del 2026 | Emisión 18:00h</title>
@@ -48,9 +56,9 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <category>Aviso Tormentas</category>
     </item>
     <item>
-      <title>📋 SMN Reporte Matutino 18 MAY 2026: Se pronostican lluvias de fuertes a muy fuertes en zonas del noroeste, oriente, centro y sureste de México</title>
+      <title>📋 SMN Reporte Matutino 18 MAY 2026: Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México</title>
       <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_18.pdf</link>
-      <description><![CDATA[Se pronostican lluvias de fuertes a muy fuertes en zonas del noroeste, oriente, centro y sureste de México — Reporte Matutino del 18 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_18.pdf]]></description>
+      <description><![CDATA[Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México — Reporte Matutino del 18 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_18.pdf]]></description>
       <pubDate>Mon, 18 May 2026 07:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_18</guid>
       <category>Comunicado</category>
