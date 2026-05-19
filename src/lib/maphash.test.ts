@@ -40,6 +40,10 @@ describe('parseMapHash', () => {
   it('preserves a registry-known layer id (radar)', () => {
     expect(parseMapHash('#view=0,0,3z&layer=radar').layer).toBe('radar');
   });
+
+  it('preserves a registry-known layer id (satellite)', () => {
+    expect(parseMapHash('#view=0,0,3z&layer=satellite').layer).toBe('satellite');
+  });
 });
 
 describe('buildMapHash', () => {

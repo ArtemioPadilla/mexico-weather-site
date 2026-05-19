@@ -15,7 +15,7 @@ const RAINVIEWER_MANIFEST = JSON.stringify({
     past: [{ time: 1779130800, path: '/v2/radar/test' }],
     nowcast: [],
   },
-  satellite: { infrared: [] },
+  satellite: { infrared: [{ time: 1779130800, path: '/v2/satellite/test' }] },
 });
 
 test.describe('mapa page', () => {
@@ -62,5 +62,28 @@ test.describe('mapa page', () => {
     await expect(radarBtn).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#legend')).toBeVisible();
     await expect(page.locator('#legend li')).toHaveCount(4);
+  });
+
+  test('satellite layer button activates without an intensity legend', async ({ page }) => {
+    await page.route('**/api.rainviewer.com/public/weather-maps.json', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: RAINVIEWER_MANIFEST }),
+    );
+    await page.route('**/tilecache.rainviewer.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: TRANSPARENT_PNG }),
+    );
+
+    await page.goto('mapa/');
+
+    const satBtn = page.locator('#layerbtn-satellite');
+    await expect(satBtn).toBeVisible();
+    await page.waitForResponse('**/api.rainviewer.com/public/weather-maps.json');
+    await expect(satBtn).toBeEnabled();
+
+    await satBtn.click();
+
+    await expect(satBtn).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#layerbtn-radar')).toHaveAttribute('aria-pressed', 'false');
+    // Satellite is imagery, not intensity-coded: the radar legend stays hidden.
+    await expect(page.locator('#legend')).toBeHidden();
   });
 });

@@ -40,7 +40,7 @@ const t = ui[lang];
         <label for="opacity" class="block text-xs text-gray-600 dark:text-gray-400"
           >{t.map_opacity}</label
         >
-        {/* 80 = radar defaultOpacity (see src/lib/maplayers.ts) */}
+        {/* Initial value; overwritten by setActiveLayer using each layer's defaultOpacity (see src/lib/maplayers.ts) */}
         <input
           id="opacity"
           type="range"
