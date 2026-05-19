@@ -1,15 +1,15 @@
 // Pure, DOM-free weather-map layer registry + legend data.
 // Single source of truth for valid layer ids (consumed by maphash.ts).
 
-export type LayerId = 'base' | 'radar' | 'satellite';
+export type LayerId = 'base' | 'radar' | 'satellite' | 'temperature';
 
-export const LAYER_IDS = ['base', 'radar', 'satellite'] as const;
+export const LAYER_IDS = ['base', 'radar', 'satellite', 'temperature'] as const;
 
 export interface LayerDef {
   id: LayerId;
   /** Key into UiStrings for the rail button label. */
   labelKey: string;
-  kind: 'base' | 'raster-tile';
+  kind: 'base' | 'raster-tile' | 'field';
   /** Initial raster opacity (0..1); 1 for the base map. */
   defaultOpacity: number;
 }
@@ -18,6 +18,7 @@ export const LAYERS: LayerDef[] = [
   { id: 'base', labelKey: 'map_layer_base', kind: 'base', defaultOpacity: 1 },
   { id: 'radar', labelKey: 'map_layer_radar', kind: 'raster-tile', defaultOpacity: 0.8 },
   { id: 'satellite', labelKey: 'map_layer_satellite', kind: 'raster-tile', defaultOpacity: 1 },
+  { id: 'temperature', labelKey: 'map_layer_temperature', kind: 'field', defaultOpacity: 0.75 },
 ];
 
 export function getLayer(id: string): LayerDef | undefined {
