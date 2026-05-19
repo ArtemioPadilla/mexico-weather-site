@@ -38,6 +38,12 @@ export interface UiStrings {
   map_layers: string;
   map_layer_radar: string;
   map_layer_satellite: string;
+  timeline_label: string;
+  timeline_play: string;
+  timeline_pause: string;
+  timeline_prev: string;
+  timeline_next: string;
+  timeline_now: string;
   map_opacity: string;
   legend_light: string;
   legend_moderate: string;
@@ -86,6 +92,12 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     map_layers: 'Capas',
     map_layer_radar: 'Radar',
     map_layer_satellite: 'Satélite',
+    timeline_label: 'Línea de tiempo',
+    timeline_play: 'Reproducir',
+    timeline_pause: 'Pausar',
+    timeline_prev: 'Cuadro anterior',
+    timeline_next: 'Cuadro siguiente',
+    timeline_now: 'Ahora',
     map_opacity: 'Opacidad',
     legend_light: 'Ligera',
     legend_moderate: 'Moderada',
@@ -132,6 +144,12 @@ export const ui: Record<'es' | 'en', UiStrings> = {
     map_layers: 'Layers',
     map_layer_radar: 'Radar',
     map_layer_satellite: 'Satellite',
+    timeline_label: 'Timeline',
+    timeline_play: 'Play',
+    timeline_pause: 'Pause',
+    timeline_prev: 'Previous frame',
+    timeline_next: 'Next frame',
+    timeline_now: 'Now',
     map_opacity: 'Opacity',
     legend_light: 'Light',
     legend_moderate: 'Moderate',

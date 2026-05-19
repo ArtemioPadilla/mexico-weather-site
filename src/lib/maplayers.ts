@@ -78,16 +78,6 @@ export function parseRainviewerManifest(json: unknown): RainviewerData | null {
   return { host: o.host, frames, satelliteFrames };
 }
 
-/** Newest frame at or before `nowSeconds`; first frame if all are future; null if none. */
-export function latestFrame(frames: RadarFrame[], nowSeconds: number): RadarFrame | null {
-  if (frames.length === 0) return null;
-  let best: RadarFrame | null = null;
-  for (const f of frames) {
-    if (f.time <= nowSeconds && (!best || f.time > best.time)) best = f;
-  }
-  return best ?? frames[0];
-}
-
 export interface TileOpts {
   size?: 256 | 512;
   color?: number;

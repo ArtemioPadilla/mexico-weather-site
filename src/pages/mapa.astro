@@ -55,9 +55,49 @@ const t = ui[lang];
     <p
       id="mapmsg"
       aria-live="polite"
-      class="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 rounded-lg bg-white/95 px-3 py-1.5 text-xs text-gray-700 shadow dark:bg-gray-900/95 dark:text-gray-300"
+      class="absolute bottom-20 left-1/2 z-10 hidden -translate-x-1/2 rounded-lg bg-white/95 px-3 py-1.5 text-xs text-gray-700 shadow dark:bg-gray-900/95 dark:text-gray-300"
     >
     </p>
+    <div
+      id="timeline"
+      class="absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-2 rounded-lg bg-white/95 px-3 py-2 text-sm shadow dark:bg-gray-900/95"
+      role="group"
+      aria-label={t.timeline_label}
+    >
+      <button
+        id="tl-prev"
+        type="button"
+        aria-label={t.timeline_prev}
+        class="rounded px-2 py-1 hover:bg-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-blue-400/10"
+        >‹</button
+      >
+      <button
+        id="tl-play"
+        type="button"
+        aria-label={t.timeline_play}
+        aria-pressed="false"
+        disabled
+        class="rounded px-2 py-1 hover:bg-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-40 dark:hover:bg-blue-400/10"
+        >▶</button
+      >
+      <button
+        id="tl-next"
+        type="button"
+        aria-label={t.timeline_next}
+        class="rounded px-2 py-1 hover:bg-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-blue-400/10"
+        >›</button
+      >
+      <input
+        id="tl-range"
+        type="range"
+        min="0"
+        max="0"
+        value="0"
+        class="w-40 accent-blue-600"
+        aria-label={t.timeline_label}
+      />
+      <span id="tl-time" aria-live="polite" aria-atomic="true" class="w-28 text-right tabular-nums text-gray-700 dark:text-gray-300"></span>
+    </div>
     <div id="map" class="h-full w-full" role="application" aria-label={t.map_title}></div>
   </main>
 
@@ -70,10 +110,17 @@ const t = ui[lang];
       getLayer as getLayerDef,
       RADAR_LEGEND,
       parseRainviewerManifest,
-      latestFrame,
       rainviewerTileUrl,
+      type RadarFrame,
       type RainviewerData,
     } from '../lib/maplayers';
+    import {
+      framesForLayer,
+      defaultFrameIndex,
+      clampIndex,
+      frameOffsetMinutes,
+      seekIndexForIso,
+    } from '../lib/maptimeline';
     import { presetPins, withUserPin, type MapPin } from '../lib/mappins';
     import { cities } from '../data/cities';
     import { geocode } from '../lib/geocode';
@@ -156,7 +203,7 @@ const t = ui[lang];
         lng: c.lng,
         zoom: map.getZoom(),
         layer: activeLayer,
-        t: null,
+        t: activeLayer === 'base' ? null : activeFrameIso,
       };
       history.replaceState(null, '', buildMapHash(state));
     }
@@ -203,21 +250,56 @@ const t = ui[lang];
     let activeLayer: string = 'base';
     let rvData: RainviewerData | null = null;
     let rvOpacity = getLayerDef('radar')?.defaultOpacity ?? 0.8;
+    let tlFrames: RadarFrame[] = [];
+    let frameIndex = -1;
+    let activeFrameIso: string | null = null;
+    let pendingSeekIso: string | null = initial.t;
+
+    const tlEl = document.getElementById('timeline');
+    const tlRange = document.getElementById('tl-range') as HTMLInputElement | null;
+    const tlTime = document.getElementById('tl-time');
+
+    function frameLabel(frame: RadarFrame): string {
+      const off = frameOffsetMinutes(frame, Math.floor(Date.now() / 1000));
+      const clock = new Date(frame.time * 1000).toLocaleTimeString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const rel = off === 0 ? t.timeline_now : off < 0 ? `${off} min` : `+${off} min`;
+      return `${clock} · ${rel}`;
+    }
+
+    function applyFrame(i: number): void {
+      const idx = clampIndex(i, tlFrames.length);
+      if (idx < 0) return;
+      frameIndex = idx;
+      const fr = tlFrames[idx];
+      showWeatherFrame(activeLayer, fr);
+      activeFrameIso = new Date(fr.time * 1000).toISOString();
+      if (tlRange) {
+        tlRange.max = String(tlFrames.length - 1);
+        tlRange.value = String(idx);
+      }
+      if (tlTime) tlTime.textContent = frameLabel(fr);
+      syncHash();
+    }
+
+    function showTimeline(show: boolean): void {
+      tlEl?.classList.toggle('hidden', !show);
+      tlEl?.classList.toggle('flex', show);
+    }
 
     function removeWeatherRaster(): void {
       if (map.getLayer(RV_LAYER)) map.removeLayer(RV_LAYER);
       if (map.getSource(RV_SOURCE)) map.removeSource(RV_SOURCE);
     }
 
-    function addWeatherRaster(layerId: string): boolean {
-      if (!rvData) return false;
-      const isSatellite = layerId === 'satellite';
-      const frames = isSatellite ? rvData.satelliteFrames : rvData.frames;
-      const frame = latestFrame(frames, Math.floor(Date.now() / 1000));
-      if (!frame) return false;
-      const tileUrl = isSatellite
-        ? rainviewerTileUrl(rvData.host, frame, { color: 0, snow: false })
-        : rainviewerTileUrl(rvData.host, frame);
+    function showWeatherFrame(layerId: string, frame: RadarFrame): void {
+      if (!rvData) return;
+      const tileUrl =
+        layerId === 'satellite'
+          ? rainviewerTileUrl(rvData.host, frame, { color: 0, snow: false })
+          : rainviewerTileUrl(rvData.host, frame);
       removeWeatherRaster();
       map.addSource(RV_SOURCE, {
         type: 'raster',
@@ -231,7 +313,6 @@ const t = ui[lang];
         source: RV_SOURCE,
         paint: { 'raster-opacity': rvOpacity },
       });
-      return true;
     }
 
     function renderLegend(show: boolean): void {
@@ -268,18 +349,37 @@ const t = ui[lang];
       if (def.kind === 'raster-tile') {
         rvOpacity = def.defaultOpacity;
         if (opacityEl) opacityEl.value = String(Math.round(rvOpacity * 100));
-        if (!rvData || !addWeatherRaster(id)) {
+        const frames = framesForLayer(rvData, id);
+        if (!rvData || frames.length === 0) {
           showMsg(t.map_layer_unavailable);
           activeLayer = 'base';
+          tlStop();
           removeWeatherRaster();
+          tlFrames = [];
+          frameIndex = -1;
+          activeFrameIso = null;
+          showTimeline(false);
           refreshLayerButtons();
           syncHash();
           return;
         }
-      } else {
-        removeWeatherRaster();
+        activeLayer = id;
+        tlFrames = frames;
+        const now = Math.floor(Date.now() / 1000);
+        const idx = seekIndexForIso(frames, pendingSeekIso, now);
+        pendingSeekIso = null;
+        showTimeline(true);
+        refreshLayerButtons();
+        applyFrame(idx >= 0 ? idx : defaultFrameIndex(frames, now));
+        return;
       }
+      tlStop();
+      removeWeatherRaster();
       activeLayer = id;
+      tlFrames = [];
+      frameIndex = -1;
+      activeFrameIso = null;
+      showTimeline(false);
       refreshLayerButtons();
       syncHash();
     }
@@ -309,6 +409,70 @@ const t = ui[lang];
         if (map.getLayer(RV_LAYER)) map.setPaintProperty(RV_LAYER, 'raster-opacity', rvOpacity);
       });
     }
+
+    document.getElementById('tl-prev')?.addEventListener('click', () => {
+      if (tlFrames.length) {
+        tlStop();
+        applyFrame(frameIndex - 1);
+      }
+    });
+    document.getElementById('tl-next')?.addEventListener('click', () => {
+      if (tlFrames.length) {
+        tlStop();
+        applyFrame(frameIndex + 1);
+      }
+    });
+    tlRange?.addEventListener('input', () => {
+      if (tlFrames.length) {
+        tlStop();
+        applyFrame(Number(tlRange.value));
+      }
+    });
+
+    let tlPlaying = false;
+    let tlTimer = 0;
+    const tlReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const tlPlayBtn = document.getElementById('tl-play') as HTMLButtonElement | null;
+
+    function tlStop(): void {
+      tlPlaying = false;
+      if (tlTimer) {
+        window.clearInterval(tlTimer);
+        tlTimer = 0;
+      }
+      if (tlPlayBtn) {
+        tlPlayBtn.setAttribute('aria-pressed', 'false');
+        tlPlayBtn.setAttribute('aria-label', t.timeline_play);
+        tlPlayBtn.textContent = '▶';
+      }
+    }
+
+    function tlStart(): void {
+      if (tlReducedMotion || tlFrames.length < 2) return;
+      tlPlaying = true;
+      if (tlPlayBtn) {
+        tlPlayBtn.setAttribute('aria-pressed', 'true');
+        tlPlayBtn.setAttribute('aria-label', t.timeline_pause);
+        tlPlayBtn.textContent = '⏸';
+      }
+      tlTimer = window.setInterval(() => {
+        const next = frameIndex + 1 >= tlFrames.length ? 0 : frameIndex + 1;
+        applyFrame(next);
+      }, 700);
+    }
+
+    // The play button is statically `disabled` in the markup; enable it only
+    // when motion is allowed. Under prefers-reduced-motion it stays disabled
+    // (manual scrub only, per the spec).
+    if (tlPlayBtn) {
+      tlPlayBtn.disabled = tlReducedMotion;
+      if (tlReducedMotion) tlPlayBtn.title = t.timeline_play;
+    }
+
+    tlPlayBtn?.addEventListener('click', () => {
+      if (tlPlaying) tlStop();
+      else tlStart();
+    });
 
     q?.addEventListener('input', () => {
       window.clearTimeout(qTimer);

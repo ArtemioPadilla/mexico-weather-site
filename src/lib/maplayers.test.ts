@@ -45,7 +45,7 @@ describe('RADAR_LEGEND', () => {
   });
 });
 
-import { parseRainviewerManifest, latestFrame, rainviewerTileUrl } from './maplayers';
+import { parseRainviewerManifest, rainviewerTileUrl } from './maplayers';
 
 const sampleManifest = {
   version: '2.0',
@@ -86,24 +86,6 @@ describe('parseRainviewerManifest', () => {
       radar: { past: [{ time: 1, path: 'ok' }, { time: 2 }, { path: 'nope' }] },
     });
     expect(data!.frames).toEqual([{ time: 1, path: 'ok' }]);
-  });
-});
-
-describe('latestFrame', () => {
-  const frames = [
-    { time: 100, path: 'a' },
-    { time: 200, path: 'b' },
-    { time: 300, path: 'c' },
-  ];
-  it('returns the newest frame at or before now', () => {
-    expect(latestFrame(frames, 250)).toEqual({ time: 200, path: 'b' });
-    expect(latestFrame(frames, 300)).toEqual({ time: 300, path: 'c' });
-  });
-  it('falls back to the first frame when all are in the future', () => {
-    expect(latestFrame(frames, 50)).toEqual({ time: 100, path: 'a' });
-  });
-  it('returns null for an empty list', () => {
-    expect(latestFrame([], 999)).toBeNull();
   });
 });
 
