@@ -1,9 +1,9 @@
 // Pure, DOM-free weather-map layer registry + legend data.
 // Single source of truth for valid layer ids (consumed by maphash.ts).
 
-export type LayerId = 'base' | 'radar';
+export type LayerId = 'base' | 'radar' | 'satellite';
 
-export const LAYER_IDS = ['base', 'radar'] as const;
+export const LAYER_IDS = ['base', 'radar', 'satellite'] as const;
 
 export interface LayerDef {
   id: LayerId;
@@ -17,6 +17,7 @@ export interface LayerDef {
 export const LAYERS: LayerDef[] = [
   { id: 'base', labelKey: 'map_layer_base', kind: 'base', defaultOpacity: 1 },
   { id: 'radar', labelKey: 'map_layer_radar', kind: 'raster-tile', defaultOpacity: 0.8 },
+  { id: 'satellite', labelKey: 'map_layer_satellite', kind: 'raster-tile', defaultOpacity: 1 },
 ];
 
 export function getLayer(id: string): LayerDef | undefined {
@@ -44,7 +45,10 @@ export interface RadarFrame {
 
 export interface RainviewerData {
   host: string;
+  /** Radar/precipitation frames. */
   frames: RadarFrame[];
+  /** Satellite-infrared (cloud) frames. */
+  satelliteFrames: RadarFrame[];
 }
 
 function collectFrames(arr: unknown): RadarFrame[] {
@@ -68,8 +72,10 @@ export function parseRainviewerManifest(json: unknown): RainviewerData | null {
   const frames = [...collectFrames(radar.past), ...collectFrames(radar.nowcast)].sort(
     (a, b) => a.time - b.time,
   );
-  if (frames.length === 0) return null;
-  return { host: o.host, frames };
+  const satellite = o.satellite as Record<string, unknown> | undefined;
+  const satelliteFrames = collectFrames(satellite?.infrared).sort((a, b) => a.time - b.time);
+  if (frames.length === 0 && satelliteFrames.length === 0) return null;
+  return { host: o.host, frames, satelliteFrames };
 }
 
 /** Newest frame at or before `nowSeconds`; first frame if all are future; null if none. */

@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { LAYERS, LAYER_IDS, getLayer, RADAR_LEGEND } from './maplayers';
 
 describe('layer registry', () => {
-  it('exposes base and radar layers with stable ids', () => {
-    expect(LAYER_IDS).toEqual(['base', 'radar']);
-    expect(LAYERS.map((l) => l.id)).toEqual(['base', 'radar']);
+  it('exposes base, radar, and satellite layers with stable ids', () => {
+    expect(LAYER_IDS).toEqual(['base', 'radar', 'satellite']);
+    expect(LAYERS.map((l) => l.id)).toEqual(['base', 'radar', 'satellite']);
   });
 
   it('base is kind "base", radar is a raster-tile with <1 default opacity', () => {
@@ -20,6 +20,14 @@ describe('layer registry', () => {
 
   it('getLayer returns undefined for an unknown id', () => {
     expect(getLayer('bogus')).toBeUndefined();
+  });
+
+  it('registers a satellite raster layer with full default opacity', () => {
+    expect(LAYER_IDS).toEqual(['base', 'radar', 'satellite']);
+    const sat = getLayer('satellite');
+    expect(sat?.kind).toBe('raster-tile');
+    expect(sat?.labelKey).toBe('map_layer_satellite');
+    expect(sat?.defaultOpacity).toBe(1);
   });
 });
 
@@ -110,5 +118,52 @@ describe('rainviewerTileUrl', () => {
     expect(
       rainviewerTileUrl('https://h.com', frame, { size: 512, color: 2, smooth: false, snow: false }),
     ).toBe('https://h.com/v2/radar/aaa/512/{z}/{x}/{y}/2/0_0.png');
+  });
+});
+
+describe('satellite frames', () => {
+  it('parseRainviewerManifest collects satellite.infrared into satelliteFrames', () => {
+    const data = parseRainviewerManifest({
+      host: 'https://tilecache.rainviewer.com',
+      radar: { past: [{ time: 10, path: '/v2/radar/r1' }], nowcast: [] },
+      satellite: {
+        infrared: [
+          { time: 30, path: '/v2/satellite/s2' },
+          { time: 20, path: '/v2/satellite/s1' },
+        ],
+      },
+    });
+    expect(data).not.toBeNull();
+    expect(data!.frames.map((f) => f.path)).toEqual(['/v2/radar/r1']);
+    expect(data!.satelliteFrames.map((f) => f.path)).toEqual([
+      '/v2/satellite/s1',
+      '/v2/satellite/s2',
+    ]);
+  });
+
+  it('returns null only when BOTH radar and satellite frames are empty', () => {
+    expect(
+      parseRainviewerManifest({
+        host: 'h',
+        radar: { past: [], nowcast: [] },
+        satellite: { infrared: [] },
+      }),
+    ).toBeNull();
+    const satOnly = parseRainviewerManifest({
+      host: 'h',
+      radar: { past: [], nowcast: [] },
+      satellite: { infrared: [{ time: 1, path: '/v2/satellite/s' }] },
+    });
+    expect(satOnly).not.toBeNull();
+    expect(satOnly!.frames).toEqual([]);
+    expect(satOnly!.satelliteFrames).toEqual([{ time: 1, path: '/v2/satellite/s' }]);
+  });
+
+  it('defaults satelliteFrames to [] when satellite key is absent', () => {
+    const data = parseRainviewerManifest({
+      host: 'h',
+      radar: { past: [{ time: 1, path: '/v2/radar/r' }], nowcast: [] },
+    });
+    expect(data!.satelliteFrames).toEqual([]);
   });
 });
