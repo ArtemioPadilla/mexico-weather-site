@@ -135,6 +135,16 @@ const t = ui[lang];
       type FieldGrid,
       type LegendStop,
     } from '../lib/mapfields';
+    import {
+      MAX_WIND_MPS,
+      windSpeed,
+      windSpeedColor,
+      WIND_LEGEND,
+      encodeWindGrid,
+      initParticlePositions,
+      type WindPoint,
+    } from '../lib/mapwind';
+    import { buildWindUrl, parseWindResponse, type WindGrid } from '../lib/mapfields';
     import type { FeatureCollection, Feature } from 'geojson';
     import { presetPins, withUserPin, type MapPin } from '../lib/mappins';
     import { cities } from '../data/cities';
@@ -306,7 +316,9 @@ const t = ui[lang];
       if (idx < 0) return;
       frameIndex = idx;
       const fr = tlFrames[idx];
-      if (getLayerDef(activeLayer)?.kind === 'field') {
+      if (getLayerDef(activeLayer)?.kind === 'particles') {
+        showWindFrame(idx);
+      } else if (getLayerDef(activeLayer)?.kind === 'field') {
         renderFieldFrame(idx);
       } else {
         showWeatherFrame(activeLayer, fr);
@@ -340,6 +352,282 @@ const t = ui[lang];
       pressure: { hourlyVar: 'pressure_msl', color: pressureColor },
     };
     let fieldAbort: AbortController | null = null;
+
+    const WIND_LAYER = 'wx-wind-layer';
+    const WIND_CIRCLE_LAYER = 'wx-wind-circle';
+    const WIND_CIRCLE_SOURCE = 'wx-wind-circle-src';
+    const PARTICLE_COUNT = 1024;
+    const PARTICLE_TEX_SIZE = 32;
+
+    let windGrid: WindGrid | null = null;
+    let windHourIndex = 0;
+    const windReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let windRaf = 0;
+
+    function removeWind(): void {
+      if (windRaf) {
+        window.cancelAnimationFrame(windRaf);
+        windRaf = 0;
+      }
+      if (map.getLayer(WIND_LAYER)) map.removeLayer(WIND_LAYER);
+      if (map.getLayer(WIND_CIRCLE_LAYER)) map.removeLayer(WIND_CIRCLE_LAYER);
+      if (map.getSource(WIND_CIRCLE_SOURCE)) map.removeSource(WIND_CIRCLE_SOURCE);
+    }
+
+    function windPointsAtHour(g: WindGrid, h: number): WindPoint[] {
+      return g.points.map((p) => ({ lat: p.lat, lng: p.lng, u: p.u[h], v: p.v[h] }));
+    }
+
+    function windCircleGeoJSON(g: WindGrid, h: number): FeatureCollection {
+      const feats: Feature[] = [];
+      for (const p of g.points) {
+        const u = p.u[h];
+        const v = p.v[h];
+        if (u === null || v === null) continue;
+        const s = windSpeed(u, v);
+        feats.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+          properties: { color: windSpeedColor(s), speed: Math.round(s) },
+        });
+      }
+      return { type: 'FeatureCollection', features: feats };
+    }
+
+    function showWindFrame(h: number): void {
+      if (!windGrid) return;
+      windHourIndex = h;
+      if (windReducedMotion) {
+        const data = windCircleGeoJSON(windGrid, h);
+        const src = map.getSource(WIND_CIRCLE_SOURCE) as maplibregl.GeoJSONSource | undefined;
+        if (src) {
+          src.setData(data);
+        } else {
+          map.addSource(WIND_CIRCLE_SOURCE, { type: 'geojson', data });
+          map.addLayer({
+            id: WIND_CIRCLE_LAYER,
+            type: 'circle',
+            source: WIND_CIRCLE_SOURCE,
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 6, 8, 18],
+              'circle-color': ['get', 'color'],
+              'circle-opacity': rvOpacity,
+            },
+          });
+        }
+        return;
+      }
+      if (!map.getLayer(WIND_LAYER)) {
+        map.addLayer(makeWindLayer());
+      }
+    }
+
+    function makeWindLayer(): maplibregl.CustomLayerInterface {
+      let prog: WebGLProgram | null = null;
+      let updateProg: WebGLProgram | null = null;
+      let posTexA: WebGLTexture | null = null;
+      let posTexB: WebGLTexture | null = null;
+      let windTex: WebGLTexture | null = null;
+      let fbo: WebGLFramebuffer | null = null;
+      let posBuf: WebGLBuffer | null = null;
+      let quadBuf: WebGLBuffer | null = null;
+
+      function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLShader {
+        const sh = gl.createShader(type)!;
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        return sh;
+      }
+      function link(gl: WebGLRenderingContext, vs: string, fs: string): WebGLProgram {
+        const p = gl.createProgram()!;
+        gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, vs));
+        gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, fs));
+        gl.linkProgram(p);
+        return p;
+      }
+
+      const updateVs = `
+        attribute vec2 a_pos;
+        varying vec2 v_uv;
+        void main() {
+          v_uv = a_pos * 0.5 + 0.5;
+          gl_Position = vec4(a_pos, 0.0, 1.0);
+        }
+      `;
+      const updateFs = `
+        precision mediump float;
+        uniform sampler2D u_pos;
+        uniform sampler2D u_wind;
+        uniform float u_dt;
+        uniform float u_max;
+        varying vec2 v_uv;
+        void main() {
+          vec4 p = texture2D(u_pos, v_uv);
+          vec2 pos = p.xy;
+          vec4 wTex = texture2D(u_wind, pos);
+          vec2 uv = (wTex.rg * 2.0 - 1.0) * u_max;
+          float mask = wTex.a;
+          vec2 dp = vec2(uv.x, -uv.y) * u_dt * 0.000045;
+          pos += dp * mask;
+          float age = p.z + u_dt;
+          if (pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || age > 4.0) {
+            pos = fract(vec2(sin(age * 12.9898) * 43758.5453, cos(age * 78.233) * 12345.678));
+            age = 0.0;
+          }
+          gl_FragColor = vec4(pos, age, 0.0);
+        }
+      `;
+      const drawVs = `
+        attribute float a_index;
+        uniform sampler2D u_pos;
+        uniform float u_size;
+        varying float v_speed;
+        uniform sampler2D u_wind;
+        uniform float u_max;
+        void main() {
+          float i = a_index;
+          float row = floor(i / u_size);
+          float col = i - row * u_size;
+          vec2 uvIdx = (vec2(col, row) + 0.5) / u_size;
+          vec4 p = texture2D(u_pos, uvIdx);
+          vec4 w = texture2D(u_wind, p.xy);
+          vec2 wind = (w.rg * 2.0 - 1.0) * u_max;
+          v_speed = length(wind);
+          gl_Position = vec4(p.x * 2.0 - 1.0, (1.0 - p.y) * 2.0 - 1.0, 0.0, 1.0);
+          gl_PointSize = 2.0;
+        }
+      `;
+      const drawFs = `
+        precision mediump float;
+        varying float v_speed;
+        uniform float u_max;
+        void main() {
+          float t = clamp(v_speed / u_max, 0.0, 1.0);
+          vec3 cCalm   = vec3(0.169, 0.514, 0.729);
+          vec3 cBreeze = vec3(0.671, 0.867, 0.643);
+          vec3 cStrong = vec3(0.992, 0.682, 0.380);
+          vec3 cGale   = vec3(0.404, 0.000, 0.051);
+          vec3 col = mix(cCalm, cBreeze, smoothstep(0.0, 0.25, t));
+          col = mix(col, cStrong, smoothstep(0.25, 0.6, t));
+          col = mix(col, cGale, smoothstep(0.6, 1.0, t));
+          gl_FragColor = vec4(col, 0.85);
+        }
+      `;
+
+      function ensureWindTex(gl: WebGLRenderingContext): void {
+        if (!windGrid || !windTex) return;
+        const pts = windPointsAtHour(windGrid, windHourIndex);
+        const cols = 8;
+        const rows = 6;
+        if (pts.length !== cols * rows) return;
+        const enc = encodeWindGrid(pts, cols, rows);
+        gl.bindTexture(gl.TEXTURE_2D, windTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cols, rows, 0, gl.RGBA, gl.UNSIGNED_BYTE, enc.data);
+      }
+
+      return {
+        id: WIND_LAYER,
+        type: 'custom',
+        renderingMode: '2d',
+        onAdd(_map, gl) {
+          updateProg = link(gl, updateVs, updateFs);
+          prog = link(gl, drawVs, drawFs);
+          const initial = initParticlePositions(PARTICLE_COUNT, 1234);
+          const bytes = new Uint8Array(PARTICLE_COUNT * 4);
+          for (let i = 0; i < PARTICLE_COUNT; i++) {
+            bytes[i * 4 + 0] = Math.round(initial[i * 4 + 0] * 255);
+            bytes[i * 4 + 1] = Math.round(initial[i * 4 + 1] * 255);
+            bytes[i * 4 + 2] = 0;
+            bytes[i * 4 + 3] = 0;
+          }
+          function newTex(): WebGLTexture {
+            const tx = gl.createTexture()!;
+            gl.bindTexture(gl.TEXTURE_2D, tx);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            return tx;
+          }
+          posTexA = newTex();
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PARTICLE_TEX_SIZE, PARTICLE_TEX_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+          posTexB = newTex();
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PARTICLE_TEX_SIZE, PARTICLE_TEX_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+          windTex = newTex();
+          fbo = gl.createFramebuffer();
+          quadBuf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+          const idx = new Float32Array(PARTICLE_COUNT);
+          for (let i = 0; i < PARTICLE_COUNT; i++) idx[i] = i;
+          posBuf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+          ensureWindTex(gl);
+          const tick = (): void => {
+            map.triggerRepaint();
+            windRaf = window.requestAnimationFrame(tick);
+          };
+          windRaf = window.requestAnimationFrame(tick);
+        },
+        onRemove(_map, gl) {
+          if (windRaf) {
+            window.cancelAnimationFrame(windRaf);
+            windRaf = 0;
+          }
+          if (prog) gl.deleteProgram(prog);
+          if (updateProg) gl.deleteProgram(updateProg);
+          if (posTexA) gl.deleteTexture(posTexA);
+          if (posTexB) gl.deleteTexture(posTexB);
+          if (windTex) gl.deleteTexture(windTex);
+          if (fbo) gl.deleteFramebuffer(fbo);
+          if (posBuf) gl.deleteBuffer(posBuf);
+          if (quadBuf) gl.deleteBuffer(quadBuf);
+        },
+        prerender(gl) {
+          if (!updateProg || !posTexA || !posTexB || !windTex || !fbo || !quadBuf) return;
+          ensureWindTex(gl);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, posTexB, 0);
+          gl.viewport(0, 0, PARTICLE_TEX_SIZE, PARTICLE_TEX_SIZE);
+          gl.useProgram(updateProg);
+          const aPos = gl.getAttribLocation(updateProg, 'a_pos');
+          gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+          gl.enableVertexAttribArray(aPos);
+          gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, posTexA);
+          gl.uniform1i(gl.getUniformLocation(updateProg, 'u_pos'), 0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, windTex);
+          gl.uniform1i(gl.getUniformLocation(updateProg, 'u_wind'), 1);
+          gl.uniform1f(gl.getUniformLocation(updateProg, 'u_dt'), 16.0);
+          gl.uniform1f(gl.getUniformLocation(updateProg, 'u_max'), MAX_WIND_MPS);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          const tmp = posTexA; posTexA = posTexB; posTexB = tmp;
+        },
+        render(gl) {
+          if (!prog || !posTexA || !windTex || !posBuf) return;
+          gl.useProgram(prog);
+          const aIdx = gl.getAttribLocation(prog, 'a_index');
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+          gl.enableVertexAttribArray(aIdx);
+          gl.vertexAttribPointer(aIdx, 1, gl.FLOAT, false, 0, 0);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, posTexA);
+          gl.uniform1i(gl.getUniformLocation(prog, 'u_pos'), 0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, windTex);
+          gl.uniform1i(gl.getUniformLocation(prog, 'u_wind'), 1);
+          gl.uniform1f(gl.getUniformLocation(prog, 'u_size'), PARTICLE_TEX_SIZE);
+          gl.uniform1f(gl.getUniformLocation(prog, 'u_max'), MAX_WIND_MPS);
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          gl.drawArrays(gl.POINTS, 0, PARTICLE_COUNT);
+        },
+      };
+    }
 
     function removeField(): void {
       if (map.getLayer(FIELD_LAYER)) map.removeLayer(FIELD_LAYER);
@@ -436,7 +724,7 @@ const t = ui[lang];
       });
     }
 
-    function renderLegend(kind: 'radar' | 'temperature' | 'humidity' | 'pressure' | null): void {
+    function renderLegend(kind: 'radar' | 'temperature' | 'humidity' | 'pressure' | 'wind' | null): void {
       const el = document.getElementById('legend');
       if (!el) return;
       if (!kind) {
@@ -451,7 +739,9 @@ const t = ui[lang];
             ? TEMP_LEGEND
             : kind === 'humidity'
               ? HUMIDITY_LEGEND
-              : PRESSURE_LEGEND;
+              : kind === 'pressure'
+                ? PRESSURE_LEGEND
+                : WIND_LEGEND.map((s) => ({ label: t[s.labelKey as keyof typeof t] as string, color: s.color }));
       el.innerHTML = stops
         .map(
           (s) =>
@@ -471,23 +761,74 @@ const t = ui[lang];
       const akind = getLayerDef(activeLayer)?.kind;
       document
         .getElementById('opacitywrap')
-        ?.classList.toggle('hidden', akind !== 'raster-tile' && akind !== 'field');
+        ?.classList.toggle('hidden', akind !== 'raster-tile' && akind !== 'field' && akind !== 'particles');
       const kindForLegend =
         activeLayer === 'radar'
           ? ('radar' as const)
           : akind === 'field'
             ? (activeLayer as 'temperature' | 'humidity' | 'pressure')
-            : null;
+            : akind === 'particles'
+              ? ('wind' as const)
+              : null;
       renderLegend(kindForLegend);
     }
 
     async function setActiveLayer(id: string): Promise<void> {
       const def = getLayerDef(id);
       if (!def) return;
+      if (def.kind === 'particles') {
+        rvOpacity = def.defaultOpacity;
+        if (opacityEl) opacityEl.value = String(Math.round(rvOpacity * 100));
+        tlStop();
+        removeWeatherRaster();
+        removeField();
+        const b = map.getBounds();
+        const grid = viewportGrid(
+          { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
+          8,
+          6,
+        );
+        fieldAbort?.abort();
+        const ac = new AbortController();
+        fieldAbort = ac;
+        try {
+          const res = await deps.fetch(buildWindUrl(grid), { signal: ac.signal });
+          if (ac.signal.aborted) { removeWind(); activeLayer = 'base'; refreshLayerButtons(); syncHash(); return; }
+          windGrid = parseWindResponse(await res.json(), grid);
+        } catch {
+          if (!ac.signal.aborted) windGrid = null;
+        } finally {
+          if (fieldAbort === ac) fieldAbort = null;
+        }
+        if (!windGrid || windGrid.points.length === 0) {
+          showMsg(t.map_layer_unavailable);
+          activeLayer = 'base';
+          removeWind();
+          tlFrames = [];
+          frameIndex = -1;
+          activeFrameIso = null;
+          showTimeline(false);
+          refreshLayerButtons();
+          syncHash();
+          return;
+        }
+        activeLayer = id;
+        tlFrames = windGrid.times.map((iso) => ({
+          time: Math.floor(Date.parse(/[Zz]|[+-]\d{2}:\d{2}$/.test(iso) ? iso : iso + 'Z') / 1000),
+          path: '',
+        }));
+        const idx = fieldFrameIndex(windGrid.times, pendingSeekIso, Date.now());
+        pendingSeekIso = null;
+        showTimeline(true);
+        refreshLayerButtons();
+        applyFrame(idx >= 0 ? idx : 0);
+        return;
+      }
       if (def.kind === 'field') {
         rvOpacity = def.defaultOpacity;
         if (opacityEl) opacityEl.value = String(Math.round(rvOpacity * 100));
         tlStop();
+        removeWind();
         removeWeatherRaster();
         const ok = await loadFieldGrid(id);
         if (!ok || !fieldGrid) {
@@ -524,6 +865,7 @@ const t = ui[lang];
           tlStop();
           removeWeatherRaster();
           removeField();
+          removeWind();
           tlFrames = [];
           frameIndex = -1;
           activeFrameIso = null;
@@ -540,12 +882,14 @@ const t = ui[lang];
         showTimeline(true);
         refreshLayerButtons();
         removeField();
+        removeWind();
         applyFrame(idx >= 0 ? idx : defaultFrameIndex(frames, now));
         return;
       }
       tlStop();
       removeWeatherRaster();
       removeField();
+      removeWind();
       activeLayer = id;
       tlFrames = [];
       frameIndex = -1;
@@ -579,6 +923,7 @@ const t = ui[lang];
         rvOpacity = Number(opacityEl.value) / 100;
         if (map.getLayer(RV_LAYER)) map.setPaintProperty(RV_LAYER, 'raster-opacity', rvOpacity);
         if (map.getLayer(FIELD_LAYER)) map.setPaintProperty(FIELD_LAYER, 'circle-opacity', rvOpacity);
+        if (map.getLayer(WIND_CIRCLE_LAYER)) map.setPaintProperty(WIND_CIRCLE_LAYER, 'circle-opacity', rvOpacity);
       });
     }
 
