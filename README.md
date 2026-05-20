@@ -7,18 +7,40 @@ with a built-in feedback button that opens pre-filled GitHub issues.
 
 ## Features
 
+### City forecast
+
 - Search any location + "use my location" with current / 48h-hourly / 7-day forecast (wind, UV, sky & air).
+- Shareable detail page `/forecast?lat=&lng=&name=&tz=` rendered client-side from Open-Meteo.
 - Client-side weather refresh every 10 minutes.
 - Build-time generated RSS 2.0 feed of SMN weather alerts at `/rss.xml`.
-- Floating feedback modal with diagnostics capture.
-- Static deployment to GitHub Pages.
+
+### Interactive weather map (`/mapa`)
+
+- MapLibre GL JS basemap (OpenStreetMap) with the full zoom range, pan and keyboard navigation.
+- Pins for preset Mexican cities + the user's searched/geolocated location; pin popups deep-link to the city's `/forecast`.
+- **Layer rail** — one primary weather layer at a time, with per-layer opacity slider and a legend:
+  - **Radar / Precipitation** (RainViewer; rain vs snow palette)
+  - **Satellite / Clouds** (RainViewer infrared)
+  - **Temperature, Humidity, Pressure** (Open-Meteo gridded forecast, sampled over the current viewport, re-sampled on pan)
+- **Timeline scrubber** with play/pause across past → now → forecast frames (radar/satellite + Open-Meteo hourly steps). Respects `prefers-reduced-motion` (no autoplay; play button disabled).
+- **Shareable URL hash**: `/mapa#view=<lat>,<lng>,<zoom>z&layer=<id>&t=<ISO>` — pan, zoom, active layer, and selected frame are all bookmarkable and restored on reload.
+- 100% keyless: no API keys, no backend, no secrets — all data sources are public + CORS-enabled.
+
+### Tooling, hosting, polish
+
+- Floating feedback modal with diagnostics capture (opens a pre-filled GitHub issue).
+- Spanish-first i18n (with parallel English strings).
+- Static deployment to GitHub Pages from `main`.
+
+See **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** for the full user-journey walkthrough, the URL hash schema, accessibility notes, and data-source attributions.
 
 ## Tech stack
 
-- Astro 4
-- Tailwind CSS
+- Astro 6
+- Tailwind CSS 4
 - TypeScript
-- Vitest
+- MapLibre GL JS (lazy-loaded, only on `/mapa`)
+- Vitest (unit) + Playwright (e2e)
 - GitHub Actions (CI + Pages deploy)
 
 ## Local development
@@ -59,12 +81,26 @@ See `SETUP.md` for environment and workflow details.
 
 ```text
 src/
-	pages/
-		index.astro
-	layouts/
-		BaseLayout.astro
-	components/common/
-		FeedbackFAB.astro
+  pages/
+    index.astro           # home (city cards, search, geolocate, /mapa teaser)
+    forecast.astro        # shareable forecast detail (query-param driven)
+    mapa.astro            # interactive weather map (MapLibre, lazy-loaded)
+    privacidad.astro      # privacy/legal page
+    rss.xml.ts            # build-time SMN advisories feed
+    sitemap.xml.ts
+  layouts/BaseLayout.astro
+  components/common/      # FeedbackFAB, ThemeToggle
+  lib/                    # pure, DOM-free, Vitest-covered modules:
+                          #   weather, forecast, geocode, theme, rss,
+                          #   maphash, mappins, maplayers, maptimeline,
+                          #   mapfields, mapwind
+  i18n/ui.ts              # Spanish-first + English UI strings
+  data/cities.ts          # preset MX cities
+
+docs/
+  USER_GUIDE.md           # user journeys + URL schema + a11y + attributions
+  superpowers/specs/      # design specs (one per feature epic)
+  superpowers/plans/      # bite-sized implementation plans (one per slice)
 ```
 
 ## Bundled agent skill & CLI
