@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Wed, 20 May 2026 09:32:16 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 20 May 2026 11:24:20 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -20,32 +20,39 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <category>Aviso Tormentas</category>
     </item>
     <item>
-      <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y con posible formación de torbellinos o tornados: Coahuila (norte).</title>
+      <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h con posible formación de torbellinos o tornados: Coahuila (norte).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Continuará la onda de calor en 16 estados de la República Mexicana.]]></description>
-      <pubDate>Wed, 20 May 2026 03:31:19 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-20-0fbc</guid>
+      <description><![CDATA[Para mañana continuará la onda de calor en Durango, Sinaloa, Nayarit, Jalisco, Colima, Michoacán, Guerrero, Morelos, Puebla, Veracruz, Oaxaca, Chiapas, Campeche ...]]></description>
+      <pubDate>Wed, 20 May 2026 05:24:08 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-20-6ebe</guid>
       <category>Alerta</category>
     </item>
     <item>
-      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 278 | 19 de Mayo del 2026 | Emisión 18:00h</title>
+      <title>📋 SMN Reporte Vespertino 19 MAY 2026: Para esta noche se prevén lluvias intensas con posible granizo en zonas de Coahuila, Nuevo León, Tamaulipas y San Luis...</title>
+      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_19_05.pdf</link>
+      <description><![CDATA[Para esta noche se prevén lluvias intensas con posible granizo en zonas de Coahuila, Nuevo León, Tamaulipas y San Luis... — Reporte Vespertino del 19 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_19_05.pdf]]></description>
+      <pubDate>Tue, 19 May 2026 17:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_19_05</guid>
+      <category>Comunicado</category>
+    </item>
+    <item>
+      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 277 | 19 de Mayo del 2026 | Emisión 06:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
-      <description><![CDATA[LLUVIAS MUY FUERTES A PUNTUALES INTENSAS EN COAHUILA, NUEVO LEÓN, TAMAULIPAS, SAN LUIS POTOSÍ, QUERÉTARO E HIDALGO
+      <description><![CDATA[SE PRONOSTICAN LLUVIAS MUY FUERTES EN ZONAS DEL NORESTE, CENTRO, ORIENTE Y SURESTE DEL PAÍS, CON POSIBLE FORMACIÓN DE TORBELLINOS O TORNADOS EN COAHUILA, NUEVO LEÓN Y TAMAULIPAS
 
 ---
 Pronóstico Meteorológico General
-No. Aviso: 278
+No. Aviso: 277
 Ciudad de México a 19 de Mayo del 2026.
-Emisión: 18:00h
+Emisión: 06:00h
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
 
- 
 
-LLUVIAS MUY FUERTES A PUNTUALES INTENSAS EN COAHUILA, NUEVO LEÓN, TAMAULIPAS, SAN LUIS POTOSÍ, QUERÉTARO E HIDALGO
+SE PRONOSTICAN LLUVIAS MUY FUERTES EN ZONAS DEL NORESTE, CENTRO, ORIENTE Y SURESTE DEL PAÍS, CON POSIBLE FORMACIÓN DE TORBELLINOS O TORNADOS EN COAHUILA, NUEVO LEÓN Y TAMAULIPAS
 
-Durante esta noche y la madrugada del miércoles, una línea seca sobre el norte del territorio nacional, en interacción con la aproximación de un sistema frontal a la frontera norte de México y un canal de baja presión en el noreste del país, aunados a la corriente en chorro subtropical e inestabilidad atmosférica, originarán vientos fuertes a muy fuertes con rachas de hasta 70 km/h en las mencionadas regiones; con posible formación de tornados en Coahuila y de torbellinos en Nuevo León y Tamaulipas; así como lluvias muy fuertes a puntuales intensas con descargas eléctricas y posible caída de granizo en Coahuila, Nuevo León, Tamaulipas y San Luis Potosí.…]]></description>
+Para este día, la circulación anticiclónica en niveles medios de la atmósfera sobre el golfo de México, mantendrá temperaturas calurosas a muy calurosas en la mayor parte de la República Mexicana, prevaleciendo la onda de calor en Coahuila (centro y suroeste), Zacatecas (sur), Durango (oeste), Sinaloa (centro y sur), Nayarit (norte y sur), Jalisco (centro, sur y suroeste), Colima (norte, sur y este), Michoacán (centro y suroeste), Guerrero (noroeste, centro, sur y sureste), Morelos (sur), Puebla (suroeste), Veracruz (centro y sur), Oaxaca (centro, sur y este), Chiapas (norte, centro y oeste), Campeche (norte) y Yucatán (oeste); finalizando a partir de este día en San Luis Potosí, Aguascalientes e Hidalgo.…]]></description>
       <pubDate>Tue, 19 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-pronostico-general-2026-05-19-278</guid>
+      <guid isPermaLink="false">smn-pronostico-general-2026-05-19-277</guid>
       <category>Pronóstico General</category>
     </item>
     <item>
@@ -78,14 +85,6 @@ Durante esta noche y la madrugada del miércoles, una línea seca sobre el norte
       <description><![CDATA[Hoy se pronostican lluvias puntuales muy fuertes para regiones de Nuevo León, Tamaulipas, Puebla, Veracruz y Oaxaca — Reporte Matutino del 17 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_17.pdf]]></description>
       <pubDate>Sun, 17 May 2026 07:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_17</guid>
-      <category>Comunicado</category>
-    </item>
-    <item>
-      <title>📋 SMN Reporte Matutino 16 MAY 2026: Hoy, la onda de calor se extenderá a regiones de 24 estados de la República Mexicana</title>
-      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_16.pdf</link>
-      <description><![CDATA[Hoy, la onda de calor se extenderá a regiones de 24 estados de la República Mexicana — Reporte Matutino del 16 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_16.pdf]]></description>
-      <pubDate>Sat, 16 May 2026 07:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_16</guid>
       <category>Comunicado</category>
     </item>
   </channel>
