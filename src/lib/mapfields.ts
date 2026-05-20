@@ -182,3 +182,63 @@ export const PRESSURE_LEGEND: LegendStop[] = [
   { label: '1025', color: '#f1a340' },
   { label: '≥1040 hPa', color: '#b35806' },
 ];
+
+import { windUv } from './mapwind';
+
+/** Wind grid: u/v per point per hour, with nulls for no-data cells. */
+export interface WindGrid {
+  times: string[];
+  points: { lat: number; lng: number; u: (number | null)[]; v: (number | null)[] }[];
+}
+
+/** Keyless Open-Meteo bulk URL fetching speed + direction together. */
+export function buildWindUrl(points: LngLat[]): string {
+  const lats = points.map((p) => p.lat).join(',');
+  const lngs = points.map((p) => p.lng).join(',');
+  return (
+    `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}` +
+    `&hourly=wind_speed_10m,wind_direction_10m&forecast_days=2&timezone=UTC`
+  );
+}
+
+function isSpeedDirArray(a: unknown): a is (number | null)[] {
+  return (
+    Array.isArray(a) &&
+    a.every((n) => n === null || (typeof n === 'number' && Number.isFinite(n)))
+  );
+}
+
+/** Normalise an Open-Meteo wind bulk response into a WindGrid (u/v decomposed). Null if unusable. */
+export function parseWindResponse(json: unknown, points: LngLat[]): WindGrid | null {
+  if (!json) return null;
+  const arr = Array.isArray(json) ? json : [json];
+  if (arr.length !== points.length) return null;
+  const first = arr[0] as { hourly?: { time?: unknown } } | undefined;
+  const times = first?.hourly?.time;
+  if (!Array.isArray(times) || times.length === 0) return null;
+  const out: WindGrid['points'] = [];
+  for (let i = 0; i < arr.length; i++) {
+    const h = (arr[i] as { hourly?: Record<string, unknown> } | undefined)?.hourly;
+    const sp = h?.wind_speed_10m;
+    const dr = h?.wind_direction_10m;
+    if (!isSpeedDirArray(sp) || !isSpeedDirArray(dr) || sp.length !== times.length || dr.length !== times.length) {
+      return null;
+    }
+    const u: (number | null)[] = [];
+    const v: (number | null)[] = [];
+    for (let h2 = 0; h2 < times.length; h2++) {
+      const s = sp[h2];
+      const d = dr[h2];
+      if (s === null || d === null) {
+        u.push(null);
+        v.push(null);
+      } else {
+        const uv = windUv(s, d);
+        u.push(uv.u);
+        v.push(uv.v);
+      }
+    }
+    out.push({ lat: points[i].lat, lng: points[i].lng, u, v });
+  }
+  return { times: times as string[], points: out };
+}

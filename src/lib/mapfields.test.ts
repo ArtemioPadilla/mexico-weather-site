@@ -155,3 +155,58 @@ describe('HUMIDITY_LEGEND / PRESSURE_LEGEND', () => {
     }
   });
 });
+
+import { buildWindUrl, parseWindResponse } from './mapfields';
+
+describe('buildWindUrl', () => {
+  it('builds an Open-Meteo bulk URL requesting wind_speed_10m + wind_direction_10m', () => {
+    const url = buildWindUrl([
+      { lat: 10, lng: -100 },
+      { lat: 12, lng: -99 },
+    ]);
+    expect(url).toBe(
+      'https://api.open-meteo.com/v1/forecast?latitude=10,12&longitude=-100,-99' +
+        '&hourly=wind_speed_10m,wind_direction_10m&forecast_days=2&timezone=UTC',
+    );
+  });
+});
+
+describe('parseWindResponse', () => {
+  const pts = [
+    { lat: 10, lng: -100 },
+    { lat: 12, lng: -99 },
+  ];
+  const resp = [
+    {
+      hourly: {
+        time: ['2026-05-19T00:00', '2026-05-19T01:00'],
+        wind_speed_10m: [10, 5],
+        wind_direction_10m: [0, 90],
+      },
+    },
+    {
+      hourly: {
+        time: ['2026-05-19T00:00', '2026-05-19T01:00'],
+        wind_speed_10m: [null, 8],
+        wind_direction_10m: [null, 180],
+      },
+    },
+  ];
+  it('decomposes speed+direction into u/v per point per hour, preserving nulls', () => {
+    const g = parseWindResponse(resp, pts);
+    expect(g).not.toBeNull();
+    expect(g!.times).toEqual(['2026-05-19T00:00', '2026-05-19T01:00']);
+    expect(g!.points[0].u[0]).toBeCloseTo(0, 5);
+    expect(g!.points[0].v[0]).toBeCloseTo(-10, 5);
+    expect(g!.points[0].u[1]).toBeCloseTo(-5, 5);
+    expect(g!.points[0].v[1]).toBeCloseTo(0, 5);
+    expect(g!.points[1].u[0]).toBeNull();
+    expect(g!.points[1].v[0]).toBeNull();
+    expect(g!.points[1].u[1]).toBeCloseTo(0, 5);
+    expect(g!.points[1].v[1]).toBeCloseTo(8, 5);
+  });
+  it('returns null for malformed input', () => {
+    expect(parseWindResponse(null, pts)).toBeNull();
+    expect(parseWindResponse([{ hourly: {} }, { hourly: {} }], pts)).toBeNull();
+  });
+});
