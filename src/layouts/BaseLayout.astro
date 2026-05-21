@@ -178,12 +178,41 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <meta name="twitter:image" content={image} />
   </head>
   <body class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased">
-    <nav class="border-b border-gray-200 bg-white px-4 py-2 text-sm dark:border-gray-800 dark:bg-gray-950">
-      <a href={base} class="text-blue-600 hover:underline dark:text-blue-400">Inicio</a>
-      <span class="mx-2 text-gray-400">·</span>
-      <a href={`${base}mapa`} class="text-blue-600 hover:underline dark:text-blue-400">Mapa</a>
+    {/*
+     * Slim sticky topbar (closes #93). Sits above any in-page absolute
+     * controls (MapLibre uses z-10..z-20 on /mapa). position:sticky (not
+     * fixed) so the page below — including the /mapa MapLibre canvas —
+     * still claims the full viewport below the bar. backdrop-blur +
+     * translucent bg let map/forecast content show through subtly.
+     */}
+    <nav
+      aria-label="Principal"
+      class="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-gray-800 dark:bg-gray-900/80 dark:supports-[backdrop-filter]:bg-gray-900/60"
+      style="padding-top:env(safe-area-inset-top)"
+    >
+      <div class="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 px-3 sm:h-14 sm:px-4">
+        <a
+          href={base}
+          class="flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+        >
+          <span aria-hidden="true" class="text-base leading-none">🇲🇽</span>
+          <span>Clima México</span>
+        </a>
+        <div class="flex items-center gap-1 sm:gap-2">
+          <a
+            href={base}
+            class="rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
+            >Inicio</a
+          >
+          <a
+            href={`${base}mapa`}
+            class="rounded-md px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-blue-400"
+            >Mapa</a
+          >
+          <ThemeToggle lang={lang} />
+        </div>
+      </div>
     </nav>
-    <ThemeToggle lang={lang} />
     <slot />
     <FeedbackFAB lang={lang} />
     {

@@ -38,10 +38,10 @@ Reusable fixtures in `e2e/fixtures/`: `geocode.cdmx.json`, `forecast.cdmx.json` 
 | `/sitemap.xml` | `src/pages/sitemap.xml.ts` | Sitemap |
 
 Every page wraps in `BaseLayout` (`src/layouts/BaseLayout.astro`), which provides:
-- A top nav with `Inicio` (→ `/`) and `Mapa` (→ `/mapa`) links
+- A slim sticky topbar (`<nav aria-label="Principal">`, 48 px / 56 px ≥ sm; `position: sticky; top: 0; z-index: 50`) carrying the 🇲🇽 "Clima México" brand wordmark (links to `/`), `Inicio` (→ `/`) and `Mapa` (→ `/mapa`) nav links, and the theme toggle. Background uses `bg-white/80` (+ `dark:bg-gray-900/80`) with `backdrop-blur`, so map/forecast content shows through subtly.
 - Anti-FOUC theme bootstrap (inline script reads `localStorage.theme`)
 - A scoped service worker registration (idempotent; no-op on failure)
-- Theme toggle button `#theme-toggle-btn`
+- Theme toggle button `#theme-toggle-btn` (inline inside the topbar; no longer a floating top-right circle)
 - Feedback FAB button `#secid-report-btn` (and `#secid-report-modal`)
 
 ---

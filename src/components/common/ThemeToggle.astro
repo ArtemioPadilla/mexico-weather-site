@@ -9,8 +9,9 @@
  * - La lógica anti-FOUC vive en el <head> de BaseLayout; este botón solo
  *   refleja y modifica el estado actual.
  *
- * Posición: fijo arriba a la derecha; no choca con el FeedbackFAB
- * (que es fijo abajo a la derecha).
+ * Posición: inline dentro del topbar sticky de BaseLayout. El botón
+ * conserva su id (`#theme-toggle-btn`) y semántica ARIA para no romper
+ * tests existentes; solo cambia su contenedor y dimensiones.
  */
 
 interface Props {
@@ -35,25 +36,24 @@ const tr = {
 }[lang];
 ---
 
-<div class="fixed top-[calc(0.75rem+env(safe-area-inset-top))] right-5 z-50">
-  <button
-    id="theme-toggle-btn"
-    type="button"
-    aria-label={tr.label}
-    title={tr.label}
-    data-l-light={tr.light}
-    data-l-dark={tr.dark}
-    data-l-system={tr.system}
-    data-l-label={tr.label}
-    class="relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg
-           bg-white text-gray-700 ring-1 ring-gray-900/10
-           hover:bg-gray-50 hover:ring-gray-900/20
-           dark:bg-gray-800 dark:text-gray-200 dark:ring-white/10
-           dark:hover:bg-gray-700 dark:hover:ring-white/20
-           transition-all hover:scale-105 hover:shadow-xl
-           motion-reduce:transition-none motion-reduce:hover:scale-100
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-  >
+<button
+  id="theme-toggle-btn"
+  type="button"
+  aria-label={tr.label}
+  title={tr.label}
+  data-l-light={tr.light}
+  data-l-dark={tr.dark}
+  data-l-system={tr.system}
+  data-l-label={tr.label}
+  class="relative inline-flex h-9 w-9 items-center justify-center rounded-full
+         bg-white text-gray-700 ring-1 ring-gray-900/10
+         hover:bg-gray-50 hover:ring-gray-900/20
+         dark:bg-gray-800 dark:text-gray-200 dark:ring-white/10
+         dark:hover:bg-gray-700 dark:hover:ring-white/20
+         transition-colors
+         motion-reduce:transition-none
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+>
     <!-- Icono: Sistema (monitor) -->
     <svg
       data-theme-icon="system"
@@ -102,9 +102,8 @@ const tr = {
         d="M21.752 15.002A9.718 9.718 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
       />
     </svg>
-    <span id="theme-toggle-sr" class="sr-only">{tr.label}</span>
-  </button>
-</div>
+  <span id="theme-toggle-sr" class="sr-only">{tr.label}</span>
+</button>
 
 <script>
   import {
