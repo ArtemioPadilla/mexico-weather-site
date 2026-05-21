@@ -28,7 +28,7 @@ const base = siteBase();
             <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ac" aria-autocomplete="list" aria-label={t.search_placeholder} placeholder={t.search_placeholder} class="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
             <button id="geo" type="button" class="bg-white border border-gray-300 rounded-lg px-3 text-sm text-blue-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-blue-300 dark:hover:bg-gray-800 motion-reduce:transition-none"><span aria-hidden="true">📍</span> {t.use_my_location}</button>
           </div>
-          <ul id="ac" role="listbox" class="hidden mt-1 bg-white border border-gray-300 rounded-lg overflow-hidden dark:bg-gray-900 dark:border-gray-700"></ul>
+          <ul id="ac" role="listbox" class="hidden mt-1 text-start bg-white border border-gray-300 rounded-lg overflow-hidden dark:bg-gray-900 dark:border-gray-700"></ul>
           <p id="qmsg" class="hidden mt-1 text-xs text-gray-600 dark:text-gray-500" aria-live="polite"></p>
         </div>
         <p id="js-updated-at" class="text-xs text-gray-600 dark:text-gray-500" aria-live="polite">Cargando datos más recientes...</p>
