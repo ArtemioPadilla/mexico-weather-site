@@ -5,14 +5,14 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Thu, 21 May 2026 01:22:46 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 21 May 2026 03:31:20 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
       <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y con posible formación de torbellinos o tornados</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Coahuila (norte), Chihuahua (este), Nuevo León (norte) y Tamaulipas (noroeste).]]></description>
-      <pubDate>Wed, 20 May 2026 19:22:37 -0600</pubDate>
+      <pubDate>Wed, 20 May 2026 21:31:08 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-20-be86</guid>
       <category>Alerta</category>
     </item>
@@ -36,11 +36,11 @@ Durante esta noche y madrugada del jueves, un sistema frontal estacionado sobre 
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 20 de mayo del 2026 | Emisión 18:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 20 de mayo del 2026 | Emisión 21:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 20 de mayo del 2026
-Emisión: 18:00
+Emisión: 21:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Wed, 20 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-20-12</guid>
