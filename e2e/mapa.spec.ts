@@ -247,4 +247,28 @@ test.describe('mapa page', () => {
     await expect(page.locator('#legend')).toBeHidden();
     await expect(page.locator('#timeline')).toBeHidden();
   });
+
+  test('sunlight overlay activates without timeline or legend', async ({ page }) => {
+    await page.route('**/api.rainviewer.com/public/weather-maps.json', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: RAINVIEWER_MANIFEST }),
+    );
+    await page.route('**/tilecache.rainviewer.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: TRANSPARENT_PNG }),
+    );
+
+    await page.goto('mapa/');
+    await page.waitForResponse('**/api.rainviewer.com/public/weather-maps.json');
+
+    const btn = page.locator('#layerbtn-sunlight');
+    await expect(btn).toBeEnabled();
+    await btn.click();
+
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#legend')).toBeHidden();
+    await expect(page.locator('#timeline')).toBeHidden();
+    await expect(page.locator('#opacitywrap')).toBeVisible();
+
+    await page.locator('#layerbtn-base').click();
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+  });
 });
