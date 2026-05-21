@@ -101,6 +101,54 @@ const t = ui[lang];
     <div id="map" class="h-full w-full" role="application" aria-label={t.map_title}></div>
   </main>
 
+  {/*
+   * Issue #71 — Popup contrast in dark mode.
+   * MapLibre popups are portaled to <body>, which in dark mode has
+   * `text-gray-100` (Tailwind light text). The default popup background is
+   * white, producing white-on-white text. These rules target the popup
+   * regardless of the OSM-portaled location, and key off `html.dark` so they
+   * apply equally to explicit "Oscuro" and "Sistema → inferred dark" (the
+   * anti-FOUC bootstrap in BaseLayout adds `.dark` to <html> in both cases).
+   *
+   * Use `is:global` so Astro does not scope these selectors (the popup DOM
+   * is not under this component's subtree).
+   */}
+  <style is:global>
+    html.dark .maplibregl-popup-content {
+      background: #111827; /* gray-900 */
+      color: #f3f4f6; /* gray-100 */
+    }
+    html.dark .maplibregl-popup-content a {
+      color: #93c5fd; /* blue-300 */
+    }
+    /* Tip (the arrow connecting the popup to the marker) must match the bg. */
+    html.dark .maplibregl-popup-tip {
+      border-top-color: #111827;
+      border-bottom-color: #111827;
+    }
+    html.dark .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+    html.dark .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+    html.dark .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+      border-bottom-color: #111827;
+      border-top-color: transparent;
+    }
+    html.dark .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+    html.dark .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+    html.dark .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+      border-top-color: #111827;
+      border-bottom-color: transparent;
+    }
+    html.dark .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+      border-right-color: #111827;
+    }
+    html.dark .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+      border-left-color: #111827;
+    }
+    html.dark .maplibregl-popup-close-button {
+      color: #d1d5db; /* gray-300 */
+    }
+  </style>
+
   <script>
     import maplibregl from 'maplibre-gl';
     import 'maplibre-gl/dist/maplibre-gl.css';
@@ -265,6 +313,26 @@ const t = ui[lang];
 
     map.on('load', () => {
       renderPins();
+      // Issue #72 — force the first paint. MapLibre defers its initial render
+      // until layout settles, and Tailwind v4's layout pass can delay that
+      // first frame so the canvas looks blank for seconds. Schedule a resize +
+      // repaint on the next animation frame, AFTER renderPins() so any DOM
+      // layout effects are flushed first. Wrapped in a try/catch because in
+      // edge cases (no WebGL, container removed) the calls would throw and
+      // mask other errors; the user just sees the static fallback.
+      window.requestAnimationFrame(() => {
+        try {
+          map.resize();
+          map.triggerRepaint();
+        } catch {
+          /* first-paint nudge is best-effort */
+        }
+      });
+      // Issue #78 — sync the basemap tile source to the current theme on
+      // first load (theme may already be dark via the anti-FOUC bootstrap),
+      // and observe future theme changes.
+      syncBasemapTheme();
+      observeThemeForBasemap();
       void (async () => {
         try {
           const res = await deps.fetch('https://api.rainviewer.com/public/weather-maps.json');
@@ -278,6 +346,50 @@ const t = ui[lang];
         }
       })();
     });
+
+    // ------------------------------------------------------------------
+    // Issue #78 — Dark basemap (CartoDB Dark Matter) when html.dark is set.
+    // Swaps the OSM raster source URL via setTiles() without recreating
+    // the map. Keyless, public, attribution-required CARTO tiles fit the
+    // site's keyless / static-hosting commitment.
+    // ------------------------------------------------------------------
+    const OSM_TILES = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
+    const CARTO_DARK_TILES = [
+      'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    ];
+
+    let lastBasemapDark: boolean | null = null;
+    function syncBasemapTheme(): void {
+      const dark = document.documentElement.classList.contains('dark');
+      if (dark === lastBasemapDark) return;
+      const src = map.getSource('osm') as maplibregl.RasterTileSource | undefined;
+      if (!src || typeof src.setTiles !== 'function') return;
+      try {
+        src.setTiles(dark ? CARTO_DARK_TILES : OSM_TILES);
+        // Attribution is read from the source on creation; MapLibre rebuilds
+        // the attribution UI from the raster source's `attribution` field
+        // whenever sources change. Update for completeness; the visual
+        // attribution control will reflect it on next refresh.
+        const anySrc = src as unknown as { attribution?: string };
+        anySrc.attribution = dark
+          ? '© OpenStreetMap contributors © CARTO'
+          : '© OpenStreetMap';
+        lastBasemapDark = dark;
+      } catch {
+        /* setTiles can throw if the style isn't ready yet — retry on next mutation */
+      }
+    }
+
+    function observeThemeForBasemap(): void {
+      const mo = new MutationObserver(() => syncBasemapTheme());
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    }
 
     function setUserPin(name: string, lat: number, lng: number, kind: 'search' | 'geo'): void {
       pins = withUserPin(pins, { name, lat, lng, kind });

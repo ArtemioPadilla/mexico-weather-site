@@ -121,7 +121,8 @@ The site is mobile-first and tested at four representative breakpoints. There ar
 
 ## Data sources & attributions
 
-- **OpenStreetMap** — basemap raster tiles. © OpenStreetMap contributors.
+- **OpenStreetMap** — basemap raster tiles when the UI is in the light theme. © OpenStreetMap contributors.
+- **CartoDB Dark Matter** — basemap raster tiles when the UI is in the dark theme (resolved from explicit "Oscuro" or "Sistema → dark"). The map swaps the tile source live; the MapLibre instance is not recreated. © OpenStreetMap contributors © CARTO.
 - **RainViewer** — radar + satellite-IR frames and tiles. © RainViewer.
 - **Open-Meteo** — keyless gridded forecast (temperature, humidity, pressure, wind). © Open-Meteo.
 - **SMN / CONAGUA** — weather advisory RSS used for the build-time alert feed at `/rss.xml`.
