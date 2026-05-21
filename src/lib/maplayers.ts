@@ -2,17 +2,17 @@
 // Single source of truth for valid layer ids (consumed by maphash.ts).
 
 export type LayerId =
-  | 'base' | 'radar' | 'satellite' | 'temperature' | 'humidity' | 'pressure' | 'wind';
+  | 'base' | 'radar' | 'satellite' | 'temperature' | 'humidity' | 'pressure' | 'wind' | 'sunlight';
 
 export const LAYER_IDS = [
-  'base', 'radar', 'satellite', 'temperature', 'humidity', 'pressure', 'wind',
+  'base', 'radar', 'satellite', 'temperature', 'humidity', 'pressure', 'wind', 'sunlight',
 ] as const;
 
 export interface LayerDef {
   id: LayerId;
   /** Key into UiStrings for the rail button label. */
   labelKey: string;
-  kind: 'base' | 'raster-tile' | 'field' | 'particles';
+  kind: 'base' | 'raster-tile' | 'field' | 'particles' | 'overlay';
   /** Initial layer opacity (0..1); 1 for the base map. */
   defaultOpacity: number;
 }
@@ -25,6 +25,7 @@ export const LAYERS: LayerDef[] = [
   { id: 'humidity', labelKey: 'map_layer_humidity', kind: 'field', defaultOpacity: 0.65 },
   { id: 'pressure', labelKey: 'map_layer_pressure', kind: 'field', defaultOpacity: 0.7 },
   { id: 'wind', labelKey: 'map_layer_wind', kind: 'particles', defaultOpacity: 1 },
+  { id: 'sunlight', labelKey: 'map_layer_sunlight', kind: 'overlay', defaultOpacity: 0.45 },
 ];
 
 export function getLayer(id: string): LayerDef | undefined {
