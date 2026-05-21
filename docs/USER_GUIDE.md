@@ -46,7 +46,7 @@ A walkthrough of what users can do on the site, the public URL schemas (for shar
 | Param | Format | Meaning |
 |---|---|---|
 | `view` | `<lat>,<lng>,<zoom>z` (e.g. `19.43,-99.13,6.5z`) | Map centre + zoom. Validated; out-of-range values fall back to the default Mexico view. |
-| `layer` | one of `base`, `radar`, `satellite`, `temperature`, `humidity`, `pressure` (`wind` once Slice 5c lands) | Active weather layer; unknown ids fall back to `base`. |
+| `layer` | one of `base`, `radar`, `satellite`, `temperature`, `humidity`, `pressure`, `wind`, `sunlight` | Active weather layer; unknown ids fall back to `base`. |
 | `t` | ISO timestamp (e.g. `2026-05-19T13:00:00.000Z`) | Selected timeline frame; the nearest frame is restored on load. Omitted when `layer=base`. |
 
 Example: `https://artemiop.com/mexico-weather/mapa#view=19.43,-99.13,6.5z&layer=radar&t=2026-05-19T13:00:00.000Z`.
@@ -82,7 +82,7 @@ Example: `https://artemiop.com/mexico-weather/mapa#view=19.43,-99.13,6.5z&layer=
 
 - **OpenStreetMap** — basemap raster tiles. © OpenStreetMap contributors.
 - **RainViewer** — radar + satellite-IR frames and tiles. © RainViewer.
-- **Open-Meteo** — keyless gridded forecast (temperature, humidity, pressure; wind for Slice 5c). © Open-Meteo.
+- **Open-Meteo** — keyless gridded forecast (temperature, humidity, pressure, wind). © Open-Meteo.
 - **SMN / CONAGUA** — weather advisory RSS used for the build-time alert feed at `/rss.xml`.
 - **NASA GIBS** — referenced in the design for future satellite layers; not yet a runtime data source.
 
@@ -92,12 +92,11 @@ All sources are public, keyless, and CORS-enabled. The site ships zero secrets a
 
 These are intentional scope boundaries, not bugs:
 
-- **Wind as animated GL particles**: planned (Slice 5c) but not yet shipped. Until then, no wind layer.
-- **Sunlight / day-night terminator**: Slice 6.
-- **Field layers (temperature/humidity/pressure)** use a coarse 8×6 viewport-aligned grid. Adequate for country-level views; finer resolution is a Slice-6 polish item.
+- **Wind layer under `prefers-reduced-motion: reduce`** falls back to static circle markers (no animated particles).
+- **Field layers (temperature/humidity/pressure)** use a coarse 8×6 viewport-aligned grid. Adequate for country-level views; finer resolution is a polish item.
 - **Time label** in the timeline is formatted in `es-MX` locale. Multi-locale time formatting is a non-goal for v1.
-- **Field-layer playback animation** uses simple frame swaps without preloading; preloading/caching is a Slice-6 polish item.
-- **Particle trails / geographic-accurate advection** are deferred to Slice 6 polish (after the v1 particle system ships in Slice 5c).
+- **Field-layer playback animation** uses simple frame swaps without preloading; preloading/caching is a polish item.
+- **Particle trails / geographic-accurate advection** are a polish item — the v1 wind particle system does not yet render trails.
 
 ## Related docs
 
