@@ -257,6 +257,12 @@ const t = ui[lang];
       }, 500);
     });
 
+    // Test-only affordance: expose the MapLibre instance when ?e2e=1 is set
+    // in the URL. Production loads (no query param) never see this global.
+    if (new URLSearchParams(location.search).get('e2e') === '1') {
+      (window as unknown as { __map?: maplibregl.Map }).__map = map;
+    }
+
     map.on('load', () => {
       renderPins();
       void (async () => {
