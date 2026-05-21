@@ -101,6 +101,7 @@ These are intentional scope boundaries, not bugs:
 
 ## Related docs
 
+- **E2E user-journey reference** (selectors, journey-by-journey Playwright drives, network mocks, coverage matrix): [`USER_JOURNEYS.md`](USER_JOURNEYS.md)
 - **Design spec** (engineering): `docs/superpowers/specs/2026-05-18-weather-maps-design.md`
 - **Implementation plans** (one per slice): `docs/superpowers/plans/2026-05-1[68-9]-weather-maps-slice-*.md`
 - **Rich location forecast spec**: `docs/superpowers/specs/2026-05-16-rich-location-forecast-design.md`

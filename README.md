@@ -32,7 +32,7 @@ with a built-in feedback button that opens pre-filled GitHub issues.
 - Spanish-first i18n (with parallel English strings).
 - Static deployment to GitHub Pages from `main`.
 
-See **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** for the full user-journey walkthrough, the URL hash schema, accessibility notes, and data-source attributions.
+See **[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)** for the full user-journey walkthrough, the URL hash schema, accessibility notes, and data-source attributions. For the test-author's reference (every interactive selector, journey-by-journey Playwright drives, mock endpoints, and current e2e coverage), see **[`docs/USER_JOURNEYS.md`](docs/USER_JOURNEYS.md)**.
 
 ## Tech stack
 
