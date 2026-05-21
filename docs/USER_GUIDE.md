@@ -70,6 +70,47 @@ Example: `https://artemiop.com/mexico-weather/mapa#view=19.43,-99.13,6.5z&layer=
 - **Spanish-first**: every UI string is Spanish by default; English strings exist in the i18n table for future routing.
 - **XSS-safe**: all dynamic strings injected into popups, legends, and labels pass through an HTML-escape helper.
 
+## Responsive behavior
+
+The site is mobile-first and tested at four representative breakpoints. There are no hard `min-width` media queries to "switch into" desktop — layout adapts continuously via Tailwind's responsive utilities and CSS grid.
+
+| Breakpoint | Width | Reference device | Layout traits |
+|---|---|---|---|
+| **mobile** | 375–640 px | iPhone SE, modern Android phones in portrait | 1-column card grid; search input + "Mi ubicación" stack vertically on the narrowest widths; hero typography scales down (`text-5xl → text-4xl`); top nav stays in the upper-left corner as a thin link row; theme toggle floats top-right; feedback FAB floats bottom-right. |
+| **tablet** | 641–1023 px | iPad portrait, Surface Go | 2-column card grid; search + "Mi ubicación" share a single row; the `/mapa` layer rail remains a vertical sidebar but takes less horizontal share of the viewport; hourly cards on `/forecast` scroll horizontally with a visible scrollbar. |
+| **laptop** | 1024–1535 px | most laptops | 3-column card grid; map page uses the full viewport for the canvas with sidebar rail; forecast detail panels (Viento / Índice UV / Cielo y aire) align side-by-side. |
+| **desktop** | ≥ 1536 px | external monitors | Same as laptop with a wider content `max-width` cap on `/` and `/forecast` (centered with side gutters); `/mapa` continues to occupy the full width because the map IS the page. |
+
+### Per-page responsive notes
+
+- **`/` (home)**
+  - Card grid: `grid-cols-1` (mobile) → `grid-cols-2` (≥ `sm`) → `grid-cols-3` (≥ `lg`).
+  - The 6th tile is always the "Más ciudades próximamente / Sugerir ciudad →" placeholder; it stays in flow at every breakpoint.
+  - "Tus lugares" only renders when the user has favorites; on mobile it sits between the SMN alerts banner and the preset grid.
+  - The map teaser is full-width at every breakpoint; on wide viewports a soft 2xl border-radius and inset reads as a card on the dark canvas.
+- **`/forecast`**
+  - 48-h hourly row is always `overflow-x: auto`; the row keeps a fixed card height and never wraps.
+  - 7-day rows are full-width; the gradient temperature bar reflows to the full container width so it always reads at a glance.
+  - "Detalle" panels: stack vertically on mobile, then `grid-cols-3` from `md:` upward.
+- **`/mapa`**
+  - The MapLibre canvas always fills 100 % of the viewport behind the absolute-positioned controls.
+  - Layer rail keeps the same vertical layout from mobile to desktop; mobile users tap, desktop users hover-then-click. No collapse-to-burger.
+  - Timeline scrubber stays bottom-center at all widths.
+  - Opacity slider and legend sit on the left, just under the layer rail, so they don't fight the timeline for the bottom of the screen.
+- **`/privacidad`**
+  - Long-prose layout with a single readable column (`max-w-prose` style); identical at every breakpoint apart from the global `max-w` cap.
+
+### Things that intentionally don't change
+
+- **Spanish-first**: all viewports show the same Spanish strings; no locale-by-viewport switch.
+- **Dark mode**: same colour palette at every breakpoint; theme toggle visible at every breakpoint.
+- **Map controls** (zoom +/−): MapLibre's `NavigationControl` placement is fixed and never collapses, even on mobile.
+
+### Known responsive gaps (not yet bugs but worth noting)
+
+- On viewports < 1024 px the top nav (`Inicio · Mapa`) is just a thin line of links in the upper-left corner; it does not act as a sticky topbar. Bookmark this if you intend to scroll deep on a long forecast — your only way back to the home page is the `← Volver al inicio` link at the very top of `/forecast` and `/privacidad`.
+- Below 480 px the search input's placeholder text (`Buscar cualquier ciudad o lugar…`) gets truncated with an ellipsis; functional but tight.
+
 ## Failure modes (non-blocking by design)
 
 - **Geolocation denied / unavailable** → a small message ("No se pudo obtener tu ubicación."); search remains usable.

@@ -632,6 +632,78 @@ const OPEN_METEO_WIND = JSON.stringify(Array.from({ length: 48 }, () => ({ hourl
 
 ---
 
+# Responsive journeys
+
+These journeys exercise the site at the four representative breakpoints documented in [`USER_GUIDE.md`](USER_GUIDE.md#responsive-behavior). Use Playwright's `page.setViewportSize(...)` (or per-test `test.use({ viewport: { width, height } })`) to drive each width.
+
+Conventions:
+
+- All viewports test the same baseline content; the *assertion* shape changes (e.g. card count per row, presence of overflow scrollbars).
+- Use `mockOpenMeteo(page)` for deterministic card content — without it, fetches race + a percentage of preset cards drop to the terminal error state (see issue [#82](https://github.com/ArtemioPadilla/mexico-weather/issues/82)).
+
+### `responsive-1` — Home grid reflows: 1 / 2 / 3 columns
+- **Goal**: `#preset-grid > *` snaps to the expected column count at each breakpoint.
+- **Preconditions**: `mockOpenMeteo(page)`; localStorage with no favorites.
+- **Steps**:
+  1. For each viewport in `[ { w: 375, cols: 1 }, { w: 768, cols: 2 }, { w: 1440, cols: 3 } ]`:
+     - `await page.setViewportSize({ width: v.w, height: 900 })`
+     - `await page.goto('')`
+     - `await expect(page.locator('#preset-grid > *').first()).toBeVisible()`
+     - Read the bounding boxes of the first 3 children; assert they share a `y` within ±2 px (cols === 3), or `y` differs by ≥ card-height (cols === 1).
+- **Failure modes**: layout regression when Tailwind classes change (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`).
+- **NOT YET COVERED**.
+
+### `responsive-2` — No horizontal scroll at any tested width
+- **Goal**: the page never produces a horizontal scrollbar at 375 / 768 / 1024 / 1920.
+- **Steps**:
+  1. For each width in `[375, 768, 1024, 1920]` on each of `/`, `/forecast?lat=19.43&lng=-99.13&name=CDMX`, `/mapa/`, `/privacidad/`:
+     - Set viewport.
+     - `await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)`
+- **Notes**: the MapLibre canvas is the one element that legitimately extends to viewport edges; assert specifically on the body's overflow, not on the map canvas.
+- **NOT YET COVERED**.
+
+### `responsive-3` — Forecast hourly row is horizontally scrollable, never wraps
+- **Goal**: the 48-h hourly row keeps its single-row layout and exposes overflow.
+- **Steps**:
+  1. `await page.setViewportSize({ width: 375, height: 812 })`
+  2. `await page.goto('forecast/?lat=19.43&lng=-99.13&name=CDMX&tz=America%2FMexico_City')`
+  3. `const row = page.locator('[data-hourly-row]')` (or a stable locator on the hourly track — confirm the selector against `src/pages/forecast.astro`).
+  4. Read `await row.evaluate(el => ({ sw: el.scrollWidth, cw: el.clientWidth, oy: el.scrollHeight }))` — assert `sw > cw` (horizontal overflow exists) and that vertical overflow (`scrollHeight`) is approximately one card height (no wrap).
+- **NOT YET COVERED**.
+
+### `responsive-4` — Map controls remain reachable at mobile (375)
+- **Goal**: at 375 px, the layer rail, search input, "Mi ubicación" button, opacity slider, timeline scrubber, and feedback FAB are all visible (no off-screen / overlap).
+- **Steps**:
+  1. Mock RainViewer + tiles. `await page.setViewportSize({ width: 375, height: 812 })`.
+  2. `await page.goto('mapa/')`.
+  3. For each of `#layerbtn-base`, `#layerbtn-radar`, `#mapq`, `#maploc`, `#secid-report-btn`: `await expect(locator).toBeInViewport()`.
+  4. Click `#layerbtn-radar`; wait for radar.
+  5. For each of `#opacity`, `#timeline`, `#legend`: assert `toBeInViewport()`.
+- **Notes**: this also indirectly catches the perceived blank-canvas bug ([#72](https://github.com/ArtemioPadilla/mexico-weather/issues/72)) because the radar click forces the canvas to render; if it didn't render, the screenshot diff would show a black centre.
+- **NOT YET COVERED**.
+
+### `responsive-5` — Feedback FAB doesn't overlap critical content at any width
+- **Goal**: at every width, `#secid-report-btn` (bottom-right floating action button) doesn't sit on top of the last action button / link of the page (footer privacy link on `/`, last "Ver pronóstico completo" link on `/`, etc.).
+- **Steps**:
+  1. For each width in `[375, 768, 1024, 1440, 1920]`:
+     - Set viewport.
+     - Goto `/`.
+     - `await expect(page.locator('#secid-report-btn')).toBeVisible()`.
+     - Scroll to the bottom of the page.
+     - Compute the bounding boxes of `#secid-report-btn` and the footer `a[href$="/privacidad/"]`. Assert they don't intersect.
+- **NOT YET COVERED**.
+
+### `responsive-6` — Theme toggle sits clear of nav at all widths
+- **Goal**: `#theme-toggle-btn` (floating top-right circle) never overlaps the top nav links (`Inicio` / `Mapa`) and stays inside the viewport at the narrowest tested width.
+- **Steps**:
+  1. For each width in `[375, 768, 1440]`:
+     - Set viewport, goto `/`, wait for hydration.
+     - Read the bounding boxes of `#theme-toggle-btn` and the navigation `Mapa` link.
+     - Assert they don't intersect AND that `#theme-toggle-btn` `right + width <= viewport.width`.
+- **NOT YET COVERED**.
+
+---
+
 # Coverage matrix
 
 | Journey | Covered? |
@@ -688,8 +760,14 @@ const OPEN_METEO_WIND = JSON.stringify(Array.from({ length: 48 }, () => ({ hourl
 | `cross-2` nav links present everywhere | ❌ |
 | `cross-3` feedback FAB everywhere | ❌ |
 | `cross-4` own-scoped service worker registered | ❌ |
+| `responsive-1` home grid reflows 1/2/3 columns | ❌ |
+| `responsive-2` no horizontal scroll at any width | ❌ |
+| `responsive-3` forecast hourly row scrolls, doesn't wrap | ❌ |
+| `responsive-4` map controls reachable at 375 px | ❌ |
+| `responsive-5` FAB doesn't overlap critical content | ❌ |
+| `responsive-6` theme toggle clear of nav at all widths | ❌ |
 
-**Existing tests: 22.** **Documented journeys: ~45.** **Coverage gap: ~28 journeys** spanning denial paths, persistence-across-routes, the feedback modal, multiple `/mapa` layer activations (humidity/pressure), reduced-motion variants, layer-unavailable error path, URL hash restore, the RSS/sitemap endpoints, the MX-aware autocomplete behaviors (alias / population ranking / row formatting), the `&admin` subheading on `/forecast`, and the own-scoped service-worker registration.
+**Existing tests: 22.** **Documented journeys: ~51.** **Coverage gap: ~34 journeys** spanning denial paths, persistence-across-routes, the feedback modal, multiple `/mapa` layer activations (humidity/pressure), reduced-motion variants, layer-unavailable error path, URL hash restore, the RSS/sitemap endpoints, the MX-aware autocomplete behaviors (alias / population ranking / row formatting), the `&admin` subheading on `/forecast`, the own-scoped service-worker registration, and the new responsive-* journeys at 375 / 768 / 1024 / 1920.
 
 # Recommended test-authoring order (highest value first)
 
@@ -704,6 +782,7 @@ const OPEN_METEO_WIND = JSON.stringify(Array.from({ length: 48 }, () => ({ hourl
 9. **Pin popup deep link** (`mapa-6`).
 10. **Reduced-motion wind circle fallback** (`mapa-14`) and **opacity slider live update** (`mapa-16`) — depend on `mapa-19`'s tiny affordance to fully verify, but the visible UI state can be asserted immediately.
 11. **RSS / sitemap route checks** (`rss-1`, `sitemap-1`).
+12. **Responsive smoke set** (`responsive-1` + `responsive-2`) — small, fast, and prevent the most common layout regressions (grid-cols counts; accidental horizontal scrollbar at narrow widths).
 
 # Notes for Playwright MCP authors
 
