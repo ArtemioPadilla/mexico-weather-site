@@ -5,9 +5,17 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Fri, 22 May 2026 17:59:45 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 22 May 2026 18:59:49 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y torbellinos: norte de Coahuila.</title>
+      <link>https://smn.conagua.gob.mx/es/</link>
+      <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa, Michoacán, Guerrero, Oaxaca, Chiapas, Campeche y Yucatán.]]></description>
+      <pubDate>Fri, 22 May 2026 12:59:39 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-22-ed99</guid>
+      <category>Alerta</category>
+    </item>
     <item>
       <title>🌩️ Pronóstico Meteorológico General — SMN | No. 283 | 22 de Mayo del 2026 | Emisión 06:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
@@ -29,23 +37,15 @@ Para hoy, persistirá el ambiente vespertino caluroso a muy caluroso en 14 estad
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 22 de mayo del 2026 | Emisión 09:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 22 de mayo del 2026 | Emisión 12:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 22 de mayo del 2026
-Emisión: 09:00
+Emisión: 12:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Fri, 22 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-22-12</guid>
       <category>Aviso Tormentas</category>
-    </item>
-    <item>
-      <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y torbellinos: norte de Coahuila y Nuevo León. Viento de 20 a 30 km/h con rachas de 40 a 60 km/h y posibles torbellinos: norte de Tamaulipas.</title>
-      <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa (N y centro), Michoacán (centro), Guerrero (NO), Oaxaca (centro), Chiapas (centro), Campeche (N) y Yucatán (O).]]></description>
-      <pubDate>Fri, 22 May 2026 11:59:31 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-22-1535</guid>
-      <category>Alerta</category>
     </item>
     <item>
       <title>📋 SMN Reporte Matutino 22 MAY 2026: Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México</title>
