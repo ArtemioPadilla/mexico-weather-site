@@ -90,9 +90,10 @@ The site is mobile-first and tested at four representative breakpoints. There ar
   - "Tus lugares" only renders when the user has favorites; on mobile it sits between the SMN alerts banner and the preset grid.
   - The map teaser is full-width at every breakpoint; on wide viewports a soft 2xl border-radius and inset reads as a card on the dark canvas.
 - **`/forecast`**
-  - 48-h hourly row is always `overflow-x: auto`; the row keeps a fixed card height and never wraps.
-  - 7-day rows are full-width; the gradient temperature bar reflows to the full container width so it always reads at a glance.
+  - 48-h hourly row is always `overflow-x: auto`; the row keeps a fixed card height and never wraps. The temperature sparkline lives **inside** the same scroll container as the cards, sized to the cards' total width — so hour N on a card and x position N on the sparkline scroll together (no more visual drift).
+  - 7-day rows are full-width; the gradient temperature bar reflows to the full container width so it always reads at a glance. An axis row above the days shows `<minWeek>° / <midWeek>° / <maxWeek>°` with 25/50/75 % tick marks, and the "Hoy" row carries a small vertical "current temperature" marker positioned within the week's min/max range.
   - "Detalle" panels: stack vertically on mobile, then `grid-cols-3` from `md:` upward.
+  - An **embedded location map** (~120 px tall on mobile, ~160 px on desktop) sits in the hero between the sunrise/sunset line and the hourly cards. It uses the same OSM (light) / CartoDB Dark (dark) basemap as `/mapa`, drops a single blue pin at the URL's `lat,lng`, and is fully static — the whole map is a link that deep-links to `/mapa#view=<lat>,<lng>,9z`. MapLibre is **lazy-loaded** via dynamic `import()` inside an `IntersectionObserver`, so users who never scroll into the hero don't pay the JS cost; height is reserved before init to prevent CLS.
 - **`/mapa`**
   - The MapLibre canvas always fills 100 % of the viewport behind the absolute-positioned controls.
   - Layer rail keeps the same vertical layout from mobile to desktop; mobile users tap, desktop users hover-then-click. No collapse-to-burger.

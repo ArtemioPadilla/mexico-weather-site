@@ -39,6 +39,8 @@ const t = ui[lang];
           </div>
           <div class="h-5 w-1/2 rounded bg-gray-200 dark:bg-gray-800"></div>
           <div class="h-3 w-2/3 rounded bg-gray-200 dark:bg-gray-800"></div>
+          {/* Issue #107 — reserve map height during skeleton too */}
+          <div class="fc-map-wrap mt-3"></div>
         </div>
 
         {/* Hourly row */}
@@ -82,10 +84,71 @@ const t = ui[lang];
     </div>
   </main>
 
+  <style is:global>
+    /* Issue #107 — reserve map height BEFORE MapLibre loads to prevent CLS. */
+    .fc-map-wrap {
+      position: relative;
+      height: 120px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 0.5rem;
+      background: rgb(229 231 235); /* gray-200 */
+      display: block;
+    }
+    .dark .fc-map-wrap {
+      background: rgb(31 41 55); /* gray-800 */
+    }
+    @media (min-width: 640px) {
+      .fc-map-wrap { height: 160px; }
+    }
+    .fc-map-wrap .maplibregl-canvas-container,
+    .fc-map-wrap .maplibregl-canvas,
+    .fc-map-wrap canvas {
+      cursor: pointer !important;
+    }
+    /* Issue #109 — axis tick marks + today marker for 7-day temperature bars. */
+    .fc-axis-track {
+      position: relative;
+      height: 14px;
+    }
+    .fc-axis-tick {
+      position: absolute;
+      top: 6px;
+      width: 1px;
+      height: 8px;
+      background: rgb(156 163 175); /* gray-400 */
+    }
+    .dark .fc-axis-tick {
+      background: rgb(75 85 99); /* gray-600 */
+    }
+    .fc-axis-mid {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: rgb(107 114 128); /* gray-500 */
+    }
+    .fc-today-marker {
+      position: absolute;
+      top: -2px;
+      width: 2px;
+      height: calc(100% + 4px);
+      background: rgb(220 38 38); /* red-600 */
+      border-radius: 1px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .dark .fc-today-marker {
+      background: rgb(248 113 113); /* red-400 */
+    }
+  </style>
+
   <script>
     import { getForecast, uvLabel, windDir } from '../lib/forecast';
     import { has, toggle } from '../lib/favorites';
     import { ui } from '../i18n/ui';
+    // Actual MapLibre code is lazy-loaded below via dynamic import inside
+    // an IntersectionObserver to keep the initial JS payload small (#107).
 
     // keep in sync with the other lang declaration in this file
     const lang: 'es' | 'en' = 'es';
@@ -144,23 +207,33 @@ const t = ui[lang];
       return last && /\p{Emoji}/u.test(last) ? last : '·';
     }
 
+    // Card layout constants for the hourly row — kept in lockstep with the
+    // card markup below so the sparkline (#108) lines up x-for-x with the
+    // cards above it. min-w-[62px] cards + Tailwind gap-2 (8px).
+    const CARD_W = 62;
+    const CARD_GAP = 8;
+
     function sparkline(temps: number[]): string {
+      // Issue #108 — render the SVG at the SAME pixel width as the cards row
+      // so card i and sparkline x_i line up. The SVG sits INSIDE the same
+      // overflow-x:auto container as the cards (see hourlyHtml below).
       const pts = temps.filter((n) => n !== null && Number.isFinite(n));
       if (pts.length < 2) return '';
+      const n = pts.length;
       const min = Math.min(...pts);
       const max = Math.max(...pts);
       const span = max - min || 1;
-      const w = 300;
+      // x positions = card centers. card_i center = i * (CARD_W + CARD_GAP) + CARD_W/2
+      const totalW = n * CARD_W + (n - 1) * CARD_GAP;
       const h = 36;
-      const step = w / (pts.length - 1);
       const coords = pts
         .map((v, i) => {
-          const x = i * step;
+          const x = i * (CARD_W + CARD_GAP) + CARD_W / 2;
           const y = h - 2 - ((v - min) / span) * (h - 4);
           return `${x.toFixed(1)},${y.toFixed(1)}`;
         })
         .join(' ');
-      return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-9 mt-2" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#60a5fa" stroke-width="2" points="${coords}" /></svg>`;
+      return `<svg viewBox="0 0 ${totalW} ${h}" width="${totalW}" height="${h}" class="h-9 mt-1 block flex-shrink-0" preserveAspectRatio="none" aria-hidden="true" style="min-width:${totalW}px"><polyline fill="none" stroke="#60a5fa" stroke-width="2" points="${coords}" /></svg>`;
     }
 
     interface RenderLoc {
@@ -199,6 +272,9 @@ const t = ui[lang];
           ? esc(safeAdmin)
           : esc(loc.lat + ', ' + loc.lng);
 
+        const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+        const mapHref = `${baseUrl}/mapa/#view=${loc.lat},${loc.lng},9z`;
+
         const currentHtml = `
           <header class="space-y-1">
             <div class="flex items-center flex-wrap gap-2">
@@ -218,6 +294,9 @@ const t = ui[lang];
             <p class="text-lg text-gray-800 dark:text-gray-200">${esc(current.condition)}</p>
             <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
+            <a id="fc-map-link" href="${esc(mapHref)}" class="fc-map-wrap mt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Abrir en el mapa interactivo">
+              <div id="fc-map" class="absolute inset-0" aria-hidden="true"></div>
+            </a>
           </header>`;
 
         // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().
@@ -234,17 +313,25 @@ const t = ui[lang];
           })
           .join('');
 
+        // Issue #108 — single scroll container holds a vertical stack with
+        // the cards row + the sparkline; sparkline width = cards width, so
+        // hour N on a card aligns with x position N on the sparkline.
+        const sparklineHtml = sparkline(
+          hourly
+            .map((hw) => hw.temperature)
+            .filter((n): n is number => n !== null),
+        );
         const hourlyHtml = `
           <section class="space-y-2">
             <h2 class="text-lg font-semibold">${esc(t.hourly_48h)}</h2>
-            <div tabindex="0" role="group" aria-label="${esc(t.hourly_48h)}" class="flex gap-2 overflow-x-auto pb-2 pr-6 [mask-image:linear-gradient(to_right,black_90%,transparent)] [-webkit-mask-image:linear-gradient(to_right,black_90%,transparent)]">
-              ${hourCells}
+            <div tabindex="0" role="group" aria-label="${esc(t.hourly_48h)}" class="overflow-x-auto pb-2 pr-6 [mask-image:linear-gradient(to_right,black_90%,transparent)] [-webkit-mask-image:linear-gradient(to_right,black_90%,transparent)]">
+              <div class="flex flex-col">
+                <div class="flex gap-2">
+                  ${hourCells}
+                </div>
+                ${sparklineHtml}
+              </div>
             </div>
-            ${sparkline(
-              hourly
-                .map((hw) => hw.temperature)
-                .filter((n): n is number => n !== null),
-            )}
           </section>`;
 
         // 7-day temperature range bar: normalize each day's tmin–tmax
@@ -268,22 +355,54 @@ const t = ui[lang];
           return `<i style="position:absolute;left:${left.toFixed(1)}%;width:${width.toFixed(1)}%;height:100%;border-radius:9999px;background:linear-gradient(90deg,#60a5fa,#fbbf24,#f97316)"></i>`;
         }
 
+        // Issue #109 — today marker: vertical line at the current
+        // temperature's position within the week's min/max range, drawn only
+        // on the "Hoy" row.
+        function todayMarker(idx: number): string {
+          if (idx !== 0) return '';
+          const cur = current.temperature;
+          if (cur === null || !Number.isFinite(cur)) return '';
+          const pct = Math.min(100, Math.max(0, ((cur - weekMin) / span) * 100));
+          const label = `Temperatura actual: ${Math.round(cur)}°`;
+          return `<span class="fc-today-marker" role="img" aria-label="${esc(label)}" title="${esc(label)}" style="left:${pct.toFixed(1)}%"></span>`;
+        }
+
         // precip/wind/cloud/humidity/uv are non-nullable (num()->0 in the SDK); nullable fields use fmt().
         const dayRows = daily
           .map((dw, i) => {
             return `<div class="grid grid-cols-[5rem_1.5rem_1fr_3rem_5rem] items-center gap-2 py-1.5 border-b border-gray-200 dark:border-gray-800 text-sm">
               <span class="capitalize text-gray-700 dark:text-gray-300">${esc(dayLabel(dw.date, i))}</span>
               <span class="text-center">${esc(emoji(dw.condition))}</span>
-              <span class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">${barFill(dw.tmin, dw.tmax)}</span>
+              <span class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 overflow-visible">${barFill(dw.tmin, dw.tmax)}${todayMarker(i)}</span>
               <span class="text-blue-600 dark:text-blue-400 text-right">💧${Math.round(dw.precipProbabilityMax)}%</span>
               <span class="text-right text-gray-700 dark:text-gray-300">${fmt(dw.tmin)}° / ${fmt(dw.tmax)}°</span>
             </div>`;
           })
           .join('');
 
+        // Issue #109 — axis row above the day rows, aligned with the bar
+        // column. Same grid template so the axis sits over the bar exactly.
+        const midWeek = (weekMin + weekMax) / 2;
+        const axisHtml = `
+          <div class="grid grid-cols-[5rem_1.5rem_1fr_3rem_5rem] items-center gap-2 pb-1 text-[11px] text-gray-500 dark:text-gray-500" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <div class="fc-axis-track">
+              <span class="fc-axis-tick" style="left:25%"></span>
+              <span class="fc-axis-tick" style="left:50%"></span>
+              <span class="fc-axis-tick" style="left:75%"></span>
+              <span class="fc-axis-mid" style="left:0%;transform:translateX(0)">${fmt(weekMin)}°</span>
+              <span class="fc-axis-mid" style="left:50%">${fmt(midWeek)}°</span>
+              <span class="fc-axis-mid" style="left:100%;transform:translateX(-100%)">${fmt(weekMax)}°</span>
+            </div>
+            <span></span>
+            <span></span>
+          </div>`;
+
         const sevenHtml = `
           <section class="space-y-1">
             <h2 class="text-lg font-semibold">${esc(t.seven_days)}</h2>
+            ${axisHtml}
             ${dayRows}
           </section>`;
 
@@ -312,11 +431,10 @@ const t = ui[lang];
             </div>
           </section>`;
 
-        const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const contextHtml = `
           <div class="rounded-md border border-yellow-600/60 bg-yellow-600/10 p-3 text-sm text-yellow-700 dark:text-yellow-200">
             ⚠️ Contexto SMN/CONAGUA — avisos vigentes:
-            <a href="${esc(base)}/rss.xml" target="_blank" rel="noopener noreferrer" class="underline">rss.xml</a>
+            <a href="${esc(baseUrl)}/rss.xml" target="_blank" rel="noopener noreferrer" class="underline">rss.xml</a>
           </div>
           <footer class="border-t border-gray-200 dark:border-gray-800 mt-4 pt-3 text-center text-[11px] text-gray-500 dark:text-gray-600">Datos: Open-Meteo (ECMWF/DWD/GFS) · Alertas: SMN / CONAGUA · Sin cookies · Sin rastreo · <a href="https://artemiop.com/" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 transition-colors dark:hover:text-gray-300">Artemio Padilla</a></footer>`;
 
@@ -424,6 +542,116 @@ const t = ui[lang];
               }).format(new Date());
             }
             updatedEl.textContent = `Última actualización: ${timeStr} · ${resolvedTz}`;
+          }
+
+          // Issue #107 — lazy-load MapLibre for the embedded location map.
+          // Triggered via IntersectionObserver so users who never scroll past
+          // the hero don't pay the JS download. Static (no pan/zoom); a
+          // wrapping <a> handles the click-through to /mapa.
+          const mapEl = document.getElementById('fc-map');
+          const mapLink = document.getElementById('fc-map-link');
+          if (mapEl && mapLink) {
+            const initMap = async (): Promise<void> => {
+              try {
+                // Use the module namespace directly — maplibre-gl exports
+                // Map/Marker as named exports (it has no default export per
+                // its .d.ts; the value default seen in static imports is
+                // synthetic interop and not present on dynamic-import
+                // namespaces under strict TS).
+                const maplibregl = await import('maplibre-gl');
+                await import('maplibre-gl/dist/maplibre-gl.css');
+                const OSM_TILES = [
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                ];
+                const CARTO_DARK_TILES = [
+                  'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                  'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                  'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                  'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                ];
+                const startDark =
+                  document.documentElement.classList.contains('dark');
+                const map = new maplibregl.Map({
+                  container: mapEl,
+                  center: [loc.lng, loc.lat],
+                  zoom: 9,
+                  interactive: false,
+                  attributionControl: false,
+                  style: {
+                    version: 8,
+                    sources: {
+                      osm: {
+                        type: 'raster',
+                        tiles: startDark ? CARTO_DARK_TILES : OSM_TILES,
+                        tileSize: 256,
+                        attribution: startDark
+                          ? '© OpenStreetMap contributors © CARTO'
+                          : '© OpenStreetMap',
+                      },
+                    },
+                    layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+                  },
+                });
+                map.on('load', () => {
+                  new maplibregl.Marker({ color: '#2563eb' })
+                    .setLngLat([loc.lng, loc.lat])
+                    .addTo(map);
+                  window.requestAnimationFrame(() => {
+                    try {
+                      map.resize();
+                      map.triggerRepaint();
+                    } catch {
+                      /* best-effort first-paint nudge */
+                    }
+                  });
+                });
+
+                // Theme sync — mirror syncBasemapTheme() from /mapa.
+                let lastDark: boolean | null = startDark;
+                const syncTheme = (): void => {
+                  const dark =
+                    document.documentElement.classList.contains('dark');
+                  if (dark === lastDark) return;
+                  const rawSrc = map.getSource('osm');
+                  if (!rawSrc) return;
+                  const src = rawSrc as { setTiles?: (t: string[]) => void };
+                  if (typeof src.setTiles !== 'function') return;
+                  try {
+                    src.setTiles(dark ? CARTO_DARK_TILES : OSM_TILES);
+                    lastDark = dark;
+                  } catch {
+                    /* style not ready — try again on next mutation */
+                  }
+                };
+                const mo = new MutationObserver(() => syncTheme());
+                mo.observe(document.documentElement, {
+                  attributes: true,
+                  attributeFilter: ['class'],
+                });
+              } catch {
+                /* MapLibre failed to load (offline, blocked) — keep the
+                   placeholder block + click-through link. No throw. */
+              }
+            };
+
+            if (typeof IntersectionObserver === 'function') {
+              const io = new IntersectionObserver(
+                (entries) => {
+                  for (const e of entries) {
+                    if (e.isIntersecting) {
+                      io.disconnect();
+                      void initMap();
+                      break;
+                    }
+                  }
+                },
+                { rootMargin: '200px' },
+              );
+              io.observe(mapLink);
+            } else {
+              // No IO — just init.
+              void initMap();
+            }
           }
         }
       } catch {

@@ -370,6 +370,23 @@ The journey ID format is `<route>-<n>`. Each block has the same structure so a t
   3. Expect the rendered heading literally shows the escaped tag text, not interpreted.
 - **NOT YET COVERED**.
 
+### `forecast-7` — Embedded location map loads + click-through to `/mapa`
+- **Goal**: `/forecast?lat=…&lng=…` shows a small, static MapLibre map embedded in the hero with a single pin at the URL coords. The whole map is wrapped in an `<a>` that deep-links to `/mapa#view=<lat>,<lng>,9z`. MapLibre is dynamic-imported lazily (IntersectionObserver), so the height is reserved upfront to prevent CLS.
+- **Preconditions**: `mockOpenMeteo(page)` so the forecast renders; OSM / CartoDB tiles can be mocked to a transparent PNG to keep the test deterministic.
+- **Steps**:
+  1. `await page.goto('forecast/?lat=19.43&lng=-99.13&tz=America%2FMexico_City&name=Ciudad%20de%20M%C3%A9xico')`
+  2. `await expect(page.locator('#fc-root')).toBeVisible()` (forecast has rendered)
+  3. `await expect(page.locator('#fc-map-link')).toBeVisible()` — the anchor wrapping the map.
+  4. Assert the link target: `await expect(page.locator('#fc-map-link')).toHaveAttribute('href', /\/mapa\/#view=19\.43,-99\.13,9z$/)`
+  5. Scroll the link into view if needed (`await page.locator('#fc-map-link').scrollIntoViewIfNeeded()`) so the IntersectionObserver fires.
+  6. `await expect(page.locator('#fc-map .maplibregl-canvas')).toBeVisible()` — MapLibre canvas mounted (allow a few seconds; lazy import).
+  7. Click the link → URL contains `#view=19.43,-99.13,9z` and the path is `/mapa/`.
+- **Reserved-height check (no CLS)**:
+  - Even before the IO triggers, `#fc-map-link` has the `fc-map-wrap` class and its bounding box height is ≥ 120 px (mobile) or ≥ 160 px (`width ≥ 640`).
+- **Theme sync**:
+  - With `html.dark` set, the map tiles request URLs match `basemaps.cartocdn.com/dark_all/`; with light, they match `tile.openstreetmap.org`.
+- **NOT YET COVERED**.
+
 ### `forecast-6` — `&admin` query param renders an XSS-escaped subheading
 - **Goal**: `/forecast/?…&admin=<text>` renders `admin` as a muted subheading under the heading, escaped via `esc()` (forecast.astro: `safeAdmin`). When `admin` is absent or empty, the page falls back to showing the coordinates as the subheading.
 - **Steps (positive path)**:
@@ -749,6 +766,7 @@ Conventions:
 | `forecast-4` star toggles | ✅ (via favorites) |
 | `forecast-5` XSS-safe `name` | ❌ |
 | `forecast-6` `&admin` subheading + XSS safety + coords fallback | ❌ |
+| `forecast-7` embedded location map + click-through to `/mapa` | ❌ |
 | `mapa-1` map + search visible | ✅ `mapa.spec.ts` |
 | `mapa-2` radar layer + legend | ✅ `mapa.spec.ts` |
 | `mapa-3` satellite (no legend) | ✅ `mapa.spec.ts` |
