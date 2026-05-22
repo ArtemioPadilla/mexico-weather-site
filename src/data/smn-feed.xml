@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Fri, 22 May 2026 13:14:21 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 22 May 2026 14:07:12 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -43,7 +43,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y torbellinos: norte de Coahuila y Nuevo León. Viento de 20 a 30 km/h con rachas de 40 a 60 km/h y posibles torbellinos: norte de Tamaulipas.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa (N y centro), Michoacán (centro), Guerrero (NO), Oaxaca (centro), Chiapas (centro), Campeche (N) y Yucatán (O).]]></description>
-      <pubDate>Fri, 22 May 2026 07:14:11 -0600</pubDate>
+      <pubDate>Fri, 22 May 2026 08:07:00 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-22-1535</guid>
       <category>Alerta</category>
     </item>
