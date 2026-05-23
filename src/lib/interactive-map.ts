@@ -383,10 +383,22 @@ export async function initInteractiveMap(
       /* best-effort */
     }
   };
+  /** Brute-force first-paint nudger: triggers a repaint at multiple
+   *  intervals after init. Some cold loads need the canvas to be hit
+   *  4–5 times before the GL backing store actually paints (race between
+   *  tile arrival, DOM layout, and the first render frame). The cost of
+   *  N extra triggerRepaint() calls is essentially zero — they're no-ops
+   *  once the buffer is dirty / a frame is already scheduled — but they
+   *  cover the worst-case race. */
+  const aggressiveNudge = (): void => {
+    [60, 200, 400, 800, 1500, 2500].forEach((delay) => {
+      window.setTimeout(firstPaintNudge, delay);
+    });
+  };
   map.on('load', () => {
     renderPins();
     window.requestAnimationFrame(firstPaintNudge);
-    window.setTimeout(firstPaintNudge, 250);
+    aggressiveNudge();
     syncBasemapTheme();
     observeThemeForBasemap();
     void (async () => {
