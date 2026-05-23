@@ -5,52 +5,52 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Fri, 22 May 2026 23:42:46 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 23 May 2026 01:16:28 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
       <title>⚠️ Alerta SMN: Viento con rachas de 50 a 70 km/h y tolvaneras Son, Chih, Dgo, Zac, SLP; y torbellinos: Coah (norte)</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sin, Mich, Gro, Oax, Chis, Camp y Yuc.]]></description>
-      <pubDate>Fri, 22 May 2026 17:42:36 -0600</pubDate>
+      <pubDate>Fri, 22 May 2026 19:16:20 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-22-ecc0</guid>
       <category>Alerta</category>
     </item>
     <item>
-      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 283 | 22 de Mayo del 2026 | Emisión 06:00h</title>
+      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 284 | 22 de Mayo del 2026 | Emisión 18:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
-      <description><![CDATA[SE PRONOSTICAN LLUVIAS MUY FUERTES EN PUEBLA, OAXACA Y CHIAPAS • EXISTEN CONDICIONES PARA FORMACIÓN DE TORBELLINOS EN COAHUILA, NUEVO LEÓN Y TAMAULIPAS
+      <description><![CDATA[ESTA TARDE Y NOCHE SE MANTIENE LA PROBABILIDAD PARA LLUVIAS FUERTES A MUY FUERTES EN ZONAS DEL NORESTE, ORIENTE, SUR Y SURESTE DEL PAÍS, ADEMÁS DE LA POSIBLE FORMACIÓN DE TORBELLINOS EN COAHUILA
 
 ---
 Pronóstico Meteorológico General
-No. Aviso: 283
+No. Aviso: 284
 Ciudad de México a 22 de Mayo del 2026.
-Emisión: 06:00h
+Emisión: 18:00h
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
 
-SE PRONOSTICAN LLUVIAS MUY FUERTES EN PUEBLA, OAXACA Y CHIAPAS.
-EXISTEN CONDICIONES PARA FORMACIÓN DE TORBELLINOS EN COAHUILA, NUEVO LEÓN Y TAMAULIPAS.
 
-Para hoy, persistirá el ambiente vespertino caluroso a muy caluroso en 14 estados de la República Mexicana, manteniendo la onda de calor en Sinaloa (centro y sur), Durango (oeste), Nayarit (norte y sur), Jalisco (centro, sur y suroeste), Colima (norte y este), Michoacán (centro y suroeste), Morelos (sur), Puebla (suroeste), Veracruz (centro y sur), Guerrero, Oaxaca (centro, sur y este), Chiapas (norte, centro y oeste), Campeche (norte) y Yucatán (oeste). Por su parte, una línea seca originará lluvias puntuales fuertes en Coahuila (este y noreste), Nuevo León (centro, este y sur), Tamaulipas (oeste y suroeste) y San Luis Potosí (norte y sur), así como rachas fuertes de viento con posibles tolvaneras y torbellinos en el noreste de México.…]]></description>
+ESTA TARDE Y NOCHE SE MANTIENE LA PROBABILIDAD PARA LLUVIAS FUERTES A MUY FUERTES EN ZONAS DEL NORESTE, ORIENTE, SUR Y SURESTE DEL PAÍS, ADEMÁS DE LA POSIBLE FORMACIÓN DE TORBELLINOS EN COAHUILA
+
+Durante esta noche y madrugada del sábado, un canal de baja presión extendido desde el oriente hasta el sureste del territorio nacional y otro sobre la península de Yucatán, junto con inestabilidad atmosférica y el ingreso de humedad del océano Pacífico y golfo de México, ocasionarán lluvias intensas en Chiapas (oeste y sur), muy fuertes en Puebla (sur) y Oaxaca (oeste, suroeste y este), lluvias fuertes en Veracruz (centro), Querétaro (norte), Hidalgo (norte, centro y sureste), Tlaxcala y Guerrero (este) e intervalos de chubascos en Guanajuato, Estado de México, Ciudad de México, Morelos, Tabasco y Yucatán; todas acompañadas con descargas eléctricas y posible caída de granizo; además de lluvias aisladas en Campeche y Quintana Roo.…]]></description>
       <pubDate>Fri, 22 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-pronostico-general-2026-05-22-283</guid>
+      <guid isPermaLink="false">smn-pronostico-general-2026-05-22-284</guid>
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 22 de mayo del 2026 | Emisión 15:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 22 de mayo del 2026 | Emisión 18:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 22 de mayo del 2026
-Emisión: 15:00
+Emisión: 18:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Fri, 22 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-22-12</guid>
       <category>Aviso Tormentas</category>
     </item>
     <item>
-      <title>📋 SMN Reporte Matutino 22 MAY 2026: Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México</title>
+      <title>📋 SMN Reporte Matutino 22 MAY 2026: Se pronostican lluvias de fuertes a muy fuertes en zonas del noreste, oriente, sur y sureste del país</title>
       <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_22.pdf</link>
-      <description><![CDATA[Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México — Reporte Matutino del 22 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_22.pdf]]></description>
+      <description><![CDATA[Se pronostican lluvias de fuertes a muy fuertes en zonas del noreste, oriente, sur y sureste del país — Reporte Matutino del 22 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_22.pdf]]></description>
       <pubDate>Fri, 22 May 2026 07:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_22</guid>
       <category>Comunicado</category>
@@ -77,14 +77,6 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <description><![CDATA[Se pronostican lluvias intensas en zonas de Coahuila, Nuevo León y Tamaulipas — Reporte Vespertino del 20 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_20.pdf]]></description>
       <pubDate>Wed, 20 May 2026 17:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_05_20</guid>
-      <category>Comunicado</category>
-    </item>
-    <item>
-      <title>📋 SMN Reporte Matutino 20 MAY 2026: Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México</title>
-      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_20.pdf</link>
-      <description><![CDATA[Se prevén lluvias de fuertes a muy fuertes en regiones de 12 estados de México — Reporte Matutino del 20 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_20.pdf]]></description>
-      <pubDate>Wed, 20 May 2026 07:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_20</guid>
       <category>Comunicado</category>
     </item>
   </channel>
