@@ -378,6 +378,20 @@ export async function initInteractiveMap(
     try {
       map.resize();
       map.jumpTo({ center: initialCenter, zoom: initialZoom });
+      // Force a layout-property recompute by flipping the basemap raster
+      // layer visibility. This is the most reliable way to force MapLibre
+      // to schedule a render frame; the bare triggerRepaint() / jumpTo()
+      // duo isn't enough on stubborn cold loads (issue #124). Wrapping in
+      // a separate try so a missing 'osm' layer (during teardown) doesn't
+      // mask the other operations.
+      try {
+        if (map.getLayer('osm')) {
+          map.setLayoutProperty('osm', 'visibility', 'none');
+          map.setLayoutProperty('osm', 'visibility', 'visible');
+        }
+      } catch {
+        /* best-effort */
+      }
       map.triggerRepaint();
     } catch {
       /* best-effort */
