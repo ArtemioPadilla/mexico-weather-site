@@ -409,10 +409,62 @@ export async function initInteractiveMap(
       window.setTimeout(firstPaintNudge, delay);
     });
   };
+  /** Synthesize a tiny pointer-move sequence on the map canvas after init.
+   *  The cold-load blank canvas (#124) is reliably resolved when the user
+   *  clicks/moves the pointer anywhere on the map — that suggests
+   *  MapLibre's pointer-event handler is the trigger that schedules the
+   *  first paint frame the unprompted nudges miss. Replaying the same
+   *  pointer trigger programmatically should defeat the race without
+   *  user interaction. Tiny offset (1 px) so the synthetic move isn't a
+   *  noticeable interaction. */
+  const synthesizeMove = (): void => {
+    try {
+      const canvas = map.getCanvas();
+      if (!canvas) return;
+      const r = canvas.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dispatch = (type: string, x: number, y: number): void => {
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerType: 'mouse',
+            clientX: x,
+            clientY: y,
+          }),
+        );
+        canvas.dispatchEvent(
+          new MouseEvent(type === 'pointerdown' ? 'mousedown'
+            : type === 'pointerup' ? 'mouseup'
+            : type === 'pointermove' ? 'mousemove'
+            : type, {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y,
+          }),
+        );
+      };
+      dispatch('pointermove', cx, cy);
+      dispatch('pointermove', cx + 1, cy + 1);
+      dispatch('pointermove', cx, cy);
+    } catch {
+      /* synthetic-event dispatch is best-effort */
+    }
+  };
   map.on('load', () => {
     renderPins();
     window.requestAnimationFrame(firstPaintNudge);
     aggressiveNudge();
+    // Replay the click/pointer trigger that resolves the cold-load blank
+    // canvas (#124) when the user clicks the map. We can't tell what
+    // pointer-event MapLibre uses to schedule the first frame in the
+    // worst-case timing, so spread the synthetic moves across several
+    // intervals after the nudges have run.
+    [100, 300, 700, 1200].forEach((delay) => {
+      window.setTimeout(synthesizeMove, delay);
+    });
     syncBasemapTheme();
     observeThemeForBasemap();
     void (async () => {
