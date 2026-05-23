@@ -610,6 +610,10 @@ const t = ui[lang];
                   presetPins: false,
                 },
                 initialView: { lat: loc.lat, lng: loc.lng, zoom: 9 },
+                // Default to the temperature field layer so the user sees
+                // weather data near their location immediately instead of a
+                // bare basemap. Hash overrides this when present.
+                initialLayer: 'temperature',
                 useHash: false,
                 exposeE2eHook: false,
                 interactive: true,

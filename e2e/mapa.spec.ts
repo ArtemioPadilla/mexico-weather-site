@@ -28,7 +28,7 @@ const RAINVIEWER_MANIFEST = JSON.stringify({
  *  steps, all field vars. Length must match the production grid size so
  *  parseFieldResponse accepts the mock. */
 const OPEN_METEO_FIELD = JSON.stringify(
-  Array.from({ length: 140 }, () => ({
+  Array.from({ length: 70 }, () => ({
     hourly: {
       time: ['2026-05-19T00:00', '2026-05-19T01:00'],
       temperature_2m: [22, 23],

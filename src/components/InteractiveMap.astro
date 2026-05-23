@@ -31,6 +31,10 @@ interface Props {
   /** Container height (CSS length, e.g. "100vh" or "400px"). */
   height?: string;
   initialView?: { lat: number; lng: number; zoom: number };
+  /** Layer to activate on first load. Defaults to 'base'.
+   *  Set to 'temperature' on the forecast embed so the user sees weather
+   *  data near their location without an extra click. */
+  initialLayer?: string;
   features?: Features;
   /** When true, parses + writes location.hash. Only /mapa should set this. */
   useHash?: boolean;
@@ -52,6 +56,7 @@ const {
   mapId = 'map',
   height = '100vh',
   initialView = { lat: 23.6, lng: -102.5, zoom: 4.5 },
+  initialLayer,
   features = {
     layerRail: true,
     timeline: true,
@@ -96,6 +101,7 @@ const cfg = JSON.stringify({
   mapId,
   ids,
   initialView,
+  initialLayer,
   features,
   useHash,
   exposeE2eHook,
@@ -280,6 +286,7 @@ const cfg = JSON.stringify({
     mapId: string;
     ids: Record<string, string>;
     initialView: { lat: number; lng: number; zoom: number };
+    initialLayer?: string;
     features: {
       layerRail?: boolean;
       timeline?: boolean;
@@ -337,6 +344,7 @@ const cfg = JSON.stringify({
           els,
           features: cfg.features,
           initialView: cfg.initialView,
+          initialLayer: cfg.initialLayer,
           useHash: cfg.useHash,
           exposeE2eHook: cfg.exposeE2eHook,
           interactive: cfg.interactive,

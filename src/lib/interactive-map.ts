@@ -96,10 +96,91 @@ export interface InteractiveMapFeatures {
   presetPins?: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Module-scoped shared cache + request coalescing for Open-Meteo / RainViewer.
+// Shared across all map instances on the same page so the home embed, the
+// /mapa overlay, and the forecast embed don't fire duplicate requests.
+// Keyed by URL only (no method/body discrimination because all our requests
+// are GETs).
+// ---------------------------------------------------------------------------
+const FETCH_CACHE_TTL_MS = 10 * 60 * 1000;
+interface CacheEntry {
+  ts: number;
+  body: string;
+  headers: Record<string, string>;
+  status: number;
+}
+const fetchCache = new Map<string, CacheEntry>();
+const inFlight = new Map<string, Promise<Response>>();
+
+function cachedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const url = typeof input === 'string' ? input : input.toString();
+  const method = (init?.method ?? 'GET').toUpperCase();
+  // Don't cache non-GET (we don't have any, but be safe).
+  if (method !== 'GET') return window.fetch(input as RequestInfo, init);
+
+  const cached = fetchCache.get(url);
+  if (cached && Date.now() - cached.ts < FETCH_CACHE_TTL_MS) {
+    return Promise.resolve(
+      new Response(cached.body, {
+        status: cached.status,
+        headers: cached.headers,
+      }),
+    );
+  }
+
+  // Coalesce concurrent identical requests.
+  const existing = inFlight.get(url);
+  if (existing) {
+    // Each caller needs its own Response (body can only be read once),
+    // so clone before handing back.
+    return existing.then((r) => r.clone());
+  }
+
+  const p = window.fetch(input as RequestInfo, init).then(async (res) => {
+    // Only cache 2xx so we re-try on 429 / 5xx next call instead of pinning
+    // the failure for 10 minutes.
+    if (res.ok) {
+      try {
+        const clone = res.clone();
+        const body = await clone.text();
+        const headers: Record<string, string> = {};
+        clone.headers.forEach((v, k) => {
+          headers[k] = v;
+        });
+        fetchCache.set(url, {
+          ts: Date.now(),
+          body,
+          headers,
+          status: res.status,
+        });
+      } catch {
+        /* ignore — fall through and return the original */
+      }
+    }
+    return res;
+  });
+  inFlight.set(url, p);
+  // Always remove from in-flight on settle so future calls don't get a stale
+  // Promise after the cache also expires.
+  p.finally(() => {
+    if (inFlight.get(url) === p) inFlight.delete(url);
+  });
+  return p.then((r) => r.clone());
+}
+
 export interface InteractiveMapOptions {
   els: InteractiveMapElements;
   features: InteractiveMapFeatures;
   initialView?: { lat: number; lng: number; zoom: number };
+  /** Layer to activate on first load. Defaults to 'base' (no overlay).
+   *  When `useHash` is true and the URL hash specifies a layer, the hash wins.
+   *  Use 'temperature' on the forecast embed so users see weather data
+   *  near their location without a click. */
+  initialLayer?: string;
   /** When true, parses location.hash + writes it back on moveend.
    *  /mapa = true, embeds = false. */
   useHash?: boolean;
@@ -150,7 +231,13 @@ export async function initInteractiveMap(
     (maplibreModule as unknown as typeof maplibregl);
 
   const deps = {
-    fetch: window.fetch.bind(window),
+    // Module-scoped fetch with in-memory cache. Multiple map instances on the
+    // same page (home embed + /mapa, or forecast embed) share the cache so we
+    // don't repeatedly hammer Open-Meteo / RainViewer with the same request.
+    // TTL = 10 min, matching the SDK's natural refresh interval. Coalescing
+    // (one in-flight Promise per URL) prevents bursts when two layers ask for
+    // overlapping data concurrently.
+    fetch: cachedFetch,
     sleep: (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms)),
   };
 
@@ -311,7 +398,10 @@ export async function initInteractiveMap(
       } catch {
         rvData = null;
       }
-      const wanted = hashed?.layer ?? null;
+      // Hash layer wins over the `initialLayer` opt (so deep-links to
+      // /mapa#layer=radar still activate radar even when the caller's
+      // initialLayer is 'temperature').
+      const wanted = hashed?.layer ?? opts.initialLayer ?? null;
       if (wanted && wanted !== 'base' && getLayerDef(wanted)) {
         void setActiveLayer(wanted);
       }
@@ -573,12 +663,15 @@ export async function initInteractiveMap(
   const SUN_LAYER_OUTER = 'wx-sun-layer-outer';
   const SUN_LAYER_MID = 'wx-sun-layer-mid';
   const SUN_LAYER = 'wx-sun-layer';
-  const SUN_OPACITY_SOFT = 0.05;
-  const SUN_OPACITY_OUTER = 0.1;
-  const SUN_OPACITY_MID = 0.3;
-  const SUN_OPACITY_INNER = 0.55;
-  const SUN_FEATHER_DEG = 3.0;
-  const SUN_FEATHER_DEG_SOFT = 4.5;
+  // Soft 2-tier terminator: a wide outer band for the twilight feel and a
+  // crisp inner polygon for deep night. Stacking more polygons (the original
+  // 4-tier #119 stack) produced rectangular-looking masses because adjacent
+  // angular distances stack to ~full opacity over most of the night side,
+  // visually flattening the gradient into a single dark blob. Two tiers
+  // gives a clean curved terminator + a softer day-side feather.
+  const SUN_OPACITY_OUTER = 0.18; // twilight band
+  const SUN_OPACITY_INNER = 0.42; // deep night
+  const SUN_FEATHER_DEG = 1.5;
   let sunTicker = 0;
 
   function sunScale(): number {
@@ -610,9 +703,7 @@ export async function initInteractiveMap(
 
   function refreshSun(): void {
     const now = Date.now();
-    const softPoly = terminatorPolygon(now, 180, 90 - SUN_FEATHER_DEG_SOFT);
     const outerPoly = terminatorPolygon(now, 180, 90 - SUN_FEATHER_DEG);
-    const midPoly = terminatorPolygon(now, 180, 90);
     const innerPoly = terminatorPolygon(now, 180, 90 + SUN_FEATHER_DEG);
     const toFc = (
       poly: ReturnType<typeof terminatorPolygon>,
@@ -628,22 +719,10 @@ export async function initInteractiveMap(
       opacity: number;
     }> = [
       {
-        srcId: SUN_SOURCE_SOFT,
-        layerId: SUN_LAYER_SOFT,
-        fc: toFc(softPoly),
-        opacity: SUN_OPACITY_SOFT * scale,
-      },
-      {
         srcId: SUN_SOURCE_OUTER,
         layerId: SUN_LAYER_OUTER,
         fc: toFc(outerPoly),
         opacity: SUN_OPACITY_OUTER * scale,
-      },
-      {
-        srcId: SUN_SOURCE_MID,
-        layerId: SUN_LAYER_MID,
-        fc: toFc(midPoly),
-        opacity: SUN_OPACITY_MID * scale,
       },
       {
         srcId: SUN_SOURCE_INNER,
@@ -1034,6 +1113,8 @@ export async function initInteractiveMap(
 
   function removeField(): void {
     if (map.getLayer(FIELD_LAYER)) map.removeLayer(FIELD_LAYER);
+    if (map.getLayer(FIELD_LAYER + '-halo'))
+      map.removeLayer(FIELD_LAYER + '-halo');
     if (map.getSource(FIELD_SOURCE)) map.removeSource(FIELD_SOURCE);
   }
 
@@ -1064,15 +1145,33 @@ export async function initInteractiveMap(
       return;
     }
     map.addSource(FIELD_SOURCE, { type: 'geojson', data });
+    // Stack TWO circle layers so the field reads as a continuous cloud
+    // rather than dotted grid:
+    //   1. Bottom: huge heavily-blurred halos (radius 80→240 px, blur 1.4)
+    //      that overlap and blend, producing the continuous-field feel.
+    //   2. Top: smaller sharper circles so the underlying data points are
+    //      still identifiable as samples (radius 12→32 px, blur 0.5).
+    // The two layers share the same source and color expression.
+    map.addLayer({
+      id: FIELD_LAYER + '-halo',
+      type: 'circle',
+      source: FIELD_SOURCE,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 80, 8, 240],
+        'circle-color': ['get', 'color'],
+        'circle-blur': 1.4,
+        'circle-opacity': Math.min(rvOpacity * 0.65, 0.6),
+      },
+    });
     map.addLayer({
       id: FIELD_LAYER,
       type: 'circle',
       source: FIELD_SOURCE,
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 21, 8, 60],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 12, 8, 32],
         'circle-color': ['get', 'color'],
-        'circle-blur': 0.6,
-        'circle-opacity': rvOpacity,
+        'circle-blur': 0.5,
+        'circle-opacity': rvOpacity * 0.75,
       },
     });
   }
@@ -1088,8 +1187,8 @@ export async function initInteractiveMap(
         east: b.getEast(),
         north: b.getNorth(),
       },
-      14,
       10,
+      7,
     );
     fieldAbort?.abort();
     const ac = new AbortController();
@@ -1389,7 +1488,13 @@ export async function initInteractiveMap(
       if (map.getLayer(RV_LAYER))
         map.setPaintProperty(RV_LAYER, 'raster-opacity', rvOpacity);
       if (map.getLayer(FIELD_LAYER))
-        map.setPaintProperty(FIELD_LAYER, 'circle-opacity', rvOpacity);
+        map.setPaintProperty(FIELD_LAYER, 'circle-opacity', rvOpacity * 0.75);
+      if (map.getLayer(FIELD_LAYER + '-halo'))
+        map.setPaintProperty(
+          FIELD_LAYER + '-halo',
+          'circle-opacity',
+          Math.min(rvOpacity * 0.65, 0.6),
+        );
       if (map.getLayer(WIND_CIRCLE_LAYER))
         map.setPaintProperty(WIND_CIRCLE_LAYER, 'circle-opacity', rvOpacity);
       const sunScaleNow = sunScale();
@@ -1398,12 +1503,6 @@ export async function initInteractiveMap(
           SUN_LAYER_OUTER,
           'fill-opacity',
           SUN_OPACITY_OUTER * sunScaleNow,
-        );
-      if (map.getLayer(SUN_LAYER_MID))
-        map.setPaintProperty(
-          SUN_LAYER_MID,
-          'fill-opacity',
-          SUN_OPACITY_MID * sunScaleNow,
         );
       if (map.getLayer(SUN_LAYER))
         map.setPaintProperty(
