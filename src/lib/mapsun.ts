@@ -38,30 +38,45 @@ export function solarPosition(dateUtcMs: number): LatLng {
 }
 
 /**
- * Closed GeoJSON Polygon enclosing the night-side hemisphere at the given UTC
- * timestamp. Samples the terminator (great circle 90° from the subsolar point)
- * `samples` times around its azimuth circle, then closes through the
- * antisolar pole so the polygon truly covers night-side cells when rendered.
+ * Closed GeoJSON Polygon enclosing the region at angular distance `>= distanceDeg`
+ * from the subsolar point at the given UTC timestamp. With the default
+ * `distanceDeg = 90`, this is the classical day/night terminator polygon.
+ *
+ * Passing a value `> 90` produces a smaller polygon that omits a band near the
+ * terminator (deep-night only); a value `< 90` produces a larger polygon that
+ * extends a band into the day side (twilight). Stacking polygons at distances
+ * 88.5° / 90° / 91.5° with decreasing opacity gives a soft 3-tier terminator
+ * gradient instead of a single hard edge.
+ *
+ * The polygon is sampled `samples` times around the small circle and closed
+ * through the antisolar pole so map renderers fill the correct cap.
  */
 export function terminatorPolygon(
   dateUtcMs: number,
   samples: number = 180,
+  distanceDeg: number = 90,
 ): { type: 'Polygon'; coordinates: number[][][] } {
   const n = Math.max(8, Math.floor(samples));
   const sun = solarPosition(dateUtcMs);
   const sunLatR = sun.lat * DEG;
   const sunLngR = sun.lng * DEG;
+  const dR = distanceDeg * DEG;
+  const cosD = Math.cos(dR);
+  const sinD = Math.sin(dR);
   const nightPoleLat = -sun.lat;
   const nightPoleLng = sun.lng > 0 ? sun.lng - 180 : sun.lng + 180;
   const ring: number[][] = [];
   for (let i = 0; i < n; i++) {
     const a = (i / n) * 2 * Math.PI;
     const lat = Math.asin(
-      Math.sin(sunLatR) * 0 + Math.cos(sunLatR) * 1 * Math.cos(a),
+      Math.sin(sunLatR) * cosD + Math.cos(sunLatR) * sinD * Math.cos(a),
     );
     const lng =
       sunLngR +
-      Math.atan2(Math.sin(a) * 1 * Math.cos(sunLatR), 0 - Math.sin(sunLatR) * Math.sin(lat));
+      Math.atan2(
+        Math.sin(a) * sinD * Math.cos(sunLatR),
+        cosD - Math.sin(sunLatR) * Math.sin(lat),
+      );
     ring.push([normalizeLng(lng * RAD), lat * RAD]);
   }
   ring.push([normalizeLng(nightPoleLng), nightPoleLat > 0 ? 90 : -90]);

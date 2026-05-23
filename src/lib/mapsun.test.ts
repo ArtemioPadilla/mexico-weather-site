@@ -39,4 +39,22 @@ describe('terminatorPolygon', () => {
       expect(lng).toBeLessThanOrEqual(180.001);
     }
   });
+  it('returns a polygon for arbitrary distanceDeg used by the soft-terminator gradient', () => {
+    const ts = Date.UTC(2026, 5, 21, 12, 0, 0);
+    const inner = terminatorPolygon(ts, 60, 91.5);
+    const mid = terminatorPolygon(ts, 60, 90);
+    const outer = terminatorPolygon(ts, 60, 88.5);
+    for (const poly of [inner, mid, outer]) {
+      expect(poly.type).toBe('Polygon');
+      const ring = poly.coordinates[0];
+      expect(ring.length).toBe(60 + 2 + 1);
+      expect(ring[0]).toEqual(ring[ring.length - 1]);
+      for (const [lng, lat] of ring) {
+        expect(Number.isFinite(lng)).toBe(true);
+        expect(Number.isFinite(lat)).toBe(true);
+        expect(lat).toBeGreaterThanOrEqual(-90.001);
+        expect(lat).toBeLessThanOrEqual(90.001);
+      }
+    }
+  });
 });

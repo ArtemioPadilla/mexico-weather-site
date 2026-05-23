@@ -30,7 +30,7 @@ const t = ui[lang];
         <button
           id="maploc"
           type="button"
-          class="rounded-lg border border-gray-300 bg-white/95 px-3 py-1.5 text-sm text-blue-700 shadow hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900/95 dark:text-blue-300"
+          class="whitespace-nowrap rounded-lg border border-gray-300 bg-white/95 px-3 py-1.5 text-sm text-blue-700 shadow hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900/95 dark:text-blue-300"
           ><span aria-hidden="true">📍</span> {t.map_locate}</button
         >
       </div>
@@ -585,40 +585,96 @@ const t = ui[lang];
     let windRaf = 0;
     let windTexDirty = true;
 
-    const SUN_SOURCE = 'wx-sun-src';
+    // The Sol overlay renders a soft 1.5°-feathered terminator gradient as
+    // three stacked polygons at angular distances 88.5° / 90° / 91.5° from
+    // the subsolar point, with opacity ramping from twilight (outermost) to
+    // deep night (innermost). Keeping SUN_LAYER as the innermost layer ID
+    // preserves any external references to the primary night fill.
+    const SUN_SOURCE_OUTER = 'wx-sun-src-outer';
+    const SUN_SOURCE_MID = 'wx-sun-src-mid';
+    const SUN_SOURCE_INNER = 'wx-sun-src';
+    const SUN_LAYER_OUTER = 'wx-sun-layer-outer';
+    const SUN_LAYER_MID = 'wx-sun-layer-mid';
     const SUN_LAYER = 'wx-sun-layer';
+    // Per-layer base opacity tiers (outer twilight → deep night). Multiplied by
+    // rvOpacity / 0.45 so the user's opacity slider scales all three layers
+    // proportionally — 0.45 is the sunlight layer's defaultOpacity in
+    // src/lib/maplayers.ts.
+    const SUN_OPACITY_OUTER = 0.15;
+    const SUN_OPACITY_MID = 0.3;
+    const SUN_OPACITY_INNER = 0.45;
+    const SUN_FEATHER_DEG = 1.5;
     let sunTicker = 0;
+
+    function sunScale(): number {
+      return rvOpacity / 0.45;
+    }
 
     function removeSun(): void {
       if (sunTicker) {
         window.clearInterval(sunTicker);
         sunTicker = 0;
       }
-      if (map.getLayer(SUN_LAYER)) map.removeLayer(SUN_LAYER);
-      if (map.getSource(SUN_SOURCE)) map.removeSource(SUN_SOURCE);
+      for (const id of [SUN_LAYER, SUN_LAYER_MID, SUN_LAYER_OUTER]) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      for (const id of [SUN_SOURCE_INNER, SUN_SOURCE_MID, SUN_SOURCE_OUTER]) {
+        if (map.getSource(id)) map.removeSource(id);
+      }
     }
 
     function refreshSun(): void {
-      const poly = terminatorPolygon(Date.now(), 180);
-      const fc: FeatureCollection = {
+      const now = Date.now();
+      const outerPoly = terminatorPolygon(now, 180, 90 - SUN_FEATHER_DEG);
+      const midPoly = terminatorPolygon(now, 180, 90);
+      const innerPoly = terminatorPolygon(now, 180, 90 + SUN_FEATHER_DEG);
+      const toFc = (poly: ReturnType<typeof terminatorPolygon>): FeatureCollection => ({
         type: 'FeatureCollection',
         features: [{ type: 'Feature', geometry: poly, properties: {} }],
-      };
-      const src = map.getSource(SUN_SOURCE) as maplibregl.GeoJSONSource | undefined;
-      if (src) {
-        src.setData(fc);
-        return;
-      }
-      map.addSource(SUN_SOURCE, { type: 'geojson', data: fc });
-      map.addLayer({
-        id: SUN_LAYER,
-        type: 'fill',
-        source: SUN_SOURCE,
-        paint: {
-          'fill-color': '#0b1320',
-          'fill-opacity': rvOpacity,
-        },
       });
+      const scale = sunScale();
+      const tiers: Array<{
+        srcId: string;
+        layerId: string;
+        fc: FeatureCollection;
+        opacity: number;
+      }> = [
+        {
+          srcId: SUN_SOURCE_OUTER,
+          layerId: SUN_LAYER_OUTER,
+          fc: toFc(outerPoly),
+          opacity: SUN_OPACITY_OUTER * scale,
+        },
+        {
+          srcId: SUN_SOURCE_MID,
+          layerId: SUN_LAYER_MID,
+          fc: toFc(midPoly),
+          opacity: SUN_OPACITY_MID * scale,
+        },
+        {
+          srcId: SUN_SOURCE_INNER,
+          layerId: SUN_LAYER,
+          fc: toFc(innerPoly),
+          opacity: SUN_OPACITY_INNER * scale,
+        },
+      ];
+      for (const tier of tiers) {
+        const src = map.getSource(tier.srcId) as maplibregl.GeoJSONSource | undefined;
+        if (src) {
+          src.setData(tier.fc);
+          continue;
+        }
+        map.addSource(tier.srcId, { type: 'geojson', data: tier.fc });
+        map.addLayer({
+          id: tier.layerId,
+          type: 'fill',
+          source: tier.srcId,
+          paint: {
+            'fill-color': '#0b1320',
+            'fill-opacity': tier.opacity,
+          },
+        });
+      }
     }
 
     function removeWind(): void {
@@ -1239,7 +1295,13 @@ const t = ui[lang];
         if (map.getLayer(RV_LAYER)) map.setPaintProperty(RV_LAYER, 'raster-opacity', rvOpacity);
         if (map.getLayer(FIELD_LAYER)) map.setPaintProperty(FIELD_LAYER, 'circle-opacity', rvOpacity);
         if (map.getLayer(WIND_CIRCLE_LAYER)) map.setPaintProperty(WIND_CIRCLE_LAYER, 'circle-opacity', rvOpacity);
-        if (map.getLayer(SUN_LAYER)) map.setPaintProperty(SUN_LAYER, 'fill-opacity', rvOpacity);
+        const sunScaleNow = sunScale();
+        if (map.getLayer(SUN_LAYER_OUTER))
+          map.setPaintProperty(SUN_LAYER_OUTER, 'fill-opacity', SUN_OPACITY_OUTER * sunScaleNow);
+        if (map.getLayer(SUN_LAYER_MID))
+          map.setPaintProperty(SUN_LAYER_MID, 'fill-opacity', SUN_OPACITY_MID * sunScaleNow);
+        if (map.getLayer(SUN_LAYER))
+          map.setPaintProperty(SUN_LAYER, 'fill-opacity', SUN_OPACITY_INNER * sunScaleNow);
       });
     }
 
