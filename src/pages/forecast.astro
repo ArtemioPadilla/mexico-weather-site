@@ -295,7 +295,7 @@ const t = ui[lang];
             <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
             <a id="fc-map-link" href="${esc(mapHref)}" class="fc-map-wrap mt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Abrir en el mapa interactivo">
-              <div id="fc-map" class="absolute inset-0" aria-hidden="true"></div>
+              <div id="fc-map" class="h-full w-full" aria-hidden="true"></div>
             </a>
           </header>`;
 
