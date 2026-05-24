@@ -2001,13 +2001,62 @@ export async function initInteractiveMap(
       btn.type = 'button';
       btn.setAttribute('aria-pressed', String(def.id === activeLayer));
       btn.className =
-        'rounded px-2 py-1 text-left hover:bg-blue-500/10 aria-pressed:bg-blue-500/15 aria-pressed:font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-blue-400/10';
-      btn.textContent = t[def.labelKey as keyof typeof t];
+        'flex items-center gap-1.5 rounded px-2 py-1 text-left hover:bg-blue-500/10 aria-pressed:bg-blue-500/15 aria-pressed:font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-blue-400/10';
+      // zoom.earth-style icon prefix; falls back to text-only when LayerDef
+      // has no icon glyph.
+      if (def.icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.setAttribute('aria-hidden', 'true');
+        iconSpan.textContent = def.icon;
+        iconSpan.className = 'text-base leading-none';
+        btn.appendChild(iconSpan);
+      }
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = t[def.labelKey as keyof typeof t];
+      btn.appendChild(labelSpan);
+      // Keyboard shortcut hint as a tiny trailing chip on desktop. Hidden
+      // on narrow screens to keep the rail compact.
+      if (def.shortcut) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = def.shortcut;
+        kbd.className =
+          'ml-auto hidden rounded border border-gray-500/40 px-1 text-xs font-mono text-gray-400 lg:inline';
+        btn.appendChild(kbd);
+        btn.title = `${t[def.labelKey as keyof typeof t]} (${def.shortcut})`;
+      }
       btn.addEventListener('click', () => void setActiveLayer(def.id));
       wrap.appendChild(btn);
     }
   }
   buildLayerButtons();
+
+  // Keyboard shortcuts to activate layers (zoom.earth M/R/A/T/H/P/V/L parity).
+  // Only bound when the layer rail is enabled (full /mapa page); embeds
+  // don't hijack global key events. Ignores keys typed into inputs/textareas.
+  if (features.layerRail) {
+    window.addEventListener('keydown', (e) => {
+      // Don't capture keys while the user is typing in an input/textarea or
+      // when a modifier is held (so cmd+R reload still works).
+      const target = e.target as HTMLElement | null;
+      if (
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
+        (target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable))
+      ) {
+        return;
+      }
+      const key = e.key.toUpperCase();
+      const match = LAYERS.find((l) => l.shortcut === key);
+      if (match) {
+        e.preventDefault();
+        void setActiveLayer(match.id);
+      }
+    });
+  }
 
   const opacityEl = features.layerRail ? opts.els.opacity ?? null : null;
   if (opacityEl) {

@@ -15,17 +15,23 @@ export interface LayerDef {
   kind: 'base' | 'raster-tile' | 'field' | 'particles' | 'overlay';
   /** Initial layer opacity (0..1); 1 for the base map. */
   defaultOpacity: number;
+  /** Emoji glyph shown in the layer rail next to the label — zoom.earth
+   *  parity. Optional: rail renders text-only when absent. */
+  icon?: string;
+  /** Single uppercase letter that activates this layer via keyboard.
+   *  Matches zoom.earth's shortcut convention. */
+  shortcut?: string;
 }
 
 export const LAYERS: LayerDef[] = [
-  { id: 'base', labelKey: 'map_layer_base', kind: 'base', defaultOpacity: 1 },
-  { id: 'radar', labelKey: 'map_layer_radar', kind: 'raster-tile', defaultOpacity: 0.8 },
-  { id: 'satellite', labelKey: 'map_layer_satellite', kind: 'raster-tile', defaultOpacity: 1 },
-  { id: 'temperature', labelKey: 'map_layer_temperature', kind: 'field', defaultOpacity: 0.75 },
-  { id: 'humidity', labelKey: 'map_layer_humidity', kind: 'field', defaultOpacity: 0.65 },
-  { id: 'pressure', labelKey: 'map_layer_pressure', kind: 'field', defaultOpacity: 0.7 },
-  { id: 'wind', labelKey: 'map_layer_wind', kind: 'particles', defaultOpacity: 1 },
-  { id: 'sunlight', labelKey: 'map_layer_sunlight', kind: 'overlay', defaultOpacity: 0.45 },
+  { id: 'base', labelKey: 'map_layer_base', kind: 'base', defaultOpacity: 1, icon: '🗺️', shortcut: 'M' },
+  { id: 'radar', labelKey: 'map_layer_radar', kind: 'raster-tile', defaultOpacity: 0.8, icon: '🌧️', shortcut: 'R' },
+  { id: 'satellite', labelKey: 'map_layer_satellite', kind: 'raster-tile', defaultOpacity: 1, icon: '📡', shortcut: 'A' },
+  { id: 'temperature', labelKey: 'map_layer_temperature', kind: 'field', defaultOpacity: 0.75, icon: '🌡️', shortcut: 'T' },
+  { id: 'humidity', labelKey: 'map_layer_humidity', kind: 'field', defaultOpacity: 0.65, icon: '💧', shortcut: 'H' },
+  { id: 'pressure', labelKey: 'map_layer_pressure', kind: 'field', defaultOpacity: 0.7, icon: '🧭', shortcut: 'P' },
+  { id: 'wind', labelKey: 'map_layer_wind', kind: 'particles', defaultOpacity: 1, icon: '💨', shortcut: 'V' },
+  { id: 'sunlight', labelKey: 'map_layer_sunlight', kind: 'overlay', defaultOpacity: 0.45, icon: '☀️', shortcut: 'L' },
 ];
 
 export function getLayer(id: string): LayerDef | undefined {
