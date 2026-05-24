@@ -284,6 +284,20 @@ export async function initInteractiveMap(
     t: null as string | null,
   };
 
+  // Pick the basemap tile URL up-front from the current theme so the very
+  // first tile fetches go to the right CDN. Initialising with OSM and then
+  // swapping to Dark Matter via setTiles causes a race at low zoom — tiles
+  // already in flight come back as OSM (light) and paint as light patches
+  // next to Dark Matter tiles for a couple of seconds.
+  const initialDark = document.documentElement.classList.contains('dark');
+  const OSM_TILES_INIT = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
+  const CARTO_DARK_TILES_INIT = [
+    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  ];
+
   const map = new maplibre.Map({
     container: opts.els.container,
     center: [initial.lng, initial.lat],
@@ -297,9 +311,11 @@ export async function initInteractiveMap(
       sources: {
         osm: {
           type: 'raster',
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tiles: initialDark ? CARTO_DARK_TILES_INIT : OSM_TILES_INIT,
           tileSize: 256,
-          attribution: '© OpenStreetMap',
+          attribution: initialDark
+            ? '© OpenStreetMap contributors © CARTO'
+            : '© OpenStreetMap',
         },
       },
       layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
@@ -551,7 +567,9 @@ export async function initInteractiveMap(
     'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
   ];
 
-  let lastBasemapDark: boolean | null = null;
+  // Seeded with the value used at construction so the first user-driven
+  // theme toggle is the first time we actually swap tiles.
+  let lastBasemapDark: boolean | null = initialDark;
   function syncBasemapTheme(): void {
     const dark = document.documentElement.classList.contains('dark');
     if (dark === lastBasemapDark) return;
@@ -565,6 +583,18 @@ export async function initInteractiveMap(
       anySrc.attribution = dark
         ? '© OpenStreetMap contributors © CARTO'
         : '© OpenStreetMap';
+      // setTiles changes the URL template for FUTURE fetches but doesn't
+      // evict already-cached/in-flight tiles, so the previous CDN can keep
+      // painting alongside the new one for a few seconds. Force a refetch
+      // via the source cache so all tiles re-resolve through the new URL.
+      const styleAny = map.style as unknown as {
+        sourceCaches?: Record<string, { clearTiles?: () => void; update?: (t: unknown) => void }>;
+        _otherSourceCaches?: Record<string, { clearTiles?: () => void; update?: (t: unknown) => void }>;
+      };
+      const sc =
+        styleAny.sourceCaches?.['osm'] ?? styleAny._otherSourceCaches?.['osm'];
+      sc?.clearTiles?.();
+      sc?.update?.((map as unknown as { transform: unknown }).transform);
       lastBasemapDark = dark;
     } catch {
       /* retry on next mutation */
