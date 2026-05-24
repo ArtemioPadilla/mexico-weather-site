@@ -5,15 +5,15 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sun, 24 May 2026 18:43:29 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 May 2026 20:37:19 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
-      <title>⚠️ Alerta SMN: Temperaturas máximas de 40 a 45 °C: Sinaloa (norte y centro), Nayarit (norte), Jalisco (sur y suroeste), Colima (este), Michoacán (centro y oeste), Guerrero (noroeste), Oaxaca (sureste), Chiapas (oeste), Campeche (norte) y Yucatán (oeste).</title>
+      <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75-150 mm): Oax y Chis. T. Máx de 40-45 °C: Sin, Jal, Col, Mich, Gro, Oax, Chis, Camp y Yuc.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa (norte y centro), Nayarit (norte), Jalisco (sur y suroeste), Colima (este), Michoacán (centro y oeste), Guerrero (noroeste), Oaxaca (sureste), Chiapas (oeste), Campeche (norte) y Yucatán (oeste).]]></description>
-      <pubDate>Sun, 24 May 2026 12:43:18 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-24-1e24</guid>
+      <description><![CDATA[Rachas de viento de 40-60 km/h con posibles tolvaneras: Chih, Dgo, Coah y NL.]]></description>
+      <pubDate>Sun, 24 May 2026 14:37:10 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-24-0993</guid>
       <category>Alerta</category>
     </item>
     <item>
