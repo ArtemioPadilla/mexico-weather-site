@@ -253,6 +253,10 @@ export async function initInteractiveMap(
     center: [initial.lng, initial.lat],
     zoom: initial.zoom,
     interactive,
+    // Required so map.getCanvas().toDataURL() returns the rendered
+    // pixels (plan 3.3 snapshot compare). WebGL discards the buffer
+    // by default at the end of each frame; this keeps it readable.
+    preserveDrawingBuffer: true,
     // MapLibre's attributionControl typing is `false | AttributionControlOptions`;
     // pass `false` to suppress it, or omit (undefined) to use the default control.
     attributionControl: controls ? undefined : false,
@@ -4073,6 +4077,63 @@ export async function initInteractiveMap(
         { timeout: 10000 },
       );
     });
+  }
+
+  // ----------------------------------------------------------------
+  // Snapshot compare (plan 3.3). Captures the WebGL canvas to an
+  // <img> overlay so the user can scrub the timeline or switch
+  // layers and visually diff "antes" vs "ahora". Doesn't require any
+  // extra network fetches — pure client-side canvas → data URL.
+  // ----------------------------------------------------------------
+  if (features.layerRail) {
+    const snapCapBtn = document.getElementById('mw-snapshot-capture');
+    const snapToggleBtn = document.getElementById('mw-snapshot-toggle');
+    const snapClearBtn = document.getElementById('mw-snapshot-clear');
+    const snapImg = document.getElementById(
+      'mw-snapshot-img',
+    ) as HTMLImageElement | null;
+    let snapVisible = true;
+    function refreshSnapBtns(): void {
+      if (!snapImg) return;
+      const has = !!snapImg.src;
+      snapCapBtn?.classList.toggle('hidden', has);
+      snapToggleBtn?.classList.toggle('hidden', !has);
+      snapClearBtn?.classList.toggle('hidden', !has);
+      snapImg.classList.toggle('hidden', !has || !snapVisible);
+      if (snapToggleBtn) {
+        snapToggleBtn.textContent = snapVisible
+          ? '👁 Ocultar comparación'
+          : '👁 Mostrar comparación';
+        snapToggleBtn.setAttribute('aria-pressed', String(snapVisible));
+      }
+    }
+    snapCapBtn?.addEventListener('click', () => {
+      try {
+        // MapLibre needs preserveDrawingBuffer=true to read the canvas;
+        // we trigger a synchronous render first to ensure we capture
+        // the most recent frame.
+        map.triggerRepaint();
+        const url = map.getCanvas().toDataURL('image/png');
+        if (snapImg) {
+          snapImg.src = url;
+          snapVisible = true;
+          refreshSnapBtns();
+        }
+      } catch {
+        /* WebGL context lost / canvas tainted — degrade silently */
+      }
+    });
+    snapToggleBtn?.addEventListener('click', () => {
+      snapVisible = !snapVisible;
+      refreshSnapBtns();
+    });
+    snapClearBtn?.addEventListener('click', () => {
+      if (!snapImg) return;
+      snapImg.removeAttribute('src');
+      snapVisible = true;
+      refreshSnapBtns();
+    });
+    refreshSnapBtns();
   }
 
   return {
