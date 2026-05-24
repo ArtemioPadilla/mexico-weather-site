@@ -820,8 +820,15 @@ export async function initInteractiveMap(
   // store them alongside the grid for the bilinear-raster rebuild on every
   // frame change / pan resample. `fieldBlobUrl` is the URL backing the
   // current MapLibre image source — revoked + replaced on each update.
-  const FIELD_GRID_COLS = 10;
-  const FIELD_GRID_ROWS = 7;
+  // Sample density: 16×11 = 176 points over the ~70°×55° MX bbox.
+  // Original was 10×7=70 points; doubled the density to match zoom.earth's
+  // smoother field rendering — the bicubic interpolation no longer shows
+  // visible 'lobes' around discrete sample points. Open-Meteo's bulk
+  // endpoint accepts up to 5000 locations per request so 176 is well
+  // within limits and stays away from the 429 ceiling that bit us
+  // previously at 140 points (#121).
+  const FIELD_GRID_COLS = 16;
+  const FIELD_GRID_ROWS = 11;
   /**
    * Fixed bounding box used by all field layers (temperature, humidity,
    * pressure) so the bilinear interpolation samples the SAME 70 points
@@ -851,8 +858,11 @@ export async function initInteractiveMap(
   // resolution would just look noisy. The per-frame cost (~12 ms on a
   // mid laptop) is still under the 16.6 ms frame budget; only paid on
   // hour-slider scrubs and the initial layer activation.
-  const FIELD_RASTER_W = 600;
-  const FIELD_RASTER_H = 420;
+  // Bumped from 600×420 to 800×560 to match the higher input grid
+  // density (16×11). Each input cell now expands into ~50×50 px which
+  // keeps the bicubic interpolation continuous without quantisation.
+  const FIELD_RASTER_W = 800;
+  const FIELD_RASTER_H = 560;
   let fieldGrid: FieldGrid | null = null;
   let fieldBounds: RasterBounds | null = null;
   let fieldBlobUrl: string | null = null;
