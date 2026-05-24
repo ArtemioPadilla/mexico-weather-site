@@ -1587,6 +1587,52 @@ export async function initInteractiveMap(
     }, 5 * 60 * 1000);
   }
 
+  // ----------------------------------------------------------------
+  // Borders overlay (zoom.earth "Líneas fronteras F") — white admin
+  // boundaries of MX + neighbors fetched on demand from
+  // /data/borders-na.json (~34 KB gzipped). Lazy.
+  // ----------------------------------------------------------------
+  const BORDERS_SOURCE = 'wx-borders-src';
+  const BORDERS_LAYER = 'wx-borders-line';
+  let bordersFetchPromise: Promise<FeatureCollection> | null = null;
+
+  function fetchBorders(): Promise<FeatureCollection> {
+    if (bordersFetchPromise) return bordersFetchPromise;
+    bordersFetchPromise = cachedFetch(`${base}data/borders-na.json`)
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<FeatureCollection>)
+          : ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
+      )
+      .catch(
+        () =>
+          ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
+      );
+    return bordersFetchPromise;
+  }
+
+  async function setBordersEnabled(on: boolean): Promise<void> {
+    if (!on) {
+      if (map.getLayer(BORDERS_LAYER)) map.removeLayer(BORDERS_LAYER);
+      if (map.getSource(BORDERS_SOURCE)) map.removeSource(BORDERS_SOURCE);
+      return;
+    }
+    if (map.getSource(BORDERS_SOURCE)) return;
+    const data = await fetchBorders();
+    if (map.getSource(BORDERS_SOURCE)) return;
+    map.addSource(BORDERS_SOURCE, { type: 'geojson', data });
+    map.addLayer({
+      id: BORDERS_LAYER,
+      type: 'line',
+      source: BORDERS_SOURCE,
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': 0.9,
+        'line-opacity': 0.7,
+      },
+    });
+  }
+
   function setNightLightsEnabled(on: boolean): void {
     if (!on) {
       if (map.getLayer(NIGHT_LIGHTS_LAYER)) map.removeLayer(NIGHT_LIGHTS_LAYER);
@@ -2635,7 +2681,7 @@ export async function initInteractiveMap(
   // refreshOverlayCheckboxes().
   // ----------------------------------------------------------------
   interface OverlayDef {
-    id: 'graticule' | 'tropical' | 'nightLights' | 'nightLine';
+    id: 'graticule' | 'tropical' | 'nightLights' | 'nightLine' | 'borders';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -2679,6 +2725,15 @@ export async function initInteractiveMap(
       shortcut: 'O',
       isEnabled: () => !!map.getLayer(NIGHT_LINE_LAYER),
       setEnabled: (on) => setNightLineEnabled(on),
+    },
+    {
+      id: 'borders',
+      label: 'Líneas fronteras',
+      shortcut: 'F',
+      isEnabled: () => !!map.getLayer(BORDERS_LAYER),
+      setEnabled: (on) => {
+        void setBordersEnabled(on);
+      },
     },
   ];
 
