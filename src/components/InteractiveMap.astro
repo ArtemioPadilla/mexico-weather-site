@@ -285,6 +285,20 @@ const cfg = JSON.stringify({
   )}
 
   {/*
+    Forecast model badge bottom-right, zoom.earth-style "ICON 13 km".
+    Open-Meteo's bulk endpoint uses 'best_match' which selects the
+    highest-resolution model per location (ECMWF in MX = ~9 km, ICON
+    ~13 km global fallback). Static label; no JS needed.
+  */}
+  {features.layerRail && (
+    <div
+      class="pointer-events-none absolute bottom-9 right-2 z-10 hidden rounded bg-gray-900/70 px-2 py-1 text-[10px] font-mono tabular-nums text-gray-300 backdrop-blur-sm sm:inline-block"
+      aria-hidden="true"
+      title="Modelo de pronóstico Open-Meteo (best match: ECMWF ~9 km en MX)"
+    >Open-Meteo · best match · ~9 km</div>
+  )}
+
+  {/*
     Settings panel (zoom.earth-style ⚙️). Timezone + hour format
     persisted in localStorage. Plain HTML <details> with inline
     onclick handlers so no extra bundle.

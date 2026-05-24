@@ -865,7 +865,7 @@ export async function initInteractiveMap(
   /** Sub-option state per layer. zoom.earth's Temperatura has
    *  Actual/Aparente; we wire Actual + Aparente here. Other layers
    *  will follow the same pattern. */
-  type TempSubOption = 'actual' | 'aparente';
+  type TempSubOption = 'actual' | 'aparente' | 'bulbo';
   type HumiditySubOption = 'relativa' | 'rocio';
   type PressureSubOption = 'msl' | 'surface';
   type WindSubOption = 'velocidad' | 'rachas';
@@ -874,9 +874,9 @@ export async function initInteractiveMap(
   let pressureSubOption: PressureSubOption = 'msl';
   let windSubOption: WindSubOption = 'velocidad';
   function tempHourlyVar(): string {
-    return tempSubOption === 'aparente'
-      ? 'apparent_temperature'
-      : 'temperature_2m';
+    if (tempSubOption === 'aparente') return 'apparent_temperature';
+    if (tempSubOption === 'bulbo') return 'wet_bulb_temperature_2m';
+    return 'temperature_2m';
   }
   function humidityHourlyVar(): string {
     return humiditySubOption === 'rocio'
@@ -1477,15 +1477,26 @@ export async function initInteractiveMap(
       type: 'symbol',
       source: CITY_VALUES_SOURCE,
       layout: {
-        'text-field': ['get', 'value'],
+        // Stack city name above the value, zoom.earth-style:
+        //   Monterrey
+        //     29°
+        // (newline + 2-line text composition via MapLibre expressions).
+        'text-field': [
+          'format',
+          ['get', 'name'],
+          { 'font-scale': 0.85 },
+          '\n',
+          {},
+          ['get', 'value'],
+          { 'font-scale': 1.05 },
+        ],
         'text-size': 13,
         'text-offset': [0, 1.4],
         'text-anchor': 'top',
         'text-allow-overlap': false,
         'text-ignore-placement': false,
         'text-padding': 4,
-        // Demotiles ships an Open Sans + Noto stack; this glyph name is
-        // available at https://demotiles.maplibre.org/font/...
+        'text-line-height': 1.1,
         'text-font': ['Open Sans Semibold'],
       },
       paint: {
@@ -2839,6 +2850,7 @@ export async function initInteractiveMap(
     };
     container.appendChild(mkBtn('actual', 'Actual'));
     container.appendChild(mkBtn('aparente', 'Aparente'));
+    container.appendChild(mkBtn('bulbo', 'Bulbo húmedo'));
     wrap.appendChild(container);
   }
   function refreshTempSubOptions(): void {
