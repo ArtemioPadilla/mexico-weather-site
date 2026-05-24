@@ -544,14 +544,52 @@ export async function initInteractiveMap(
       // initialLayer is 'temperature').
       const wanted = hashed?.layer ?? opts.initialLayer ?? null;
       if (wanted && wanted !== 'base' && getLayerDef(wanted)) {
-        // Defer the layer activation by 700 ms so the basemap has time
-        // to complete its first render pass before we add the field /
-        // raster overlay layers. Without this, cold loads of the embed
-        // (forecast / home) sometimes leave the GL backing store stale
-        // because the overlay add competes with the first render frame.
-        window.setTimeout(() => {
-          void setActiveLayer(wanted);
-        }, 700);
+        // Cold-load bug (#124, P0.1 in PLAN_UX_PARITY.md): historically a
+        // single setTimeout(..., 700) raced the style/source load and the
+        // raster layer would silently fail to add ~5% of the time. The
+        // user-visible symptom was a "blank field" on first load.
+        //
+        // Two-part fix:
+        //   1. Wait for map.once('idle') — guarantees the style is
+        //      resolved AND a paint frame has completed.
+        //   2. After activation, verify a known wx layer (RV_LAYER for
+        //      raster-tile, wx-field-layer for field) actually exists.
+        //      If not, retry with increasing backoff.
+        const activateWithRetry = async (): Promise<void> => {
+          const def = getLayerDef(wanted);
+          if (!def) return;
+          const expectedLayerId =
+            def.kind === 'raster-tile'
+              ? RV_LAYER
+              : def.kind === 'field'
+                ? 'wx-field-layer'
+                : def.kind === 'particles'
+                  ? WIND_CIRCLE_LAYER
+                  : null;
+          const delays = [0, 250, 600, 1300, 2800]; // ~4.9 s total
+          for (let i = 0; i < delays.length; i++) {
+            if (delays[i] > 0) {
+              await new Promise<void>((r) =>
+                window.setTimeout(r, delays[i]),
+              );
+            }
+            try {
+              await setActiveLayer(wanted);
+            } catch {
+              continue;
+            }
+            // Success when the expected layer exists on the map, or
+            // when the layer kind has no checkable artifact (overlay).
+            if (!expectedLayerId || map.getLayer(expectedLayerId)) {
+              return;
+            }
+          }
+        };
+        if (map.loaded() && map.isStyleLoaded()) {
+          void activateWithRetry();
+        } else {
+          map.once('idle', () => void activateWithRetry());
+        }
       }
     })();
   });
