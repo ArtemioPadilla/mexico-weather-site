@@ -5,9 +5,27 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sun, 24 May 2026 10:51:38 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 May 2026 11:47:27 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 287 | 24 de Mayo del 2026 | Emisión 06:00h</title>
+      <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
+      <description><![CDATA[SE PREVÉN LLUVIAS FUERTES A MUY FUERTES EN ESTADOS DEL NORESTE, ORIENTE, CENTRO Y SURESTE DE MÉXICO
+
+---
+Pronóstico Meteorológico General
+No. Aviso: 287
+Ciudad de México a 24 de Mayo del 2026.
+Emisión: 06:00h
+Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
+SE PREVÉN LLUVIAS FUERTES A MUY FUERTES EN ESTADOS DEL NORESTE, ORIENTE, CENTRO Y SURESTE DE MÉXICO
+
+Para hoy, una vaguada en altura y una circulación ciclónica en niveles medios y altos de la atmósfera sobre el noreste del país, en interacción con la aproximación de un frente frío a la frontera norte de México, generarán lluvias puntuales muy fuertes en Nuevo León (este), Tamaulipas (norte, oeste y sur), San Luis Potosí (noreste); y puntuales fuertes en Coahuila (este y noreste), las cuales podrán estar acompañados con descargas eléctricas y posible caída de granizo.…]]></description>
+      <pubDate>Sun, 24 May 2026 12:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-pronostico-general-2026-05-24-287</guid>
+      <category>Pronóstico General</category>
+    </item>
     <item>
       <title>⛈️ Aviso de Potencial de Tormentas — SMN | 24 de mayo del 2026 | Emisión 03:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
@@ -23,30 +41,9 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y tolvaneras: Durango, Nayarit, Jalisco, Aguascalientes y Zacatecas.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas mínimas de -5 a 0 °C con heladas durante la madrugada del domingo: zonas serranas de Chihuahua y Durango.]]></description>
-      <pubDate>Sun, 24 May 2026 04:51:28 -0600</pubDate>
+      <pubDate>Sun, 24 May 2026 05:47:18 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-24-80e0</guid>
       <category>Alerta</category>
-    </item>
-    <item>
-      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 286 | 23 de Mayo del 2026 | Emisión 18:00h</title>
-      <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
-      <description><![CDATA[ESTA TARDE Y NOCHE SE PREVÉN LLUVIAS FUERTES A MUY FUERTES EN ESTADOS DEL NORESTE, ORIENTE, CENTRO Y SURESTE DE MÉXICO
-
----
-Pronóstico Meteorológico General
-No. Aviso: 286
-Ciudad de México a 23 de Mayo del 2026.
-Emisión: 18:00h
-Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
-
-
-
-ESTA TARDE Y NOCHE SE PREVÉN LLUVIAS FUERTES A MUY FUERTES EN ESTADOS DEL NORESTE, ORIENTE, CENTRO Y SURESTE DE MÉXICO
-
-Durante esta noche y la madrugada del domingo, una vaguada en altura y una línea seca sobre el norte del territorio nacional, en interacción con un canal de baja presión en el oriente y sureste del país e inestabilidad atmosférica, ocasionarán lluvias puntuales muy fuertes en Nuevo León (norte, este y sur), Tamaulipas (norte, sur y suroeste), San Luis Potosí (este y noreste), Veracruz (norte y centro), Puebla (este y sureste) y Oaxaca (norte y centro); fuertes en Coahuila (noreste), Querétaro (norte), Estado de México (este y centro), Hidalgo (norte y este), Tlaxcala y Chiapas (centro y costa) e intervalos de chubascos en Sinaloa, Durango, Zacatecas, Guanajuato, Ciudad de México y Morelos; los cuales podrán estar acompañados con descargas eléctricas y posible caída de granizo; además de lluvias aisladas en Chihuahua, Aguascalientes y Tabasco.…]]></description>
-      <pubDate>Sat, 23 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-pronostico-general-2026-05-23-286</guid>
-      <category>Pronóstico General</category>
     </item>
     <item>
       <title>📋 SMN Reporte Matutino 23 MAY 2026: Se prevén lluvias de fuertes a muy fuertes en regiones de 13 estados de México</title>
