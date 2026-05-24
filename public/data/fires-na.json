@@ -1,0 +1,8 @@
+{
+  "type": "FeatureCollection",
+  "features": [],
+  "metadata": {
+    "source": "NASA FIRMS VIIRS-SNPP",
+    "note": "Empty placeholder; populated by .github/workflows/firms-fires.yml every 4h"
+  }
+}

@@ -1675,6 +1675,66 @@ export async function initInteractiveMap(
     });
   }
 
+  // ----------------------------------------------------------------
+  // Fires overlay (zoom.earth "Incendios activos I") — NASA FIRMS
+  // VIIRS-SNPP 24-hour fire detections in NA/Central America, cached
+  // every 4 h to public/data/fires-na.json by .github/workflows/
+  // firms-fires.yml (FIRMS's public CSV endpoint has no CORS, so we
+  // proxy it at build time, similar to the SMN RSS workflow).
+  // ----------------------------------------------------------------
+  const FIRES_SOURCE = 'wx-fires-src';
+  const FIRES_LAYER = 'wx-fires-circle';
+  let firesFetchPromise: Promise<FeatureCollection> | null = null;
+
+  function fetchFires(): Promise<FeatureCollection> {
+    if (firesFetchPromise) return firesFetchPromise;
+    firesFetchPromise = cachedFetch(`${base}data/fires-na.json`)
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<FeatureCollection>)
+          : ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
+      )
+      .catch(
+        () =>
+          ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
+      );
+    return firesFetchPromise;
+  }
+
+  async function setFiresEnabled(on: boolean): Promise<void> {
+    if (!on) {
+      if (map.getLayer(FIRES_LAYER)) map.removeLayer(FIRES_LAYER);
+      if (map.getSource(FIRES_SOURCE)) map.removeSource(FIRES_SOURCE);
+      return;
+    }
+    if (map.getSource(FIRES_SOURCE)) return;
+    const data = await fetchFires();
+    if (map.getSource(FIRES_SOURCE)) return;
+    map.addSource(FIRES_SOURCE, { type: 'geojson', data });
+    map.addLayer({
+      id: FIRES_LAYER,
+      type: 'circle',
+      source: FIRES_SOURCE,
+      paint: {
+        // Brightness scales with Fire Radiative Power (frp, MW). Even
+        // small detections show as 3 px; very intense fires up to 9 px.
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'frp'],
+          0, 3,
+          5, 4,
+          50, 6,
+          200, 9,
+        ],
+        'circle-color': '#f97316', // orange-500 — fire glow
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#fef3c7', // amber halo
+        'circle-stroke-width': 0.8,
+      },
+    });
+  }
+
   function setNightLightsEnabled(on: boolean): void {
     if (!on) {
       if (map.getLayer(NIGHT_LIGHTS_LAYER)) map.removeLayer(NIGHT_LIGHTS_LAYER);
@@ -2858,7 +2918,13 @@ export async function initInteractiveMap(
   // refreshOverlayCheckboxes().
   // ----------------------------------------------------------------
   interface OverlayDef {
-    id: 'graticule' | 'tropical' | 'nightLights' | 'nightLine' | 'borders';
+    id:
+      | 'graticule'
+      | 'tropical'
+      | 'nightLights'
+      | 'nightLine'
+      | 'borders'
+      | 'fires';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -2910,6 +2976,15 @@ export async function initInteractiveMap(
       isEnabled: () => !!map.getLayer(BORDERS_LAYER),
       setEnabled: (on) => {
         void setBordersEnabled(on);
+      },
+    },
+    {
+      id: 'fires',
+      label: 'Incendios activos',
+      shortcut: 'I',
+      isEnabled: () => !!map.getLayer(FIRES_LAYER),
+      setEnabled: (on) => {
+        void setFiresEnabled(on);
       },
     },
   ];

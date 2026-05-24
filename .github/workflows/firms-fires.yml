@@ -1,0 +1,109 @@
+name: NASA FIRMS Fires
+
+# Fetches NASA's VIIRS-SNPP 24h active-fire CSV for North & Central
+# America from FIRMS's public archive, filters to MX-area bbox, and
+# commits the result as /public/data/fires-na.json. Browser then fetches
+# the static asset (no CORS, no API key).
+
+on:
+  schedule:
+    # Every 4 hours at minute 23 (offset from smn-rss to avoid contention).
+    - cron: '23 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: firms-fires
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh FIRMS fires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fetch FIRMS CSV (Central America + USA contiguous)
+        run: |
+          mkdir -p public/data
+          # Two CSVs cover MX + USA south + Caribbean. Public no-key.
+          curl -sf --retry 3 --retry-delay 5 \
+            -o /tmp/firms-ca.csv \
+            'https://firms.modaps.eosdis.nasa.gov/data/active_fire/viirs-snpp/csv/SUOMI_VIIRS_C2_Central_America_24h.csv'
+          curl -sf --retry 3 --retry-delay 5 \
+            -o /tmp/firms-us.csv \
+            'https://firms.modaps.eosdis.nasa.gov/data/active_fire/viirs-snpp/csv/SUOMI_VIIRS_C2_USA_contiguous_and_Hawaii_24h.csv'
+
+      - name: Convert to GeoJSON (MX-area bbox)
+        run: |
+          python3 - <<'PY'
+          import csv, json, os
+
+          BBOX = {'west': -120, 'south': 12, 'east': -84, 'north': 33}  # MX + immediate neighbors
+          MAX_FEATURES = 5000
+
+          def load_csv(path):
+              if not os.path.exists(path): return []
+              out = []
+              with open(path) as f:
+                  rdr = csv.DictReader(f)
+                  for row in rdr:
+                      try:
+                          lat = float(row['latitude']); lng = float(row['longitude'])
+                      except Exception: continue
+                      if not (BBOX['south'] <= lat <= BBOX['north'] and BBOX['west'] <= lng <= BBOX['east']):
+                          continue
+                      try:
+                          frp = float(row.get('frp') or 0)
+                      except Exception: frp = 0
+                      out.append({
+                          'type': 'Feature',
+                          'properties': {
+                              'frp': round(frp, 2),
+                              'confidence': row.get('confidence', ''),
+                              'acq_date': row.get('acq_date', ''),
+                              'acq_time': row.get('acq_time', ''),
+                              'daynight': row.get('daynight', ''),
+                          },
+                          'geometry': {'type': 'Point', 'coordinates': [lng, lat]},
+                      })
+              return out
+
+          feats = load_csv('/tmp/firms-ca.csv') + load_csv('/tmp/firms-us.csv')
+          # Keep the most powerful first if oversized.
+          feats.sort(key=lambda f: f['properties']['frp'], reverse=True)
+          feats = feats[:MAX_FEATURES]
+          fc = {
+              'type': 'FeatureCollection',
+              'features': feats,
+              'metadata': {
+                  'source': 'NASA FIRMS VIIRS-SNPP',
+                  'bbox': BBOX,
+                  'count': len(feats),
+              },
+          }
+          with open('public/data/fires-na.json', 'w') as f:
+              json.dump(fc, f, separators=(',', ':'))
+          print(f'Wrote {len(feats)} fire features')
+          PY
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git diff --quiet -- public/data/fires-na.json || (
+            git add public/data/fires-na.json &&
+            git commit -m 'chore: refresh FIRMS fires data' &&
+            git push &&
+            echo 'committed=true' >> "$GITHUB_OUTPUT"
+          )
+
+      - name: Trigger CD deploy
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run cd.yml
