@@ -1,0 +1,49 @@
+{
+  "name": "Clima México",
+  "short_name": "Clima MX",
+  "description": "Mapa interactivo del clima de México con pronóstico, radar, satélite, alertas SMN. Sin cookies, sin cuentas, sin tracking.",
+  "start_url": "/mexico-weather/",
+  "scope": "/mexico-weather/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "es-MX",
+  "dir": "ltr",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "categories": ["weather", "utilities", "travel"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mapa interactivo",
+      "short_name": "Mapa",
+      "description": "Mapa con capas de radar, satélite, temperatura, viento",
+      "url": "/mexico-weather/mapa/",
+      "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Ciudad de México",
+      "short_name": "CDMX",
+      "url": "/mexico-weather/forecast/?lat=19.43&lng=-99.13&name=Ciudad%20de%20M%C3%A9xico"
+    },
+    {
+      "name": "Guadalajara",
+      "short_name": "GDL",
+      "url": "/mexico-weather/forecast/?lat=20.66&lng=-103.35&name=Guadalajara"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

@@ -1,5 +1,6 @@
 ---
 import FeedbackFAB from '../components/common/FeedbackFAB.astro';
+import PwaInstall from '../components/common/PwaInstall.astro';
 import ThemeToggle from '../components/common/ThemeToggle.astro';
 import { siteBase } from '../utils/paths';
 import '../styles/global.css';
@@ -47,6 +48,13 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <meta name="robots" content={robots} />
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${base}favicon.svg`} />
+    <link rel="manifest" href={`${base}manifest.webmanifest`} />
+    <meta name="theme-color" content="#0a0e1a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Clima MX" />
     <link rel="canonical" href={canonical} />
     {/* Anti-FOUC: resolver y aplicar el tema antes del primer pintado. */}
     <script is:inline>
@@ -215,6 +223,7 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     </nav>
     <slot />
     <FeedbackFAB lang={lang} />
+    <PwaInstall />
     {
       /*
        * Opt-in error monitoring. This block renders NOTHING unless
