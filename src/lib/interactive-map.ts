@@ -826,9 +826,11 @@ export async function initInteractiveMap(
   type TempSubOption = 'actual' | 'aparente';
   type HumiditySubOption = 'relativa' | 'rocio';
   type PressureSubOption = 'msl' | 'surface';
+  type WindSubOption = 'velocidad' | 'rachas';
   let tempSubOption: TempSubOption = 'actual';
   let humiditySubOption: HumiditySubOption = 'relativa';
   let pressureSubOption: PressureSubOption = 'msl';
+  let windSubOption: WindSubOption = 'velocidad';
   function tempHourlyVar(): string {
     return tempSubOption === 'aparente'
       ? 'apparent_temperature'
@@ -2017,6 +2019,7 @@ export async function initInteractiveMap(
     refreshTempSubOptions();
     refreshHumiditySubOptions();
     refreshPressureSubOptions();
+    refreshWindSubOptions();
     const akind = getLayerDef(activeLayer)?.kind;
     opts.els.opacityWrap?.classList.toggle(
       'hidden',
@@ -2255,7 +2258,12 @@ export async function initInteractiveMap(
       const ac = new AbortController();
       fieldAbort = ac;
       try {
-        const res = await deps.fetch(buildWindUrl(grid), { signal: ac.signal });
+        const speedVar = windSubOption === 'rachas'
+          ? 'wind_gusts_10m'
+          : 'wind_speed_10m';
+        const res = await deps.fetch(buildWindUrl(grid, speedVar), {
+          signal: ac.signal,
+        });
         if (ac.signal.aborted) {
           removeWind();
           removeSun();
@@ -2264,7 +2272,7 @@ export async function initInteractiveMap(
           syncHash();
           return;
         }
-        windGrid = parseWindResponse(await res.json(), grid);
+        windGrid = parseWindResponse(await res.json(), grid, speedVar);
         windTexDirty = true;
       } catch {
         if (!ac.signal.aborted) windGrid = null;
@@ -2576,6 +2584,49 @@ export async function initInteractiveMap(
   }
   buildPressureSubOptions();
   refreshPressureSubOptions();
+
+  function buildWindSubOptions(): void {
+    const wrap = opts.els.layerBtns;
+    if (!wrap || !features.layerRail) return;
+    const container = document.createElement('div');
+    container.id = 'wind-sub-options';
+    container.className =
+      'mt-1 ml-4 hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
+    const mkBtn = (id: WindSubOption, label: string): HTMLButtonElement => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.sub = id;
+      btn.textContent = label;
+      btn.className =
+        'rounded px-2 py-0.5 text-left hover:bg-blue-500/10 aria-pressed:bg-blue-500/15 aria-pressed:font-semibold aria-pressed:text-gray-800 dark:aria-pressed:text-gray-100';
+      btn.setAttribute('aria-pressed', String(windSubOption === id));
+      btn.addEventListener('click', () => {
+        if (windSubOption === id) return;
+        windSubOption = id;
+        refreshWindSubOptions();
+        void setActiveLayer('wind');
+      });
+      return btn;
+    };
+    container.appendChild(mkBtn('velocidad', 'Velocidad'));
+    container.appendChild(mkBtn('rachas', 'Rachas'));
+    wrap.appendChild(container);
+  }
+  function refreshWindSubOptions(): void {
+    const container = document.getElementById('wind-sub-options');
+    if (!container) return;
+    const show = activeLayer === 'wind';
+    container.classList.toggle('hidden', !show);
+    container.classList.toggle('flex', show);
+    container.querySelectorAll('button').forEach((b) => {
+      b.setAttribute(
+        'aria-pressed',
+        String((b as HTMLButtonElement).dataset.sub === windSubOption),
+      );
+    });
+  }
+  buildWindSubOptions();
+  refreshWindSubOptions();
 
   // ----------------------------------------------------------------
   // Overlays menu — zoom.earth's "Superposiciones" panel. Each entry
