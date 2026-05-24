@@ -281,6 +281,59 @@ const cfg = JSON.stringify({
       aria-hidden="true"
     ></div>
   )}
+
+  {/*
+    Info panel (zoom.earth-style ℹ️). Lists data sources and credits.
+    Pure HTML via <details> — no JS needed.
+  */}
+  {features.layerRail && (
+    <details
+      class="absolute right-3 top-3 z-10 max-w-xs rounded-lg bg-white/95 text-xs shadow dark:bg-gray-900/95"
+    >
+      <summary
+        class="cursor-pointer select-none rounded-lg px-2 py-1.5 font-semibold text-gray-700 hover:bg-blue-500/10 dark:text-gray-200"
+        aria-label="Información y fuentes de datos"
+      >ℹ️ Fuentes</summary>
+      <div class="space-y-2 border-t border-gray-200 px-3 py-2 text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <p>
+          <strong class="text-gray-800 dark:text-gray-100">Clima México</strong>
+          — mapa interactivo del tiempo. Sin cuenta, sin cookies.
+        </p>
+        <ul class="space-y-1">
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Pronóstico:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://open-meteo.com/" rel="noopener" target="_blank">Open-Meteo</a>
+            (ICON/GFS/ECMWF)
+          </li>
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Radar:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://www.rainviewer.com/" rel="noopener" target="_blank">RainViewer</a>
+          </li>
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Satélite:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://nasa-gibs.github.io/gibs-api-docs/" rel="noopener" target="_blank">NASA GIBS</a>
+            (GOES-East, VIIRS)
+          </li>
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Ciclones:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://www.nhc.noaa.gov/" rel="noopener" target="_blank">NOAA NHC</a>
+          </li>
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Mapa base:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://www.openstreetmap.org/copyright" rel="noopener" target="_blank">OSM</a>
+            / <a class="text-blue-600 underline dark:text-blue-400" href="https://carto.com/attributions" rel="noopener" target="_blank">CARTO</a>
+          </li>
+          <li>
+            <span class="font-medium text-gray-700 dark:text-gray-200">Avisos:</span>
+            <a class="text-blue-600 underline dark:text-blue-400" href="https://smn.conagua.gob.mx/" rel="noopener" target="_blank">SMN / CONAGUA</a>
+          </li>
+        </ul>
+        <p class="pt-1 text-[10px] italic text-gray-500 dark:text-gray-400">
+          Sin garantía. Para uso informativo. Consulta avisos oficiales.
+        </p>
+      </div>
+    </details>
+  )}
 </div>
 
 {/*
