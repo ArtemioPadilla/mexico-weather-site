@@ -1497,6 +1497,43 @@ export async function initInteractiveMap(
   }
 
   // ----------------------------------------------------------------
+  // Night lights overlay — NASA VIIRS Day-Night Band imagery, the
+  // satellite view of Earth at night that zoom.earth's Satélite layer
+  // exposes after dark. Painted as a translucent raster so the user
+  // sees the basemap + the night lights blended.
+  // ----------------------------------------------------------------
+  const NIGHT_LIGHTS_SOURCE = 'wx-night-lights-src';
+  const NIGHT_LIGHTS_LAYER = 'wx-night-lights-layer';
+
+  function setNightLightsEnabled(on: boolean): void {
+    if (!on) {
+      if (map.getLayer(NIGHT_LIGHTS_LAYER)) map.removeLayer(NIGHT_LIGHTS_LAYER);
+      if (map.getSource(NIGHT_LIGHTS_SOURCE))
+        map.removeSource(NIGHT_LIGHTS_SOURCE);
+      return;
+    }
+    if (map.getSource(NIGHT_LIGHTS_SOURCE)) return;
+    map.addSource(NIGHT_LIGHTS_SOURCE, {
+      type: 'raster',
+      tiles: [gibsTileUrl(GIBS_LAYERS.viirsNightLights, gibsRoundedTime())],
+      tileSize: 256,
+      maxzoom: GIBS_LAYERS.viirsNightLights.maxZoom,
+      attribution: ATTRIBUTION_GIBS,
+    });
+    map.addLayer({
+      id: NIGHT_LIGHTS_LAYER,
+      type: 'raster',
+      source: NIGHT_LIGHTS_SOURCE,
+      paint: {
+        // 0.7 opacity so basemap labels still read; matches zoom.earth's
+        // "blend" feel on the satellite night layer.
+        'raster-opacity': 0.7,
+        'raster-resampling': 'linear',
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
   // Tropical storms overlay (zoom.earth "Sistemas tropicales T") —
   // active NHC Atlantic + East Pacific systems rendered as circular
   // glyphs sized by classification. Fetched once at mount; refreshes
@@ -2352,6 +2389,13 @@ export async function initInteractiveMap(
       shortcut: 'X',
       isEnabled: () => !!map.getLayer(GRATICULE_LAYER),
       setEnabled: (on) => setGraticuleEnabled(on),
+    },
+    {
+      id: 'nightLights',
+      label: 'Luces nocturnas',
+      shortcut: 'N',
+      isEnabled: () => !!map.getLayer(NIGHT_LIGHTS_LAYER),
+      setEnabled: (on) => setNightLightsEnabled(on),
     },
   ];
 
