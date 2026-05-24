@@ -2567,9 +2567,40 @@ export async function initInteractiveMap(
         const speedVar = windSubOption === 'rachas'
           ? 'wind_gusts_10m'
           : 'wind_speed_10m';
-        const res = await deps.fetch(buildWindUrl(grid, speedVar), {
-          signal: ac.signal,
-        });
+        // Cold-load resilience: same retry pattern as loadFieldGrid (#164).
+        // Wind layer activation from a fresh URL hash like ?layer=wind
+        // sometimes hit TypeError: Failed to fetch on first try and fell
+        // back to base. A single 500 ms retry resolves the transient.
+        async function attempt(): Promise<Response> {
+          const r = await deps.fetch(buildWindUrl(grid, speedVar), {
+            signal: ac.signal,
+          });
+          if (!r.ok) throw new Error('non-2xx');
+          return r;
+        }
+        let res: Response;
+        try {
+          res = await attempt();
+        } catch {
+          if (ac.signal.aborted) {
+            removeWind();
+            removeSun();
+            activeLayer = 'base';
+            refreshLayerButtons();
+            syncHash();
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 500));
+          if (ac.signal.aborted) {
+            removeWind();
+            removeSun();
+            activeLayer = 'base';
+            refreshLayerButtons();
+            syncHash();
+            return;
+          }
+          res = await attempt();
+        }
         if (ac.signal.aborted) {
           removeWind();
           removeSun();
