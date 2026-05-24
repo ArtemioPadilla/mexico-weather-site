@@ -1852,6 +1852,228 @@ export async function initInteractiveMap(
   }
 
   // ----------------------------------------------------------------
+  // ----------------------------------------------------------------
+  // Lagos MX overlay (plan 3.8 — lake portion). Major MX lakes and
+  // reservoirs as point markers. CONAGUA's water-level feeds aren't
+  // CORS-friendly so this is a labeled-reference overlay only (no
+  // live values). zoom.earth has nothing equivalent.
+  // ----------------------------------------------------------------
+  const LAKES_SOURCE = 'wx-lakes-src';
+  const LAKES_CIRCLE_LAYER = 'wx-lakes-circle';
+  const LAKES_LABEL_LAYER = 'wx-lakes-label';
+  const MX_LAKES: { name: string; lng: number; lat: number }[] = [
+    { name: 'Chapala', lng: -103.0, lat: 20.2 },
+    { name: 'Cuitzeo', lng: -101.15, lat: 19.95 },
+    { name: 'Pátzcuaro', lng: -101.62, lat: 19.59 },
+    { name: 'Catemaco', lng: -95.1, lat: 18.4 },
+    { name: 'Cerro Prieto (Pres.)', lng: -100.06, lat: 25.43 },
+    { name: 'El Cuchillo (Pres.)', lng: -99.27, lat: 25.73 },
+    { name: 'Aguamilpa (Pres.)', lng: -104.84, lat: 21.84 },
+    { name: 'Falcón (Pres.)', lng: -99.17, lat: 26.55 },
+    { name: 'Amistad (Pres.)', lng: -101.04, lat: 29.45 },
+    { name: 'Nezahualcóyotl (Malpaso)', lng: -93.6, lat: 17.18 },
+    { name: 'Vicente Guerrero (Pres.)', lng: -98.65, lat: 23.85 },
+  ];
+
+  function setLakesEnabled(on: boolean): void {
+    if (!on) {
+      if (map.getLayer(LAKES_LABEL_LAYER)) map.removeLayer(LAKES_LABEL_LAYER);
+      if (map.getLayer(LAKES_CIRCLE_LAYER)) map.removeLayer(LAKES_CIRCLE_LAYER);
+      if (map.getSource(LAKES_SOURCE)) map.removeSource(LAKES_SOURCE);
+      return;
+    }
+    if (map.getSource(LAKES_SOURCE)) return;
+    const data: FeatureCollection = {
+      type: 'FeatureCollection',
+      features: MX_LAKES.map((l) => ({
+        type: 'Feature',
+        properties: { name: l.name, label: `💧 ${l.name}` },
+        geometry: { type: 'Point', coordinates: [l.lng, l.lat] },
+      })),
+    };
+    map.addSource(LAKES_SOURCE, { type: 'geojson', data });
+    map.addLayer({
+      id: LAKES_CIRCLE_LAYER,
+      type: 'circle',
+      source: LAKES_SOURCE,
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#0891b2',
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#cffafe',
+        'circle-stroke-width': 1.1,
+      },
+    });
+    map.addLayer({
+      id: LAKES_LABEL_LAYER,
+      type: 'symbol',
+      source: LAKES_SOURCE,
+      minzoom: 5,
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 10,
+        'text-offset': [0, 1.1],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-optional': true,
+      },
+      paint: {
+        'text-color': '#0e7490',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.1,
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Huracanes notables MX overlay (plan 3.2). Hand-curated best-track
+  // polylines for hurricanes that made or threatened MX landfall in
+  // recent years. NHC's HURDAT2 archive is the source of truth but
+  // doesn't expose CORS, so the points below were extracted manually
+  // from NHC public advisories. Each track is a LineString colored by
+  // max sustained winds.
+  // ----------------------------------------------------------------
+  const HISTSTORMS_SOURCE = 'wx-histstorms-src';
+  const HISTSTORMS_LAYER = 'wx-histstorms-line';
+  const HISTSTORMS_LABEL_LAYER = 'wx-histstorms-label';
+  interface HistStorm {
+    name: string;
+    year: number;
+    cat: number;
+    coords: [number, number][];
+  }
+  const HIST_STORMS_MX: HistStorm[] = [
+    // Otis (Oct 2023): explosive intensification → Cat 5 landfall at Acapulco.
+    {
+      name: 'Otis',
+      year: 2023,
+      cat: 5,
+      coords: [
+        [-100.0, 14.1],
+        [-100.0, 14.7],
+        [-99.9, 15.4],
+        [-99.9, 16.2],
+        [-99.9, 16.85],
+        [-99.5, 17.5],
+        [-99.0, 18.2],
+      ],
+    },
+    // Patricia (Oct 2015): strongest recorded EPAC hurricane, Cat 5
+    // landfall near Cuixmala, Jalisco.
+    {
+      name: 'Patricia',
+      year: 2015,
+      cat: 5,
+      coords: [
+        [-95.7, 12.6],
+        [-97.5, 14.1],
+        [-99.5, 16.3],
+        [-101.5, 17.6],
+        [-103.6, 18.5],
+        [-104.7, 19.4],
+        [-104.9, 20.2],
+      ],
+    },
+    // Hilary (Aug 2023): Cat 4 then weakened, hit Baja California then SoCal.
+    {
+      name: 'Hilary',
+      year: 2023,
+      cat: 4,
+      coords: [
+        [-104.1, 14.0],
+        [-106.0, 16.8],
+        [-108.0, 19.6],
+        [-110.0, 22.4],
+        [-112.5, 25.0],
+        [-114.5, 28.0],
+        [-116.5, 31.5],
+      ],
+    },
+  ];
+
+  function setHistStormsEnabled(on: boolean): void {
+    if (!on) {
+      if (map.getLayer(HISTSTORMS_LABEL_LAYER))
+        map.removeLayer(HISTSTORMS_LABEL_LAYER);
+      if (map.getLayer(HISTSTORMS_LAYER)) map.removeLayer(HISTSTORMS_LAYER);
+      if (map.getSource(HISTSTORMS_SOURCE))
+        map.removeSource(HISTSTORMS_SOURCE);
+      return;
+    }
+    if (map.getSource(HISTSTORMS_SOURCE)) return;
+    const catColor = (c: number): string =>
+      c >= 5
+        ? '#7f1d1d'
+        : c >= 4
+          ? '#dc2626'
+          : c >= 3
+            ? '#f97316'
+            : c >= 2
+              ? '#facc15'
+              : '#22c55e';
+    const features: Feature[] = [];
+    for (const s of HIST_STORMS_MX) {
+      features.push({
+        type: 'Feature',
+        properties: {
+          name: s.name,
+          year: s.year,
+          cat: s.cat,
+          color: catColor(s.cat),
+          label: `${s.name} ${s.year} · Cat ${s.cat}`,
+        },
+        geometry: { type: 'LineString', coordinates: s.coords },
+      });
+      // One label feature at the final point of the track.
+      features.push({
+        type: 'Feature',
+        properties: {
+          label: `${s.name} ${s.year}`,
+          color: catColor(s.cat),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: s.coords[s.coords.length - 1],
+        },
+      });
+    }
+    map.addSource(HISTSTORMS_SOURCE, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features },
+    });
+    map.addLayer({
+      id: HISTSTORMS_LAYER,
+      type: 'line',
+      source: HISTSTORMS_SOURCE,
+      filter: ['==', ['geometry-type'], 'LineString'],
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': 3,
+        'line-opacity': 0.85,
+      },
+    });
+    map.addLayer({
+      id: HISTSTORMS_LABEL_LAYER,
+      type: 'symbol',
+      source: HISTSTORMS_SOURCE,
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 11,
+        'text-offset': [0, 1.0],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-optional': true,
+      },
+      paint: {
+        'text-color': ['get', 'color'],
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.2,
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
   // Webcams overlay (plan 3.7). Static curated list of public live
   // webcams across MX destinations. Click → opens the external page
   // in a new tab (rel=noopener,noreferrer). We never embed third-party
@@ -3829,7 +4051,9 @@ export async function initInteractiveMap(
       | 'colorBlind'
       | 'aqi'
       | 'marine'
-      | 'webcams';
+      | 'webcams'
+      | 'lakes'
+      | 'histStorms';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -3948,6 +4172,20 @@ export async function initInteractiveMap(
       shortcut: 'W',
       isEnabled: () => !!map.getLayer(WEBCAMS_CIRCLE_LAYER),
       setEnabled: (on) => setWebcamsEnabled(on),
+    },
+    {
+      id: 'lakes',
+      label: 'Lagos y presas',
+      shortcut: 'G',
+      isEnabled: () => !!map.getLayer(LAKES_CIRCLE_LAYER),
+      setEnabled: (on) => setLakesEnabled(on),
+    },
+    {
+      id: 'histStorms',
+      label: 'Huracanes notables MX',
+      shortcut: 'D',
+      isEnabled: () => !!map.getLayer(HISTSTORMS_LAYER),
+      setEnabled: (on) => setHistStormsEnabled(on),
     },
     {
       id: 'colorBlind',
