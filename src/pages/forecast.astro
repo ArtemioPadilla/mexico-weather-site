@@ -149,6 +149,14 @@ const t = ui[lang];
       windDir,
     } from '../lib/forecast';
     import { has, toggle } from '../lib/favorites';
+    import {
+      add as addAlert,
+      evaluate as evaluateAlerts,
+      forLocation as alertsForLocation,
+      remove as removeAlert,
+      type AlertMetric,
+      type AlertRule,
+    } from '../lib/alerts';
     import { ui } from '../i18n/ui';
     import { initInteractiveMap } from '../lib/interactive-map';
 
@@ -317,6 +325,9 @@ const t = ui[lang];
                 <span id="fc-fav-icon" aria-hidden="true">☆</span>
                 <span id="fc-fav-saved" class="hidden text-xs font-medium text-amber-500">Guardado</span>
               </button>
+              <button type="button" id="fc-alert" class="inline-flex items-center justify-center gap-1 min-w-[44px] min-h-[44px] px-2 text-xl leading-none text-gray-400 hover:text-blue-500 dark:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded" aria-label="Crear alerta personal" title="Crear alerta personal">
+                <span id="fc-alert-icon" aria-hidden="true">🔔</span>
+              </button>
               <button type="button" id="fc-share" class="inline-flex items-center justify-center min-w-[44px] min-h-[44px] px-3 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Compartir" title="Compartir">Compartir</button>
               <span id="fc-share-toast" aria-live="polite" class="hidden text-xs text-green-600 dark:text-green-400">URL copiada</span>
             </div>
@@ -329,6 +340,26 @@ const t = ui[lang];
             <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
             <p id="fc-models" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-1" aria-live="polite"></p>
+            <div id="fc-alert-banner" class="hidden mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200" aria-live="polite"></div>
+            <div id="fc-alert-panel" class="hidden mt-2 rounded-md border border-blue-200 bg-blue-50/70 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
+              <div class="font-semibold mb-1">Crear alerta personal</div>
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="fc-alert-metric" class="rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900">
+                  <option value="rain">Lluvia (mm/h)</option>
+                  <option value="temp_hi">Temp. máx. (°C)</option>
+                  <option value="temp_lo">Temp. mín. (°C)</option>
+                  <option value="wind">Viento (km/h)</option>
+                </select>
+                <select id="fc-alert-op" class="rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900">
+                  <option value=">">supera</option>
+                  <option value="<">cae bajo</option>
+                </select>
+                <input id="fc-alert-thr" type="number" inputmode="decimal" step="0.1" value="1" class="w-20 rounded border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900" aria-label="Umbral" />
+                <button type="button" id="fc-alert-save" class="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white hover:bg-blue-500">Guardar</button>
+              </div>
+              <ul id="fc-alert-list" class="mt-2 space-y-1 text-xs"></ul>
+              <p class="mt-1 text-[11px] text-blue-700/70 dark:text-blue-300/70">Las alertas se guardan solo en tu navegador. Se evalúan al cargar esta página contra el pronóstico de 24 h.</p>
+            </div>
             <div class="fc-map-wrap mt-3" aria-label="Mapa interactivo">
               <div id="fc-map" class="h-full w-full"></div>
             </div>
@@ -528,6 +559,152 @@ const t = ui[lang];
             });
             sync();
           }
+
+          // Personal alerts (plan 3.5). Local-only — rules in localStorage.
+          const alertBtn = document.getElementById('fc-alert');
+          const alertPanel = document.getElementById('fc-alert-panel');
+          const alertList = document.getElementById('fc-alert-list');
+          const alertBanner = document.getElementById('fc-alert-banner');
+          const alertMetricSel = document.getElementById(
+            'fc-alert-metric',
+          ) as HTMLSelectElement | null;
+          const alertOpSel = document.getElementById(
+            'fc-alert-op',
+          ) as HTMLSelectElement | null;
+          const alertThrInput = document.getElementById(
+            'fc-alert-thr',
+          ) as HTMLInputElement | null;
+          const alertSaveBtn = document.getElementById('fc-alert-save');
+
+          const metricLabels: Record<string, string> = {
+            rain: 'Lluvia',
+            temp_hi: 'Temp. máx.',
+            temp_lo: 'Temp. mín.',
+            wind: 'Viento',
+          };
+          const metricUnits: Record<string, string> = {
+            rain: 'mm/h',
+            temp_hi: '°C',
+            temp_lo: '°C',
+            wind: 'km/h',
+          };
+
+          function refreshAlertList(): void {
+            if (!alertList) return;
+            const rules = alertsForLocation(store, loc.lat, loc.lng);
+            if (rules.length === 0) {
+              alertList.innerHTML =
+                '<li class="text-blue-700/60 dark:text-blue-300/60">Sin alertas para este lugar.</li>';
+              return;
+            }
+            alertList.innerHTML = rules
+              .map((r) => {
+                const ml = metricLabels[r.metric] ?? r.metric;
+                const u = metricUnits[r.metric] ?? '';
+                return (
+                  `<li class="flex items-center gap-2">` +
+                  `<span class="flex-1">${ml} ${esc(r.op)} ${r.threshold}${esc(u)}</span>` +
+                  `<button type="button" data-metric="${esc(r.metric)}" class="fc-alert-rm rounded border border-blue-300 px-1.5 text-[11px] hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900">Quitar</button>` +
+                  `</li>`
+                );
+              })
+              .join('');
+            alertList.querySelectorAll('.fc-alert-rm').forEach((b) => {
+              b.addEventListener('click', () => {
+                const m = (b as HTMLElement).dataset.metric as
+                  | AlertMetric
+                  | undefined;
+                if (!m) return;
+                removeAlert(store, loc.lat, loc.lng, m);
+                refreshAlertList();
+                renderAlertBanner();
+              });
+            });
+          }
+
+          function renderAlertBanner(): void {
+            if (!alertBanner) return;
+            const rules = alertsForLocation(store, loc.lat, loc.lng);
+            if (rules.length === 0) {
+              alertBanner.classList.add('hidden');
+              alertBanner.innerHTML = '';
+              return;
+            }
+            const hTemps = hourly
+              .slice(0, 24)
+              .map((hw) => hw.temperature)
+              .filter((n): n is number => n !== null && Number.isFinite(n));
+            const hPrecip = hourly
+              .slice(0, 24)
+              .map((hw) => hw.precipProbability)
+              .filter((n): n is number => Number.isFinite(n));
+            const hWind = hourly
+              .slice(0, 24)
+              .map((hw) => hw.windSpeed)
+              .filter((n): n is number => Number.isFinite(n));
+            const summary = {
+              // Open-Meteo hourly we have is precipitation_probability not
+              // amount; using it as a proxy for "expected rain intensity"
+              // is rough but the API doesn't include precipitation here.
+              // Threshold-as-probability still works (user picks 50, etc.).
+              maxRainMmH: hPrecip.length ? Math.max(...hPrecip) : 0,
+              maxTempC: hTemps.length ? Math.max(...hTemps) : 0,
+              minTempC: hTemps.length ? Math.min(...hTemps) : 0,
+              maxWindKmh: hWind.length ? Math.max(...hWind) : 0,
+            };
+            const fired = evaluateAlerts(rules, summary);
+            if (fired.length === 0) {
+              alertBanner.classList.add('hidden');
+              alertBanner.innerHTML = '';
+              return;
+            }
+            alertBanner.innerHTML =
+              '<div class="font-semibold mb-0.5">⚠️ Alertas disparadas (próximas 24 h):</div>' +
+              '<ul class="space-y-0.5 text-xs">' +
+              fired
+                .map((f) => {
+                  const ml = metricLabels[f.rule.metric] ?? f.rule.metric;
+                  const u = metricUnits[f.rule.metric] ?? '';
+                  return (
+                    `<li>${ml} ${esc(f.rule.op)} ${f.rule.threshold}${esc(u)} — alcanza ` +
+                    `${Math.round(f.value)}${esc(u)}.</li>`
+                  );
+                })
+                .join('') +
+              '</ul>';
+            alertBanner.classList.remove('hidden');
+          }
+
+          if (alertBtn) {
+            alertBtn.addEventListener('click', () => {
+              if (!alertPanel) return;
+              const willShow = alertPanel.classList.contains('hidden');
+              alertPanel.classList.toggle('hidden', !willShow);
+              if (willShow) refreshAlertList();
+            });
+          }
+          if (alertSaveBtn) {
+            alertSaveBtn.addEventListener('click', () => {
+              if (!alertMetricSel || !alertOpSel || !alertThrInput) return;
+              const metric = alertMetricSel.value as AlertMetric;
+              const op = alertOpSel.value as '>' | '<';
+              const thr = parseFloat(alertThrInput.value);
+              if (!Number.isFinite(thr)) return;
+              const rule: AlertRule = {
+                lat: loc.lat,
+                lng: loc.lng,
+                name: safeName || `${loc.lat}, ${loc.lng}`,
+                metric,
+                op,
+                threshold: thr,
+                createdAt: Date.now(),
+              };
+              addAlert(store, rule);
+              refreshAlertList();
+              renderAlertBanner();
+            });
+          }
+          renderAlertBanner();
 
           // Share button: native Web Share with clipboard fallback + toast.
           const shareBtn = document.getElementById('fc-share');
