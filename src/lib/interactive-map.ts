@@ -2280,9 +2280,57 @@ export async function initInteractiveMap(
     canvas.addEventListener('touchcancel', hideTooltip);
   }
 
+  /**
+   * Layer first-use explainer (zoom.earth shows a modal the first time
+   * the user opens each layer). We use a non-modal inline showMsg() so
+   * the user can keep interacting with the map. Persisted per-layer in
+   * localStorage so it only appears once.
+   */
+  const LAYER_EXPLAINERS: Record<string, string> = {
+    radar:
+      'Radar muestra precipitación detectada (lluvia, nieve) en tiempo casi real desde RainViewer. Usa Animación de lluvia (P) para reproducir.',
+    satellite:
+      'Satélite usa NASA GIBS GOES-East IR — nubes en infrarrojo. Activa N para ver luces nocturnas (VIIRS).',
+    temperature:
+      'Temperatura del aire a 2 m sobre el suelo, gradiente continuo. Sub-opción Aparente incluye humedad y viento (sensación térmica).',
+    humidity:
+      'Humedad relativa o punto de rocío a 2 m, según sub-opción. Mayor humedad = sensación más pesada al mismo calor.',
+    pressure:
+      'Presión atmosférica. Sub-opción Nivel del mar (msl) es la presión reducida estándar usada en meteorología; Superficie respeta la altitud real.',
+    wind: 'Velocidad y dirección del viento a 10 m. Activa Rachas para ver las máximas instantáneas en lugar del promedio.',
+    sunlight:
+      'Posición del Sol y zonas en sombra (terminador día/noche). Activa Límite nocturno (O) para ver sólo la línea sobre cualquier capa.',
+  };
+  function maybeShowLayerExplainer(id: string): void {
+    const text = LAYER_EXPLAINERS[id];
+    if (!text) return;
+    let seen: Record<string, true>;
+    try {
+      seen = JSON.parse(
+        window.localStorage.getItem('mw:seen-layer-explainer') ?? '{}',
+      ) as Record<string, true>;
+    } catch {
+      seen = {};
+    }
+    if (seen[id]) return;
+    seen[id] = true;
+    try {
+      window.localStorage.setItem(
+        'mw:seen-layer-explainer',
+        JSON.stringify(seen),
+      );
+    } catch {
+      /* private mode — fall through */
+    }
+    showMsg(text);
+    // Auto-dismiss after ~8 s so it doesn't linger forever.
+    window.setTimeout(() => hideMsg(), 8000);
+  }
+
   async function setActiveLayer(id: string): Promise<void> {
     const def = getLayerDef(id);
     if (!def) return;
+    maybeShowLayerExplainer(id);
     if (def.kind === 'particles') {
       rvOpacity = def.defaultOpacity;
       if (opacityEl) opacityEl.value = String(Math.round(rvOpacity * 100));
