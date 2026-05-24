@@ -69,6 +69,7 @@ import { cities } from '../data/cities';
 import { geocode } from './geocode';
 import { ui } from '../i18n/ui';
 import { siteBase } from '../utils/paths';
+import { nhcSource, type NhcStorm } from './map/sources';
 
 export interface InteractiveMapElements {
   /** The container element MapLibre attaches to. Required. */
@@ -455,6 +456,10 @@ export async function initInteractiveMap(
   });
   map.on('load', () => {
     renderPins();
+    // Fetch active NHC tropical systems once at mount. List is empty
+    // outside hurricane season (Dec-May) so this is a no-op then; in
+    // season it adds dots over each active storm.
+    void refreshTropicalStorms();
     window.requestAnimationFrame(firstPaintNudge);
     aggressiveNudge();
     // Belt-and-suspenders interval: poll triggerRepaint every 200 ms for
@@ -1438,6 +1443,97 @@ export async function initInteractiveMap(
         'line-width': 0.6,
         'line-opacity': 0.25,
         'line-dasharray': [2, 2],
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Tropical storms overlay (zoom.earth "Sistemas tropicales T") —
+  // active NHC Atlantic + East Pacific systems rendered as circular
+  // glyphs sized by classification. Fetched once at mount; refreshes
+  // on activation. During off-season (Dec-May) the data is empty.
+  // ----------------------------------------------------------------
+  const STORMS_SOURCE = 'wx-storms-src';
+  const STORMS_CIRCLE_LAYER = 'wx-storms-circle';
+  const STORMS_LABEL_LAYER = 'wx-storms-label';
+
+  function stormsFeatureCollection(storms: readonly NhcStorm[]): FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: storms.map((s) => ({
+        type: 'Feature',
+        properties: {
+          name: s.name,
+          classification: s.classification,
+          intensityKt: s.intensityKt ?? 0,
+          label: `${s.classification} ${s.name}`,
+        },
+        geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+      })),
+    };
+  }
+
+  async function refreshTropicalStorms(): Promise<void> {
+    let storms: readonly NhcStorm[];
+    try {
+      storms = await nhcSource.fetch();
+    } catch {
+      storms = [];
+    }
+    const fc = stormsFeatureCollection(storms);
+    const existing = map.getSource(STORMS_SOURCE) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (existing) {
+      existing.setData(fc);
+      return;
+    }
+    map.addSource(STORMS_SOURCE, { type: 'geojson', data: fc });
+    map.addLayer({
+      id: STORMS_CIRCLE_LAYER,
+      type: 'circle',
+      source: STORMS_SOURCE,
+      paint: {
+        // Hurricane categories shown in red; tropical storm in orange;
+        // depression in yellow. Default fallback orange.
+        'circle-color': [
+          'match',
+          ['get', 'classification'],
+          'HU', '#dc2626',
+          'MH', '#b91c1c',
+          'TS', '#f97316',
+          'TD', '#eab308',
+          '#f97316',
+        ],
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'intensityKt'],
+          0, 6,
+          50, 9,
+          100, 13,
+          150, 18,
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5,
+      },
+    });
+    map.addLayer({
+      id: STORMS_LABEL_LAYER,
+      type: 'symbol',
+      source: STORMS_SOURCE,
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 11,
+        'text-offset': [0, 1.6],
+        'text-anchor': 'top',
+        'text-font': ['Open Sans Semibold'],
+      },
+      paint: {
+        'text-color': '#ffffff',
+        'text-halo-color': 'rgba(0,0,0,0.8)',
+        'text-halo-width': 1.4,
       },
     });
   }

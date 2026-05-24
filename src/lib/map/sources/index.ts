@@ -21,3 +21,5 @@ export {
   type RadarFrame,
   type TileOpts,
 } from './rainviewer';
+
+export { nhcSource, parseNhcResponse, type NhcStorm } from './nhc';
