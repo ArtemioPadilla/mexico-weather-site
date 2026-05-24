@@ -2530,7 +2530,19 @@ export async function initInteractiveMap(
       }
       const labelSpan = document.createElement('span');
       labelSpan.textContent = t[def.labelKey as keyof typeof t];
+      // Hide label text on narrow viewports — the icon + tooltip carry
+      // the meaning and the rail stays narrow on mobile (zoom.earth
+      // parity). Desktop (>=sm) sees full text.
+      labelSpan.className = 'hidden sm:inline';
       btn.appendChild(labelSpan);
+      // For screen readers we still need the label; the title attribute
+      // already includes it but ensure SR users get it.
+      if (!btn.getAttribute('aria-label')) {
+        btn.setAttribute(
+          'aria-label',
+          t[def.labelKey as keyof typeof t] ?? def.id,
+        );
+      }
       // Keyboard shortcut hint as a tiny trailing chip on desktop. Hidden
       // on narrow screens to keep the rail compact.
       if (def.shortcut) {
@@ -2559,7 +2571,7 @@ export async function initInteractiveMap(
     const container = document.createElement('div');
     container.id = 'temp-sub-options';
     container.className =
-      'mt-1 ml-4 hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
+      'mt-1 ml-4 hidden max-sm:!hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
     const mkBtn = (id: TempSubOption, label: string): HTMLButtonElement => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -2603,7 +2615,7 @@ export async function initInteractiveMap(
     const container = document.createElement('div');
     container.id = 'humidity-sub-options';
     container.className =
-      'mt-1 ml-4 hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
+      'mt-1 ml-4 hidden max-sm:!hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
     const mkBtn = (
       id: HumiditySubOption,
       label: string,
@@ -2649,7 +2661,7 @@ export async function initInteractiveMap(
     const container = document.createElement('div');
     container.id = 'pressure-sub-options';
     container.className =
-      'mt-1 ml-4 hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
+      'mt-1 ml-4 hidden max-sm:!hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
     const mkBtn = (
       id: PressureSubOption,
       label: string,
@@ -2695,7 +2707,7 @@ export async function initInteractiveMap(
     const container = document.createElement('div');
     container.id = 'wind-sub-options';
     container.className =
-      'mt-1 ml-4 hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
+      'mt-1 ml-4 hidden max-sm:!hidden flex-col gap-0.5 text-xs text-gray-600 dark:text-gray-400';
     const mkBtn = (id: WindSubOption, label: string): HTMLButtonElement => {
       const btn = document.createElement('button');
       btn.type = 'button';

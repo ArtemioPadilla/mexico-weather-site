@@ -166,13 +166,13 @@ const cfg = JSON.stringify({
 
   {features.layerRail && (
     <div
-      class="absolute left-3 top-14 z-10 w-44 space-y-2 rounded-lg bg-white/95 p-3 text-sm shadow dark:bg-gray-900/95"
+      class="im-rail absolute left-3 top-14 z-10 w-auto sm:w-44 max-w-[calc(100vw-1.5rem)] space-y-2 rounded-lg bg-white/95 p-2 sm:p-3 text-sm shadow dark:bg-gray-900/95"
       aria-label={t.map_layers}
       role="group"
     >
-      <p class="font-semibold text-gray-700 dark:text-gray-200">{t.map_layers}</p>
+      <p class="hidden sm:block font-semibold text-gray-700 dark:text-gray-200">{t.map_layers}</p>
       <div id={ids.layerBtns} class="flex flex-col gap-1"></div>
-      <div id={ids.opacityWrap} class="hidden pt-1">
+      <div id={ids.opacityWrap} class="hidden sm:block pt-1">
         <label for={ids.opacity} class="block text-xs text-gray-600 dark:text-gray-400"
           >{t.map_opacity}</label
         >
@@ -185,14 +185,16 @@ const cfg = JSON.stringify({
           class="w-full accent-blue-600"
         />
       </div>
-      <ul id={ids.legend} class="hidden space-y-1 pt-1 text-xs text-gray-700 dark:text-gray-300"></ul>
+      <ul id={ids.legend} class="hidden sm:block space-y-1 pt-1 text-xs text-gray-700 dark:text-gray-300"></ul>
 
       {/*
         Superposiciones (overlays) panel — zoom.earth-style checkboxes
         for non-exclusive map decorations. Rendered as a <details>
         accordion so the rail stays compact when not expanded.
+        Hidden on mobile to keep the rail compact; keyboard shortcuts
+        still toggle the overlays.
       */}
-      <details class="pt-2 text-xs">
+      <details class="hidden sm:block pt-2 text-xs">
         <summary class="cursor-pointer select-none font-semibold text-gray-700 dark:text-gray-200">
           Superposiciones
         </summary>
