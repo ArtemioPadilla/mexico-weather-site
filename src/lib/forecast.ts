@@ -287,6 +287,92 @@ export function buildDisagreementUrl(loc: ForecastLocation): string {
   return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 }
 
+/**
+ * Climate-anomaly summary for a single location: today's forecast Tmax
+ * vs. the 10-year mean Tmax for the same day-of-year, pulled from
+ * Open-Meteo's free archive API (ERA5-Land, keyless, CORS).
+ *
+ * Returns the anomaly in °C (positive = warmer than usual). Null when
+ * the archive doesn't have data for the location or DOY.
+ */
+export interface ClimateAnomaly {
+  /** Forecast Tmax (°C) for today at the location. */
+  forecastTmax: number;
+  /** 10-year mean Tmax (°C) for the same day-of-year. */
+  baselineTmax: number;
+  /** forecastTmax − baselineTmax (°C). */
+  anomalyC: number;
+  /** Number of years included in the baseline (≤ 10). */
+  yearsUsed: number;
+}
+
+export function buildArchiveDoyUrl(
+  loc: ForecastLocation,
+  monthDay: string,
+): string {
+  // monthDay is "MM-DD". We fetch the same DOY for the last 10 years.
+  const now = new Date();
+  const thisYear = now.getUTCFullYear();
+  const start = `${thisYear - 11}-${monthDay}`;
+  // Use last year (thisYear-1) as the end — current year may not yet be
+  // in the archive for the future date.
+  const end = `${thisYear - 1}-${monthDay}`;
+  const params = new URLSearchParams({
+    latitude: String(loc.lat),
+    longitude: String(loc.lng),
+    start_date: start,
+    end_date: end,
+    daily: 'temperature_2m_max',
+    timezone: loc.tz || 'UTC',
+  });
+  return `https://archive-api.open-meteo.com/v1/archive?${params.toString()}`;
+}
+
+export async function getClimateAnomaly(
+  loc: ForecastLocation,
+  forecastTmax: number,
+  monthDay: string,
+  deps: RequestDeps,
+  retry: RetryOptions = DEFAULT_RETRY,
+): Promise<ClimateAnomaly | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = await requestJsonWithRetry(
+    buildArchiveDoyUrl(loc, monthDay),
+    deps,
+    retry,
+  );
+  const dailyTimes: unknown[] = Array.isArray(data?.daily?.time)
+    ? data.daily.time
+    : [];
+  const tmaxArr: unknown[] = Array.isArray(data?.daily?.temperature_2m_max)
+    ? data.daily.temperature_2m_max
+    : [];
+  // Filter to entries matching the requested month-day (defensive — the
+  // archive sometimes returns adjacent days for short ranges).
+  const samples: number[] = [];
+  for (let i = 0; i < dailyTimes.length; i++) {
+    const t = dailyTimes[i];
+    const v = tmaxArr[i];
+    if (
+      typeof t === 'string' &&
+      t.endsWith(`-${monthDay}`) &&
+      typeof v === 'number' &&
+      Number.isFinite(v)
+    ) {
+      samples.push(v);
+    }
+  }
+  if (samples.length === 0) return null;
+  const baselineTmax =
+    samples.reduce((a, b) => a + b, 0) / samples.length;
+  return {
+    forecastTmax,
+    baselineTmax,
+    anomalyC: forecastTmax - baselineTmax,
+    yearsUsed: samples.length,
+  };
+}
+
 export async function getModelDisagreement(
   loc: ForecastLocation,
   deps: RequestDeps,

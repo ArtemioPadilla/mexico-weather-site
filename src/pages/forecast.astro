@@ -143,6 +143,7 @@ const t = ui[lang];
 
   <script>
     import {
+      getClimateAnomaly,
       getForecast,
       getModelDisagreement,
       uvLabel,
@@ -340,6 +341,7 @@ const t = ui[lang];
             <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
             <p id="fc-models" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-1" aria-live="polite"></p>
+            <p id="fc-anomaly" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-0.5" aria-live="polite"></p>
             <div id="fc-alert-banner" class="hidden mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200" aria-live="polite"></div>
             <div id="fc-alert-panel" class="hidden mt-2 rounded-md border border-blue-200 bg-blue-50/70 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
               <div class="font-semibold mb-1">Crear alerta personal</div>
@@ -767,6 +769,44 @@ const t = ui[lang];
               }).format(new Date());
             }
             updatedEl.textContent = `Última actualización: ${timeStr} · ${resolvedTz}`;
+          }
+
+          // Climate anomaly (plan 3.6). How does today's forecast Tmax
+          // compare to the 10-year mean for the same day-of-year? Open-
+          // Meteo's free archive API (ERA5-Land) is keyless + CORS.
+          // Background-fetched so it never blocks the page.
+          const anomalyEl = document.getElementById('fc-anomaly');
+          if (anomalyEl && d0 && d0.tmax !== null && d0.date) {
+            const monthDay = d0.date.slice(5); // YYYY-MM-DD → MM-DD
+            getClimateAnomaly(
+              { lat: loc.lat, lng: loc.lng, tz: loc.tz },
+              d0.tmax,
+              monthDay,
+              {
+                fetch: window.fetch.bind(window),
+                sleep: (ms: number) =>
+                  new Promise<void>((r) => setTimeout(r, ms)),
+              },
+            )
+              .then((a) => {
+                if (!a) return;
+                const sign = a.anomalyC >= 0 ? '+' : '';
+                const color =
+                  Math.abs(a.anomalyC) < 1
+                    ? 'text-gray-600 dark:text-gray-400'
+                    : a.anomalyC > 0
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-blue-600 dark:text-blue-400';
+                anomalyEl.innerHTML =
+                  `<span class="font-semibold">Anomalía:</span> ` +
+                  `<span class="${color}">${sign}${a.anomalyC.toFixed(1)}°</span> ` +
+                  `vs. promedio ${a.yearsUsed} años (` +
+                  `${a.baselineTmax.toFixed(1)}°).`;
+                anomalyEl.classList.remove('hidden');
+              })
+              .catch(() => {
+                /* enhancement-only — silent on failure */
+              });
           }
 
           // Multi-model disagreement (plan 3.4). zoom.earth shows only one
