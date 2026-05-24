@@ -1491,17 +1491,26 @@ export async function initInteractiveMap(
     // also have transparent gaps that read as missing data when the
     // basemap shows through.
     addRadarDim();
+    // RainViewer's free tile mosaic is published natively up to z=10; past
+    // that the CDN returns no-data and the user sees a blank/"Zoom level
+    // not supported" radar. Capping maxzoom here makes MapLibre re-use the
+    // z=10 parent tile at city zooms (overzoom) — pixelated but visible,
+    // which matches zoom.earth's behavior at high zoom.
     map.addSource(RV_SOURCE, {
       type: 'raster',
       tiles: [tileUrl],
       tileSize: 256,
+      maxzoom: 10,
       attribution: '© RainViewer',
     });
     map.addLayer({
       id: RV_LAYER,
       type: 'raster',
       source: RV_SOURCE,
-      paint: { 'raster-opacity': rvOpacity },
+      paint: {
+        'raster-opacity': rvOpacity,
+        'raster-resampling': 'linear',
+      },
     });
   }
 
