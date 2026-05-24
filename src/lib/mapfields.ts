@@ -192,12 +192,15 @@ export interface WindGrid {
 }
 
 /** Keyless Open-Meteo bulk URL fetching speed + direction together. */
-export function buildWindUrl(points: LngLat[]): string {
+export function buildWindUrl(
+  points: LngLat[],
+  speedVar: 'wind_speed_10m' | 'wind_gusts_10m' = 'wind_speed_10m',
+): string {
   const lats = points.map((p) => p.lat).join(',');
   const lngs = points.map((p) => p.lng).join(',');
   return (
     `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}` +
-    `&hourly=wind_speed_10m,wind_direction_10m&forecast_days=2&timezone=UTC`
+    `&hourly=${speedVar},wind_direction_10m&forecast_days=2&timezone=UTC`
   );
 }
 
@@ -209,7 +212,11 @@ function isSpeedDirArray(a: unknown): a is (number | null)[] {
 }
 
 /** Normalise an Open-Meteo wind bulk response into a WindGrid (u/v decomposed). Null if unusable. */
-export function parseWindResponse(json: unknown, points: LngLat[]): WindGrid | null {
+export function parseWindResponse(
+  json: unknown,
+  points: LngLat[],
+  speedVar: 'wind_speed_10m' | 'wind_gusts_10m' = 'wind_speed_10m',
+): WindGrid | null {
   if (!json) return null;
   const arr = Array.isArray(json) ? json : [json];
   if (arr.length !== points.length) return null;
@@ -219,7 +226,7 @@ export function parseWindResponse(json: unknown, points: LngLat[]): WindGrid | n
   const out: WindGrid['points'] = [];
   for (let i = 0; i < arr.length; i++) {
     const h = (arr[i] as { hourly?: Record<string, unknown> } | undefined)?.hourly;
-    const sp = h?.wind_speed_10m;
+    const sp = h?.[speedVar];
     const dr = h?.wind_direction_10m;
     if (!isSpeedDirArray(sp) || !isSpeedDirArray(dr) || sp.length !== times.length || dr.length !== times.length) {
       return null;
