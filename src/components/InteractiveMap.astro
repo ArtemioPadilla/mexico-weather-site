@@ -198,30 +198,9 @@ const cfg = JSON.stringify({
           placeholder here to preserve any legacy querySelector that
           might still reference #legend inside the rail. */}
 
-      {/*
-        Snapshot compare — plan 3.3. Capture the current map view as a
-        translucent overlay so the user can visually diff "antes" vs
-        "ahora" by scrubbing the timeline or switching layers.
-      */}
-      <div id="mw-snapshot-wrap" class="hidden sm:flex flex-col gap-1 pt-2 text-xs">
-        <button
-          id="mw-snapshot-capture"
-          type="button"
-          class="rounded border border-gray-300 px-2 py-1 text-left hover:bg-blue-500/10 dark:border-gray-700"
-          aria-label="Capturar vista actual"
-        >📸 Capturar (antes)</button>
-        <button
-          id="mw-snapshot-toggle"
-          type="button"
-          class="hidden rounded border border-blue-300 bg-blue-500/10 px-2 py-1 text-left font-semibold text-blue-700 hover:bg-blue-500/15 dark:border-blue-700 dark:text-blue-300"
-          aria-pressed="true"
-        >👁 Ocultar comparación</button>
-        <button
-          id="mw-snapshot-clear"
-          type="button"
-          class="hidden rounded border border-gray-300 px-2 py-1 text-left text-gray-600 hover:bg-red-500/10 dark:border-gray-700 dark:text-gray-400"
-        >✕ Limpiar captura</button>
-      </div>
+      {/* Snapshot compare buttons moved out of the layer rail (plan P2.4).
+          See the floating column below — they live to the right with
+          other globals, not as a "layer" choice. */}
 
       {/*
         Superposiciones (overlays) panel — zoom.earth-style checkboxes
@@ -394,6 +373,34 @@ const cfg = JSON.stringify({
           class="mw-model-btn rounded-full px-1.5 py-0.5 hover:bg-white/10 aria-pressed:bg-blue-500/30 aria-pressed:text-white aria-pressed:font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         >{m.label}</button>
       ))}
+    </div>
+  )}
+
+  {/* Snapshot compare tools (plan P2.4 — moved out of the layer rail).
+      Right edge column above the model toggle. */}
+  {features.layerRail && (
+    <div
+      id="mw-snapshot-wrap"
+      class="absolute bottom-20 right-2 z-10 hidden flex-col items-stretch gap-1 text-xs sm:flex"
+    >
+      <button
+        id="mw-snapshot-capture"
+        type="button"
+        class="rounded-full bg-white/95 px-3 py-1 text-gray-700 shadow hover:bg-blue-500/10 dark:bg-gray-900/95 dark:text-gray-200"
+        aria-label="Capturar vista actual"
+        title="Capturar vista actual"
+      >📸 Capturar</button>
+      <button
+        id="mw-snapshot-toggle"
+        type="button"
+        class="hidden rounded-full bg-blue-600/90 px-3 py-1 font-semibold text-white shadow hover:bg-blue-500"
+        aria-pressed="true"
+      >👁 Ocultar</button>
+      <button
+        id="mw-snapshot-clear"
+        type="button"
+        class="hidden rounded-full bg-white/95 px-3 py-1 text-gray-600 shadow hover:bg-red-500/10 dark:bg-gray-900/95 dark:text-gray-400"
+      >✕ Limpiar</button>
     </div>
   )}
 

@@ -24,10 +24,13 @@ const t = ui[lang];
 ---
 
 <BaseLayout title={`${t.map_title} — Clima México 🇲🇽`} description={t.map_teaser_heading} lang={lang}>
-  <main class="relative h-[100dvh] w-full bg-gray-100 dark:bg-gray-950">
+  {/* Subtract nav height so the map fills the rest of the viewport
+      exactly, no vertical scrollbar (plan P2.2). Nav is h-12 mobile,
+      h-14 sm+. */}
+  <main class="relative h-[calc(100dvh-3rem)] sm:h-[calc(100dvh-3.5rem)] w-full overflow-hidden bg-gray-100 dark:bg-gray-950">
     <InteractiveMap
       mapId="map"
-      height="100dvh"
+      height="100%"
       initialView={{ lat: 23.6, lng: -102.5, zoom: 4.5 }}
       features={{
         layerRail: true,
