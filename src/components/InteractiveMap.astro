@@ -262,6 +262,19 @@ const cfg = JSON.stringify({
  * here once and shared across all map instances on the page.
  */}
 <style is:global>
+  /*
+   * Map zoom (NavigationControl) sits at bottom-left after PR #117 to dodge
+   * the feedback FAB (bottom-right). On embeds (forecast 320px, home 400px)
+   * the bottom-left corner is the very edge of the embed and on /mapa the
+   * timeline scrubber sits at bottom-center — the +/- buttons were
+   * touching / clipping the viewport edge. Bump them up so they sit clear
+   * of the timeline AND have breathing room at the embed bottom.
+   */
+  .maplibregl-ctrl-bottom-left {
+    bottom: 72px !important;
+    left: 12px !important;
+  }
+
   html.dark .maplibregl-popup-content {
     background: #111827;
     color: #f3f4f6;
