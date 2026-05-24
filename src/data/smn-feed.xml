@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sun, 24 May 2026 09:09:14 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 May 2026 09:59:54 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -23,7 +23,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y tolvaneras: Durango, Nayarit, Jalisco, Aguascalientes y Zacatecas.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas mínimas de -5 a 0 °C con heladas durante la madrugada del domingo: zonas serranas de Chihuahua y Durango.]]></description>
-      <pubDate>Sun, 24 May 2026 03:09:05 -0600</pubDate>
+      <pubDate>Sun, 24 May 2026 03:59:43 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-24-80e0</guid>
       <category>Alerta</category>
     </item>
