@@ -1921,6 +1921,121 @@ export async function initInteractiveMap(
   }
 
   // ----------------------------------------------------------------
+  // Air-quality (PM2.5) by city — MX-unique. Open-Meteo air-quality
+  // API is keyless + CORS-enabled. Sampled at the major MX metros
+  // (covers ~80% of MX urban population). Renders as colored circles
+  // with the µg/m³ value as a label.
+  // ----------------------------------------------------------------
+  const AQI_SOURCE = 'wx-aqi-src';
+  const AQI_CIRCLE_LAYER = 'wx-aqi-circle';
+  const AQI_LABEL_LAYER = 'wx-aqi-label';
+  const MX_AQI_CITIES: { name: string; lng: number; lat: number }[] = [
+    { name: 'CDMX', lng: -99.13, lat: 19.43 },
+    { name: 'Guadalajara', lng: -103.35, lat: 20.66 },
+    { name: 'Monterrey', lng: -100.31, lat: 25.67 },
+    { name: 'Puebla', lng: -98.2, lat: 19.04 },
+    { name: 'Tijuana', lng: -117.04, lat: 32.51 },
+    { name: 'León', lng: -101.67, lat: 21.13 },
+    { name: 'Toluca', lng: -99.65, lat: 19.29 },
+    { name: 'Mérida', lng: -89.61, lat: 20.97 },
+    { name: 'Querétaro', lng: -100.39, lat: 20.59 },
+    { name: 'Chihuahua', lng: -106.07, lat: 28.63 },
+    { name: 'Hermosillo', lng: -110.95, lat: 29.07 },
+    { name: 'Veracruz', lng: -96.13, lat: 19.18 },
+  ];
+
+  async function fetchAqi(): Promise<FeatureCollection> {
+    const lats = MX_AQI_CITIES.map((c) => c.lat).join(',');
+    const lngs = MX_AQI_CITIES.map((c) => c.lng).join(',');
+    const url =
+      `https://air-quality-api.open-meteo.com/v1/air-quality?` +
+      `latitude=${lats}&longitude=${lngs}&current=pm2_5&timezone=UTC`;
+    try {
+      const r = await cachedFetch(url);
+      if (!r.ok) throw new Error('aqi http');
+      const json = (await r.json()) as
+        | { current?: { pm2_5?: number } }
+        | { current?: { pm2_5?: number } }[];
+      const arr = Array.isArray(json) ? json : [json];
+      const features = MX_AQI_CITIES.map((c, i) => {
+        const v = arr[i]?.current?.pm2_5;
+        const pm = typeof v === 'number' && Number.isFinite(v) ? v : null;
+        return {
+          type: 'Feature',
+          properties: {
+            name: c.name,
+            pm,
+            label: pm === null ? c.name : `${c.name}\n${Math.round(pm)} µg/m³`,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [c.lng, c.lat],
+          },
+        };
+      }).filter((f) => f.properties.pm !== null);
+      return { type: 'FeatureCollection', features } as FeatureCollection;
+    } catch {
+      return { type: 'FeatureCollection', features: [] } as FeatureCollection;
+    }
+  }
+
+  async function setAqiEnabled(on: boolean): Promise<void> {
+    if (!on) {
+      if (map.getLayer(AQI_LABEL_LAYER)) map.removeLayer(AQI_LABEL_LAYER);
+      if (map.getLayer(AQI_CIRCLE_LAYER)) map.removeLayer(AQI_CIRCLE_LAYER);
+      if (map.getSource(AQI_SOURCE)) map.removeSource(AQI_SOURCE);
+      return;
+    }
+    if (map.getSource(AQI_SOURCE)) return;
+    const data = await fetchAqi();
+    if (map.getSource(AQI_SOURCE)) return;
+    map.addSource(AQI_SOURCE, { type: 'geojson', data });
+    map.addLayer({
+      id: AQI_CIRCLE_LAYER,
+      type: 'circle',
+      source: AQI_SOURCE,
+      paint: {
+        'circle-radius': 9,
+        // PM2.5 EPA breakpoints (µg/m³, 24h avg): 0-12 good, 12-35.4
+        // moderate, 35.4-55.4 USG, 55.4-150.4 unhealthy, 150.4+ very
+        // unhealthy / hazardous. Color codes are the canonical EPA AQI.
+        'circle-color': [
+          'interpolate',
+          ['linear'],
+          ['get', 'pm'],
+          0, '#22c55e',
+          12, '#facc15',
+          35, '#f97316',
+          55, '#dc2626',
+          150, '#7c2d12',
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#1e293b',
+        'circle-stroke-width': 1.2,
+      },
+    });
+    map.addLayer({
+      id: AQI_LABEL_LAYER,
+      type: 'symbol',
+      source: AQI_SOURCE,
+      minzoom: 4,
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 10,
+        'text-offset': [0, 1.4],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-optional': true,
+      },
+      paint: {
+        'text-color': '#0f172a',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.3,
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
   // USGS earthquakes overlay — MX-unique. Past 7 days, M≥2.5,
   // filtered to a generous MX bbox. USGS earthquake GeoJSON is
   // CORS-enabled and updated every minute; no API key.
@@ -3443,7 +3558,8 @@ export async function initInteractiveMap(
       | 'clouds'
       | 'quakes'
       | 'volcanoes'
-      | 'colorBlind';
+      | 'colorBlind'
+      | 'aqi';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -3537,6 +3653,15 @@ export async function initInteractiveMap(
       shortcut: 'J',
       isEnabled: () => !!map.getLayer(VOLCANOES_CIRCLE_LAYER),
       setEnabled: (on) => setVolcanoesEnabled(on),
+    },
+    {
+      id: 'aqi',
+      label: 'Calidad del aire (PM2.5)',
+      shortcut: 'Y',
+      isEnabled: () => !!map.getLayer(AQI_CIRCLE_LAYER),
+      setEnabled: (on) => {
+        void setAqiEnabled(on);
+      },
     },
     {
       id: 'colorBlind',
