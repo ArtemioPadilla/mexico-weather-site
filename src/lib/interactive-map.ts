@@ -820,15 +820,16 @@ export async function initInteractiveMap(
   // store them alongside the grid for the bilinear-raster rebuild on every
   // frame change / pan resample. `fieldBlobUrl` is the URL backing the
   // current MapLibre image source — revoked + replaced on each update.
-  // Sample density: 16×11 = 176 points over the ~70°×55° MX bbox.
-  // Original was 10×7=70 points; doubled the density to match zoom.earth's
-  // smoother field rendering — the bicubic interpolation no longer shows
-  // visible 'lobes' around discrete sample points. Open-Meteo's bulk
-  // endpoint accepts up to 5000 locations per request so 176 is well
-  // within limits and stays away from the 429 ceiling that bit us
-  // previously at 140 points (#121).
-  const FIELD_GRID_COLS = 16;
-  const FIELD_GRID_ROWS = 11;
+  // Sample density: 32×24 = 768 points over the ~70°×55° MX bbox
+  // (~2.2°×2.3° per cell — finer than zoom.earth's ICON 13km globally
+  // and matches their ECMWF 9km within MX). Open-Meteo bulk endpoint
+  // accepts up to 5000 locations so 768 is well within limits.
+  //
+  // History: 10×7 (70 pts, #121 rollback from 140), bumped to 16×11
+  // (176 pts, #169 for smoothness), now 32×24 (768 pts, plan 1.1A
+  // for zoom.earth-superior field).
+  const FIELD_GRID_COLS = 32;
+  const FIELD_GRID_ROWS = 24;
   /**
    * Fixed bounding box used by all field layers (temperature, humidity,
    * pressure) so the bilinear interpolation samples the SAME 70 points
@@ -858,11 +859,11 @@ export async function initInteractiveMap(
   // resolution would just look noisy. The per-frame cost (~12 ms on a
   // mid laptop) is still under the 16.6 ms frame budget; only paid on
   // hour-slider scrubs and the initial layer activation.
-  // Bumped from 600×420 to 800×560 to match the higher input grid
-  // density (16×11). Each input cell now expands into ~50×50 px which
-  // keeps the bicubic interpolation continuous without quantisation.
-  const FIELD_RASTER_W = 800;
-  const FIELD_RASTER_H = 560;
+  // Bumped to 1000×700 to keep ~30×30 px per input cell at 32×24 grid.
+  // Per-frame raster cost goes to ~30 ms on a mid laptop (still under
+  // the budget for one-time scrubs and layer activation).
+  const FIELD_RASTER_W = 1000;
+  const FIELD_RASTER_H = 700;
   let fieldGrid: FieldGrid | null = null;
   let fieldBounds: RasterBounds | null = null;
   let fieldBlobUrl: string | null = null;
