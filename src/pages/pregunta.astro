@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteBase } from '../utils/paths';
+
+const home = siteBase();
+---
+
+<BaseLayout
+  title="Pregunta — Clima México 🇲🇽"
+  description="Hazle una pregunta a Clima México en lenguaje natural. ¿Lloverá mañana en CDMX? ¿Calor en Hermosillo? Te llevamos a la respuesta."
+  lang="es"
+>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-2xl mx-auto px-4 py-12 space-y-6">
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          Pregunta 💬
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+          Escribe tu pregunta en lenguaje natural. Te llevamos a la página con
+          la respuesta. <strong>Todo es local</strong>: no enviamos tu pregunta
+          a ningún modelo de IA externo ni guardamos nada.
+        </p>
+      </header>
+
+      <form id="ask-form" class="space-y-3" autocomplete="off">
+        <label for="ask-q" class="sr-only">Tu pregunta</label>
+        <div class="flex gap-2">
+          <input
+            id="ask-q"
+            type="text"
+            inputmode="search"
+            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 shadow focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+            placeholder="¿Lloverá mañana en CDMX?"
+            aria-describedby="ask-help"
+            required
+          />
+          <button
+            type="submit"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >Preguntar</button>
+        </div>
+        <p id="ask-help" class="text-xs text-gray-500 dark:text-gray-400">
+          Reconoce intenciones (clima, lluvia, viento, temperatura, mapa, radar,
+          satélite, sismos, calidad del aire, playa) y unas 30 ciudades MX. Si
+          la ciudad no está en el diccionario, usamos el geocodificador
+          público de Open-Meteo.
+        </p>
+      </form>
+
+      <div id="ask-result" class="hidden rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200" aria-live="polite"></div>
+
+      <section class="rounded-lg border border-gray-200 bg-gray-50/70 px-4 py-3 text-xs text-gray-700 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
+        <p class="font-semibold mb-1">Ejemplos:</p>
+        <ul class="space-y-1 list-disc pl-5">
+          <li>¿Lloverá mañana en Guadalajara?</li>
+          <li>Temperatura en Monterrey</li>
+          <li>Mapa de radar</li>
+          <li>¿Hay sismos hoy?</li>
+          <li>Calidad del aire en CDMX</li>
+          <li>Pronóstico playa en Cancún</li>
+        </ul>
+      </section>
+
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        ¿Prefieres explorar manualmente? <a href={`${home}mapa/`} class="text-blue-600 hover:underline dark:text-blue-400">Abrir el mapa</a> · <a href={home} class="text-blue-600 hover:underline dark:text-blue-400">Volver al inicio</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    import { resolveQuestion } from '../lib/ask-router';
+    import { siteBase } from '../utils/paths';
+
+    const base = siteBase();
+    const form = document.getElementById('ask-form') as HTMLFormElement | null;
+    const q = document.getElementById('ask-q') as HTMLInputElement | null;
+    const out = document.getElementById('ask-result');
+    if (form && q && out) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const raw = q.value.trim();
+        if (!raw) return;
+        out.classList.remove('hidden');
+        out.textContent = 'Pensando…';
+        try {
+          const plan = await resolveQuestion(raw, window.fetch.bind(window));
+          const href = base + plan.path.replace(/^\//, '');
+          out.innerHTML =
+            `<p class="font-semibold mb-1">${plan.description}</p>` +
+            `<p>Redirigiendo a <a class="underline" href="${href}">${href.replace(location.origin, '')}</a> en 1 s…</p>`;
+          window.setTimeout(() => {
+            location.href = href;
+          }, 1000);
+        } catch {
+          out.textContent =
+            'No pude resolver tu pregunta. Prueba con algo más simple, o abre el mapa.';
+        }
+      });
+    }
+  </script>
+</BaseLayout>
