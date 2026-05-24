@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sun, 24 May 2026 16:40:42 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 May 2026 17:39:45 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -41,7 +41,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Temperaturas máximas de 40 a 45 °C: Sinaloa (norte y centro), Nayarit (norte), Jalisco (sur y suroeste), Colima (este), Michoacán (centro y oeste), Guerrero (noroeste), Oaxaca (sureste), Chiapas (oeste), Campeche (norte) y Yucatán (oeste).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa (norte y centro), Nayarit (norte), Jalisco (sur y suroeste), Colima (este), Michoacán (centro y oeste), Guerrero (noroeste), Oaxaca (sureste), Chiapas (oeste), Campeche (norte) y Yucatán (oeste).]]></description>
-      <pubDate>Sun, 24 May 2026 10:40:33 -0600</pubDate>
+      <pubDate>Sun, 24 May 2026 11:39:34 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-24-1e24</guid>
       <category>Alerta</category>
     </item>
