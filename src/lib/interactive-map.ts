@@ -1527,6 +1527,64 @@ export async function initInteractiveMap(
   const NIGHT_LIGHTS_SOURCE = 'wx-night-lights-src';
   const NIGHT_LIGHTS_LAYER = 'wx-night-lights-layer';
 
+  // ----------------------------------------------------------------
+  // Night line overlay (zoom.earth "Límite nocturno O") — just the
+  // day/night terminator drawn as a thin line, independent of which
+  // base layer is active. Reuses terminatorPolygon() from mapsun.ts;
+  // converts the polygon's outer ring to a LineString.
+  // ----------------------------------------------------------------
+  const NIGHT_LINE_SOURCE = 'wx-night-line-src';
+  const NIGHT_LINE_LAYER = 'wx-night-line-layer';
+  let nightLineTimer = 0;
+
+  function nightLineFeatureCollection(): FeatureCollection {
+    const poly = terminatorPolygon(Date.now(), 180, 90);
+    const rings = (poly.coordinates ?? []) as [number, number][][];
+    const features = rings.map((ring) => ({
+      type: 'Feature' as const,
+      properties: {},
+      geometry: { type: 'LineString' as const, coordinates: ring },
+    }));
+    return { type: 'FeatureCollection', features };
+  }
+
+  function setNightLineEnabled(on: boolean): void {
+    if (!on) {
+      if (map.getLayer(NIGHT_LINE_LAYER)) map.removeLayer(NIGHT_LINE_LAYER);
+      if (map.getSource(NIGHT_LINE_SOURCE))
+        map.removeSource(NIGHT_LINE_SOURCE);
+      if (nightLineTimer) {
+        window.clearInterval(nightLineTimer);
+        nightLineTimer = 0;
+      }
+      return;
+    }
+    if (map.getSource(NIGHT_LINE_SOURCE)) return;
+    map.addSource(NIGHT_LINE_SOURCE, {
+      type: 'geojson',
+      data: nightLineFeatureCollection(),
+    });
+    map.addLayer({
+      id: NIGHT_LINE_LAYER,
+      type: 'line',
+      source: NIGHT_LINE_SOURCE,
+      paint: {
+        'line-color': '#fde68a',
+        'line-width': 1.6,
+        'line-opacity': 0.55,
+        'line-dasharray': [3, 3],
+      },
+    });
+    // Earth rotates 15°/hour; refresh the terminator every 5 minutes so
+    // the line keeps pace without flickering.
+    nightLineTimer = window.setInterval(() => {
+      const src = map.getSource(NIGHT_LINE_SOURCE) as
+        | maplibregl.GeoJSONSource
+        | undefined;
+      if (src) src.setData(nightLineFeatureCollection());
+    }, 5 * 60 * 1000);
+  }
+
   function setNightLightsEnabled(on: boolean): void {
     if (!on) {
       if (map.getLayer(NIGHT_LIGHTS_LAYER)) map.removeLayer(NIGHT_LIGHTS_LAYER);
@@ -2526,7 +2584,7 @@ export async function initInteractiveMap(
   // refreshOverlayCheckboxes().
   // ----------------------------------------------------------------
   interface OverlayDef {
-    id: 'graticule' | 'tropical' | 'nightLights';
+    id: 'graticule' | 'tropical' | 'nightLights' | 'nightLine';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -2563,6 +2621,13 @@ export async function initInteractiveMap(
       shortcut: 'N',
       isEnabled: () => !!map.getLayer(NIGHT_LIGHTS_LAYER),
       setEnabled: (on) => setNightLightsEnabled(on),
+    },
+    {
+      id: 'nightLine',
+      label: 'Límite nocturno',
+      shortcut: 'O',
+      isEnabled: () => !!map.getLayer(NIGHT_LINE_LAYER),
+      setEnabled: (on) => setNightLineEnabled(on),
     },
   ];
 
