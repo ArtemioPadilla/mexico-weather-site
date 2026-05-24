@@ -322,9 +322,23 @@ const tr = feedback[lang];
     var badge = document.getElementById('secid-report-badge');
     if (!badge) return;
     var diag = W.__secid_diag;
-    var windowErrors = diag.errors ? diag.errors.length : 0;
-    var consoleErrors = diag.console ? diag.console.filter(function(c){ return c.level === 'error'; }).length : 0;
-    var count = windowErrors + consoleErrors;
+    // Filter out transient network errors (RainViewer/NASA GIBS/Open-Meteo
+    // tile or grid fetches that retry/recover gracefully). These produce
+    // "Failed to fetch" / "NetworkError" entries that the user can't act
+    // on; counting them as detected errors is just noise and conflicts
+    // with the zoom.earth-style polished UX we aim for.
+    function isTransientNetworkError(msg) {
+      if (!msg) return false;
+      var m = String(msg);
+      return /Failed to fetch|NetworkError|net::ERR_|ERR_NETWORK|Load failed/i.test(m);
+    }
+    var realErrors = (diag.errors || []).filter(function(e){
+      return !isTransientNetworkError(e.msg);
+    });
+    var consoleErrorEntries = (diag.console || []).filter(function(c){
+      return c.level === 'error' && !isTransientNetworkError(c.msg);
+    });
+    var count = realErrors.length + consoleErrorEntries.length;
     var fab = document.getElementById('secid-report-btn');
     // Keep the button's accessible name in sync with the error count so AT
     // announces it. The badge itself is inside the button but the button's
