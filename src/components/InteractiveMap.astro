@@ -193,7 +193,10 @@ const cfg = JSON.stringify({
           class="w-full accent-blue-600"
         />
       </div>
-      <ul id={ids.legend} class="hidden sm:block space-y-1 pt-1 text-xs text-gray-700 dark:text-gray-300"></ul>
+      {/* Legend moved out of the rail (plan P0.2) — see floating bar
+          below, anchored to the map's bottom-left. We keep a hidden
+          placeholder here to preserve any legacy querySelector that
+          might still reference #legend inside the rail. */}
 
       {/*
         Snapshot compare — plan 3.3. Capture the current map view as a
@@ -315,6 +318,23 @@ const cfg = JSON.stringify({
       class="pointer-events-none absolute bottom-2 left-2 z-10 rounded bg-gray-900/70 px-2 py-1 text-xs font-mono tabular-nums text-gray-200 backdrop-blur-sm hidden sm:inline-block"
       aria-hidden="true"
     ></div>
+  )}
+
+  {/*
+    Floating legend bar (plan P0.2) — zoom.earth-style horizontal
+    color scale anchored to the bottom-left of the map area, above the
+    cursor coords badge. Stays visible even when the layer rail is
+    collapsed. Hidden on mobile to keep the corner uncluttered.
+  */}
+  {features.layerRail && (
+    <div
+      id="legend-bar"
+      class="pointer-events-none absolute bottom-10 left-2 z-10 hidden sm:flex items-center gap-2 rounded bg-white/95 px-3 py-1.5 text-xs text-gray-700 shadow backdrop-blur-sm dark:bg-gray-900/95 dark:text-gray-200"
+      aria-hidden="true"
+    >
+      <span id="legend-unit" class="font-semibold text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400"></span>
+      <ul id={ids.legend} class="flex items-center gap-2"></ul>
+    </div>
   )}
 
   {/*

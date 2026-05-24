@@ -3147,10 +3147,13 @@ export async function initInteractiveMap(
     kind: 'radar' | 'temperature' | 'humidity' | 'pressure' | 'wind' | null,
   ): void {
     const el = opts.els.legend;
+    const bar = document.getElementById('legend-bar');
+    const unitEl = document.getElementById('legend-unit');
     if (!el) return;
     if (!kind) {
-      el.classList.add('hidden');
       el.innerHTML = '';
+      if (bar) bar.classList.add('hidden');
+      if (unitEl) unitEl.textContent = '';
       return;
     }
     const stops: LegendStop[] =
@@ -3169,15 +3172,27 @@ export async function initInteractiveMap(
                   label: t[s.labelKey as keyof typeof t] as string,
                   color: s.color,
                 }));
+    // Horizontal stop layout (plan P0.2): a 28×12 swatch with the
+    // label below, similar to zoom.earth's bottom-left scale.
     el.innerHTML = stops
       .map(
         (s) =>
-          `<li class="flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm" style="background:${esc(
+          `<li class="flex flex-col items-center gap-0.5 leading-none"><span class="inline-block h-2.5 w-7" style="background:${esc(
             s.color,
-          )}"></span>${esc(s.label)}</li>`,
+          )}"></span><span class="text-[10px] tabular-nums">${esc(s.label)}</span></li>`,
       )
       .join('');
-    el.classList.remove('hidden');
+    // Unit label varies per layer kind. zoom.earth shows °C for the
+    // temperature scale; we mirror that for each metric.
+    const unit: Record<typeof kind & string, string> = {
+      radar: 'mm/h',
+      temperature: '°C',
+      humidity: '%',
+      pressure: 'hPa',
+      wind: 'km/h',
+    } as Record<string, string>;
+    if (unitEl) unitEl.textContent = unit[kind] ?? '';
+    if (bar) bar.classList.remove('hidden');
   }
 
   function refreshLayerButtons(): void {
