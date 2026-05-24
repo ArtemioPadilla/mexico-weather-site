@@ -233,6 +233,25 @@ export function fillFieldImageData(
     colorCache.set(key, rgb);
     return rgb;
   }
+  // Soft alpha fade near the raster edges: when the field is rendered on
+  // a FIXED bounding box (so values stay stable across zoom levels), the
+  // viewport at low zoom shows the raster's rectangular boundary as a
+  // hard edge against the basemap. Fading the outermost ~12% of pixels
+  // to fully transparent makes the field blend smoothly with the
+  // basemap beyond, eliminating the rectangle look.
+  const FADE_FRACTION = 0.12;
+  const fadePxW = Math.max(2, Math.floor(W * FADE_FRACTION));
+  const fadePxH = Math.max(2, Math.floor(H * FADE_FRACTION));
+  function edgeFalloff(px: number, py: number): number {
+    const dx = Math.min(px, W - 1 - px);
+    const dy = Math.min(py, H - 1 - py);
+    const fx = dx >= fadePxW ? 1 : dx / fadePxW;
+    const fy = dy >= fadePxH ? 1 : dy / fadePxH;
+    // Smoothstep both axes for a perceptually nicer fade than linear.
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    return sx * sy;
+  }
   for (let py = 0; py < H; py++) {
     // Image y goes top→bottom (north→south); flip to grid lat (south→north).
     const lat = bounds.north - (py / (H - 1)) * dLat;
@@ -248,7 +267,7 @@ export function fillFieldImageData(
       img.data[i] = r;
       img.data[i + 1] = g;
       img.data[i + 2] = b;
-      img.data[i + 3] = alpha;
+      img.data[i + 3] = Math.round(alpha * edgeFalloff(px, py));
     }
   }
 }

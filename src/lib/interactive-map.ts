@@ -802,10 +802,15 @@ export async function initInteractiveMap(
    * meaningful coverage in the visible viewport.
    */
   const MX_FIELD_BOUNDS: RasterBounds = {
-    west: -120,
-    south: 5,
-    east: -78,
-    north: 35,
+    // Wider bbox so the alpha fade at the raster edges (see mapraster.ts
+    // edgeFalloff) lands BEYOND the typical /mapa viewport at z=4..6.
+    // Otherwise the user sees the hard rectangle of the field source.
+    // Coverage: continental MX + USA west/south + Caribbean + most of
+    // Central America.
+    west: -130,
+    south: -5,
+    east: -60,
+    north: 50,
   };
   // Offscreen canvas size for the rendered raster. 600×420 is the
   // sweet spot for the bicubic upsample from the 10×7 input grid: each
