@@ -2805,6 +2805,14 @@ export async function initInteractiveMap(
     } catch {
       storms = [];
     }
+    // Plan P2.3: when NHC reports zero active storms (typical Dec-May),
+    // auto-disable the Sistemas tropicales overlay. Before this the
+    // checkbox stayed pre-checked aún sin storms, confusing users who
+    // expected a visible artifact.
+    if (storms.length === 0) {
+      tropicalEnabled = false;
+      refreshOverlayCheckboxes();
+    }
     const fc = stormsFeatureCollection(storms);
     const existing = map.getSource(STORMS_SOURCE) as
       | maplibregl.GeoJSONSource
