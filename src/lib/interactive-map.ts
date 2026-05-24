@@ -116,6 +116,7 @@ export interface InteractiveMapFeatures {
 // Re-imported here so existing call sites in this monolith keep working
 // unchanged.
 import { cachedFetch, formatLatLngDM } from './map/utils';
+import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
   els: InteractiveMapElements;
@@ -1292,6 +1293,71 @@ export async function initInteractiveMap(
       map.removeLayer(FIELD_LAYER + '-halo');
     if (map.getSource(FIELD_SOURCE)) map.removeSource(FIELD_SOURCE);
     revokeFieldBlob();
+    removeIsobars();
+  }
+
+  // ----------------------------------------------------------------
+  // Isobars (Isolíneas de presión) — d3-contour iso-lines over the
+  // pressure field. zoom.earth shows these as thin white contour lines
+  // labeled in hPa. We render the contours only; labels TBD.
+  // ----------------------------------------------------------------
+  const ISOBAR_SOURCE = 'wx-isobars-src';
+  const ISOBAR_LAYER = 'wx-isobars-line';
+
+  function removeIsobars(): void {
+    if (map.getLayer(ISOBAR_LAYER)) map.removeLayer(ISOBAR_LAYER);
+    if (map.getSource(ISOBAR_SOURCE)) map.removeSource(ISOBAR_SOURCE);
+  }
+
+  function refreshIsobars(): void {
+    if (activeLayer !== 'pressure' || !fieldGrid || !fieldBounds) {
+      removeIsobars();
+      return;
+    }
+    // Pick the values at the active hour for every grid point, in
+    // row-major order matching viewportGrid (south→north, west→east).
+    const values: number[] = [];
+    for (const p of fieldGrid.points) {
+      const v = p.values[frameIndex];
+      values.push(typeof v === 'number' ? v : NaN);
+    }
+    // d3-contour can't handle NaN, replace with field mean (rare).
+    const finite = values.filter((v) => Number.isFinite(v));
+    if (finite.length < 4) {
+      removeIsobars();
+      return;
+    }
+    const mean = finite.reduce((a, b) => a + b, 0) / finite.length;
+    const safe = values.map((v) => (Number.isFinite(v) ? v : mean));
+
+    const fc = computeIsobars({
+      values: safe,
+      cols: FIELD_GRID_COLS,
+      rows: FIELD_GRID_ROWS,
+      south: fieldBounds.south,
+      west: fieldBounds.west,
+      north: fieldBounds.north,
+      east: fieldBounds.east,
+    });
+
+    const existing = map.getSource(ISOBAR_SOURCE) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (existing) {
+      existing.setData(fc);
+      return;
+    }
+    map.addSource(ISOBAR_SOURCE, { type: 'geojson', data: fc });
+    map.addLayer({
+      id: ISOBAR_LAYER,
+      type: 'line',
+      source: ISOBAR_SOURCE,
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': 1.0,
+        'line-opacity': 0.55,
+      },
+    });
   }
 
   /**
@@ -1308,6 +1374,10 @@ export async function initInteractiveMap(
   async function renderFieldFrame(hourIndex: number): Promise<void> {
     const cfg = FIELD_CONFIGS[activeLayer];
     if (!fieldGrid || !fieldBounds || !cfg) return;
+    // Isobars track the same field/frame as the pressure raster; refresh
+    // them whenever the underlying grid or frame changes. No-op for other
+    // field layers (early-returns inside refreshIsobars).
+    refreshIsobars();
     const render = await renderFieldRaster(
       fieldGrid,
       FIELD_GRID_ROWS,
