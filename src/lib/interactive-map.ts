@@ -41,9 +41,11 @@ import {
   tempColor,
   humidityColor,
   pressureColor,
-  TEMP_LEGEND,
   HUMIDITY_LEGEND,
   PRESSURE_LEGEND,
+  getTempLegend,
+  setColorBlindMode,
+  getColorBlindMode,
   type FieldGrid,
   type LegendStop,
 } from './mapfields';
@@ -2515,7 +2517,7 @@ export async function initInteractiveMap(
             color: s.color,
           }))
         : kind === 'temperature'
-          ? TEMP_LEGEND
+          ? getTempLegend()
           : kind === 'humidity'
             ? HUMIDITY_LEGEND
             : kind === 'pressure'
@@ -3440,7 +3442,8 @@ export async function initInteractiveMap(
       | 'radarCoverage'
       | 'clouds'
       | 'quakes'
-      | 'volcanoes';
+      | 'volcanoes'
+      | 'colorBlind';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;
@@ -3534,6 +3537,19 @@ export async function initInteractiveMap(
       shortcut: 'J',
       isEnabled: () => !!map.getLayer(VOLCANOES_CIRCLE_LAYER),
       setEnabled: (on) => setVolcanoesEnabled(on),
+    },
+    {
+      id: 'colorBlind',
+      label: 'Paleta accesible',
+      shortcut: 'B',
+      isEnabled: () => getColorBlindMode(),
+      setEnabled: (on) => {
+        setColorBlindMode(on);
+        // Re-render temperature: legend swap + raster recolour.
+        if (activeLayer === 'temperature') {
+          void setActiveLayer('temperature');
+        }
+      },
     },
   ];
 

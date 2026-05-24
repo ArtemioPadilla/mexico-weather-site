@@ -101,17 +101,45 @@ export function fieldFrameIndex(times: string[], iso: string | null, nowMs: numb
   return best;
 }
 
-/** Temperature (°C) → hex colour on a clamped cold→warm ramp. */
+/** Temperature (°C) → hex colour on a clamped cold→warm ramp.
+ *
+ *  Default palette is the perceptually-uniform RdYlBu-inverted set used
+ *  by zoom.earth. When `colorBlindMode` is enabled (see setColorBlindMode)
+ *  the ramp swaps to a viridis-derived sequence that's distinguishable
+ *  for the most common forms of colour blindness (deutan/protan/tritan).
+ */
+let colorBlindMode = false;
+export function setColorBlindMode(on: boolean): void {
+  colorBlindMode = on;
+}
+export function getColorBlindMode(): boolean {
+  return colorBlindMode;
+}
+
+const TEMP_STOPS_DEFAULT: [number, string][] = [
+  [-10, '#3b4cc0'],
+  [0, '#5b8ff9'],
+  [10, '#7dd1c8'],
+  [18, '#7ad151'],
+  [25, '#f9d423'],
+  [32, '#f08a24'],
+  [45, '#d7191c'],
+];
+// viridis-style ramp (yellow → green → teal → blue → purple), reversed
+// so warmer temps map to brighter ends. Distinguishable across the three
+// major colour-blindness types.
+const TEMP_STOPS_CBSAFE: [number, string][] = [
+  [-10, '#440154'],
+  [0, '#3b528b'],
+  [10, '#21908d'],
+  [18, '#5dc863'],
+  [25, '#a8db34'],
+  [32, '#fde725'],
+  [45, '#fff5b1'],
+];
+
 export function tempColor(c: number): string {
-  const stops: [number, string][] = [
-    [-10, '#3b4cc0'],
-    [0, '#5b8ff9'],
-    [10, '#7dd1c8'],
-    [18, '#7ad151'],
-    [25, '#f9d423'],
-    [32, '#f08a24'],
-    [45, '#d7191c'],
-  ];
+  const stops = colorBlindMode ? TEMP_STOPS_CBSAFE : TEMP_STOPS_DEFAULT;
   if (c <= stops[0][0]) return stops[0][1];
   if (c >= stops[stops.length - 1][0]) return stops[stops.length - 1][1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -120,7 +148,7 @@ export function tempColor(c: number): string {
   return stops[stops.length - 1][1];
 }
 
-export const TEMP_LEGEND: LegendStop[] = [
+const TEMP_LEGEND_DEFAULT: LegendStop[] = [
   { label: '≤0°', color: '#5b8ff9' },
   { label: '10°', color: '#7dd1c8' },
   { label: '18°', color: '#7ad151' },
@@ -128,6 +156,23 @@ export const TEMP_LEGEND: LegendStop[] = [
   { label: '32°', color: '#f08a24' },
   { label: '≥45°', color: '#d7191c' },
 ];
+const TEMP_LEGEND_CBSAFE: LegendStop[] = [
+  { label: '≤0°', color: '#3b528b' },
+  { label: '10°', color: '#21908d' },
+  { label: '18°', color: '#5dc863' },
+  { label: '25°', color: '#a8db34' },
+  { label: '32°', color: '#fde725' },
+  { label: '≥45°', color: '#fff5b1' },
+];
+
+/** Returns the current legend, accessor-style so the caller picks the
+ *  ramp matching the colorBlindMode toggle when it renders. */
+export function getTempLegend(): LegendStop[] {
+  return colorBlindMode ? TEMP_LEGEND_CBSAFE : TEMP_LEGEND_DEFAULT;
+}
+
+/** Exposed for backwards compat; new code should call getTempLegend(). */
+export const TEMP_LEGEND: LegendStop[] = TEMP_LEGEND_DEFAULT;
 
 /** Relative humidity (%) → hex colour on a clamped dry→wet ramp. */
 export function humidityColor(h: number): string {
