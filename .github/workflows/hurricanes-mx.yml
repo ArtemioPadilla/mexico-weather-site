@@ -1,0 +1,54 @@
+name: IBTrACS Hurricanes MX
+
+# Pre-computes a static archive of MX-impacting tropical cyclones from
+# NOAA IBTrACS (the international best-track dataset). Output:
+# public/data/hurricanes-mx.json. Browser fetches the static asset
+# instead of computing per-page — no CORS, no API key.
+
+on:
+  schedule:
+    # Once a month at 04:30 UTC on the 5th. IBTrACS updates approximately
+    # at the end of each hurricane season (Nov/Dec) so monthly is plenty.
+    - cron: '30 4 5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: hurricanes-mx
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh hurricanes archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Build hurricanes-mx.json from IBTrACS
+        run: python3 scripts/build-hurricanes-mx.py
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git diff --quiet -- public/data/hurricanes-mx.json || (
+            git add public/data/hurricanes-mx.json &&
+            git commit -m 'chore: refresh IBTrACS hurricanes archive' &&
+            git push &&
+            echo 'committed=true' >> "$GITHUB_OUTPUT"
+          )
+
+      - name: Trigger CD deploy
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run cd.yml

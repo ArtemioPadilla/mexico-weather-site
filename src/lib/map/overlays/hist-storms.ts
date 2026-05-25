@@ -83,10 +83,156 @@ export interface HistStormsOverlay {
   setEnabled: (on: boolean) => void;
 }
 
+/** GeoJSON variant shipped by the static archive (cached by
+ *  `.github/workflows/hurricanes-mx.yml`). Each feature is a
+ *  LineString carrying name/year/maxCat properties. */
+interface ArchiveFeature {
+  type: 'Feature';
+  properties: {
+    name: string;
+    year: number;
+    maxCat?: number;
+    cat?: number;
+    label?: string;
+  };
+  geometry: { type: 'LineString'; coordinates: [number, number][] };
+}
+
+interface ArchiveFeatureCollection {
+  type: 'FeatureCollection';
+  features: ArchiveFeature[];
+  metadata?: { source?: string; count?: number };
+}
+
+export interface HistStormsOverlayDeps {
+  /** Optional fetcher + base path so the overlay can pull the
+   *  static archive at /data/hurricanes-mx.json. When omitted, the
+   *  factory falls back to the inline HIST_STORMS_MX list (3 storms). */
+  fetch?: typeof fetch;
+  base?: string;
+}
+
 export function createHistStormsOverlay(
   map: maplibregl.Map,
-  storms: HistStorm[] = HIST_STORMS_MX,
+  depsOrStorms: HistStormsOverlayDeps | HistStorm[] = {},
 ): HistStormsOverlay {
+  // Legacy signature: caller passed a HistStorm[] array directly.
+  const deps: HistStormsOverlayDeps = Array.isArray(depsOrStorms)
+    ? {}
+    : depsOrStorms;
+  const inlineStorms: HistStorm[] = Array.isArray(depsOrStorms)
+    ? depsOrStorms
+    : HIST_STORMS_MX;
+
+  let archivePromise: Promise<ArchiveFeatureCollection | null> | null = null;
+  function loadArchive(): Promise<ArchiveFeatureCollection | null> {
+    if (archivePromise) return archivePromise;
+    if (!deps.fetch || !deps.base) return Promise.resolve(null);
+    archivePromise = deps
+      .fetch(`${deps.base}data/hurricanes-mx.json`)
+      .then((r) =>
+        r.ok ? (r.json() as Promise<ArchiveFeatureCollection>) : null,
+      )
+      .catch(() => null);
+    return archivePromise;
+  }
+
+  function inlineFeatureCollection(): FeatureCollection {
+    const features: Feature[] = [];
+    for (const s of inlineStorms) {
+      features.push({
+        type: 'Feature',
+        properties: {
+          name: s.name,
+          year: s.year,
+          cat: s.cat,
+          color: categoryColor(s.cat),
+          label: `${s.name} ${s.year} · Cat ${s.cat}`,
+        },
+        geometry: { type: 'LineString', coordinates: s.coords },
+      });
+      features.push({
+        type: 'Feature',
+        properties: {
+          label: `${s.name} ${s.year}`,
+          color: categoryColor(s.cat),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: s.coords[s.coords.length - 1],
+        },
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  }
+
+  function archiveFeatureCollection(
+    archive: ArchiveFeatureCollection,
+  ): FeatureCollection {
+    const features: Feature[] = [];
+    for (const a of archive.features) {
+      const cat = a.properties.maxCat ?? a.properties.cat ?? 0;
+      const label =
+        a.properties.label ?? `${a.properties.name} ${a.properties.year}`;
+      const color = categoryColor(cat);
+      features.push({
+        type: 'Feature',
+        properties: {
+          name: a.properties.name,
+          year: a.properties.year,
+          cat,
+          color,
+          label: `${label} · Cat ${cat}`,
+        },
+        geometry: a.geometry,
+      });
+      const last =
+        a.geometry.coordinates[a.geometry.coordinates.length - 1];
+      if (last) {
+        features.push({
+          type: 'Feature',
+          properties: { label, color },
+          geometry: { type: 'Point', coordinates: last },
+        });
+      }
+    }
+    return { type: 'FeatureCollection', features };
+  }
+
+  function addLayers(data: FeatureCollection): void {
+    map.addSource(SOURCE_ID, { type: 'geojson', data });
+    map.addLayer({
+      id: LINE_LAYER_ID,
+      type: 'line',
+      source: SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'LineString'],
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': 3,
+        'line-opacity': 0.85,
+      },
+    });
+    map.addLayer({
+      id: LABEL_LAYER_ID,
+      type: 'symbol',
+      source: SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 11,
+        'text-offset': [0, 1.0],
+        'text-anchor': 'top',
+        'text-allow-overlap': false,
+        'text-optional': true,
+      },
+      paint: {
+        'text-color': ['get', 'color'],
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.2,
+      },
+    });
+  }
+
   return {
     isEnabled: (): boolean => !!map.getLayer(LINE_LAYER_ID),
     setEnabled: (on: boolean): void => {
@@ -97,64 +243,21 @@ export function createHistStormsOverlay(
         return;
       }
       if (map.getSource(SOURCE_ID)) return;
-      const features: Feature[] = [];
-      for (const s of storms) {
-        features.push({
-          type: 'Feature',
-          properties: {
-            name: s.name,
-            year: s.year,
-            cat: s.cat,
-            color: categoryColor(s.cat),
-            label: `${s.name} ${s.year} · Cat ${s.cat}`,
-          },
-          geometry: { type: 'LineString', coordinates: s.coords },
-        });
-        // Label feature anchored to the endpoint of the track.
-        features.push({
-          type: 'Feature',
-          properties: {
-            label: `${s.name} ${s.year}`,
-            color: categoryColor(s.cat),
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: s.coords[s.coords.length - 1],
-          },
-        });
+      // Try the static archive first; fall back to the inline list.
+      void loadArchive().then((archive) => {
+        if (map.getSource(SOURCE_ID)) return;
+        const data = archive
+          ? archiveFeatureCollection(archive)
+          : inlineFeatureCollection();
+        addLayers(data);
+      });
+      // Race: also add inline immediately so the layer appears in <1
+      // frame even if the static archive is still in flight. The
+      // archive resolver above guards against double-add via
+      // map.getSource(SOURCE_ID) check.
+      if (!deps.fetch || !deps.base) {
+        addLayers(inlineFeatureCollection());
       }
-      const data: FeatureCollection = { type: 'FeatureCollection', features };
-      map.addSource(SOURCE_ID, { type: 'geojson', data });
-      map.addLayer({
-        id: LINE_LAYER_ID,
-        type: 'line',
-        source: SOURCE_ID,
-        filter: ['==', ['geometry-type'], 'LineString'],
-        paint: {
-          'line-color': ['get', 'color'],
-          'line-width': 3,
-          'line-opacity': 0.85,
-        },
-      });
-      map.addLayer({
-        id: LABEL_LAYER_ID,
-        type: 'symbol',
-        source: SOURCE_ID,
-        filter: ['==', ['geometry-type'], 'Point'],
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-size': 11,
-          'text-offset': [0, 1.0],
-          'text-anchor': 'top',
-          'text-allow-overlap': false,
-          'text-optional': true,
-        },
-        paint: {
-          'text-color': ['get', 'color'],
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1.2,
-        },
-      });
     },
   };
 }

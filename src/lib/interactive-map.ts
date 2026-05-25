@@ -1105,7 +1105,10 @@ export async function initInteractiveMap(
   // the implementation (data list + add/remove logic) lives in the
   // module, not here.
   const lakesOverlay = createLakesOverlay(map);
-  const histStormsOverlay = createHistStormsOverlay(map);
+  const histStormsOverlay = createHistStormsOverlay(map, {
+    fetch: cachedFetch,
+    base,
+  });
   const webcamsOverlay = createWebcamsOverlay(map);
 
   // Active volcanoes overlay — extracted to src/lib/map/overlays/volcanoes.ts
