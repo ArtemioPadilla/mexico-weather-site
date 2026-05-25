@@ -150,6 +150,7 @@ import { createBordersOverlay } from './map/overlays/borders';
 import { createRadarCoverageOverlay } from './map/overlays/radar-coverage';
 import { createNightLineOverlay } from './map/overlays/night-line';
 import { createNightLightsOverlay } from './map/overlays/night-lights';
+import { createTropicalStormsOverlay } from './map/overlays/tropical-storms';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -1853,104 +1854,21 @@ export async function initInteractiveMap(
   }
 
 
-  // ----------------------------------------------------------------
-  // Tropical storms overlay (zoom.earth "Sistemas tropicales T") —
-  // active NHC Atlantic + East Pacific systems rendered as circular
-  // glyphs sized by classification. Fetched once at mount; refreshes
-  // on activation. During off-season (Dec-May) the data is empty.
-  // ----------------------------------------------------------------
-  const STORMS_SOURCE = 'wx-storms-src';
-  const STORMS_CIRCLE_LAYER = 'wx-storms-circle';
-  const STORMS_LABEL_LAYER = 'wx-storms-label';
-
-  function stormsFeatureCollection(storms: readonly NhcStorm[]): FeatureCollection {
-    return {
-      type: 'FeatureCollection',
-      features: storms.map((s) => ({
-        type: 'Feature',
-        properties: {
-          name: s.name,
-          classification: s.classification,
-          intensityKt: s.intensityKt ?? 0,
-          label: `${s.classification} ${s.name}`,
-        },
-        geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
-      })),
-    };
-  }
-
-  async function refreshTropicalStorms(): Promise<void> {
-    let storms: readonly NhcStorm[];
-    try {
-      storms = await nhcSource.fetch();
-    } catch {
-      storms = [];
-    }
-    // Plan P2.3: when NHC reports zero active storms (typical Dec-May),
-    // auto-disable the Sistemas tropicales overlay. Before this the
-    // checkbox stayed pre-checked aún sin storms, confusing users who
-    // expected a visible artifact.
-    if (storms.length === 0) {
+  // Tropical storms overlay — extracted to src/lib/map/overlays/tropical-storms.ts.
+  // The factory takes the NHC source and an onEmpty callback so it
+  // can auto-disable the checkbox when there are no active systems.
+  const tropicalStormsOverlay = createTropicalStormsOverlay(
+    map,
+    nhcSource,
+    () => {
       tropicalEnabled = false;
       refreshOverlayCheckboxes();
-    }
-    const fc = stormsFeatureCollection(storms);
-    const existing = map.getSource(STORMS_SOURCE) as
-      | maplibregl.GeoJSONSource
-      | undefined;
-    if (existing) {
-      existing.setData(fc);
-      return;
-    }
-    map.addSource(STORMS_SOURCE, { type: 'geojson', data: fc });
-    map.addLayer({
-      id: STORMS_CIRCLE_LAYER,
-      type: 'circle',
-      source: STORMS_SOURCE,
-      paint: {
-        // Hurricane categories shown in red; tropical storm in orange;
-        // depression in yellow. Default fallback orange.
-        'circle-color': [
-          'match',
-          ['get', 'classification'],
-          'HU', '#dc2626',
-          'MH', '#b91c1c',
-          'TS', '#f97316',
-          'TD', '#eab308',
-          '#f97316',
-        ],
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'intensityKt'],
-          0, 6,
-          50, 9,
-          100, 13,
-          150, 18,
-        ],
-        'circle-opacity': 0.85,
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 1.5,
-      },
-    });
-    map.addLayer({
-      id: STORMS_LABEL_LAYER,
-      type: 'symbol',
-      source: STORMS_SOURCE,
-      layout: {
-        'text-field': ['get', 'label'],
-        'text-size': 11,
-        'text-offset': [0, 1.6],
-        'text-anchor': 'top',
-        'text-font': ['Open Sans Semibold'],
-      },
-      paint: {
-        'text-color': '#ffffff',
-        'text-halo-color': 'rgba(0,0,0,0.8)',
-        'text-halo-width': 1.4,
-      },
-    });
-  }
+    },
+  );
+  // Backwards-compat alias used by callers below (refreshTropicalStorms
+  // is invoked from the map's 'load' handler).
+  const refreshTropicalStorms = (): Promise<void> =>
+    tropicalStormsOverlay.refresh();
 
   function refreshIsobars(): void {
     if (activeLayer !== 'pressure' || !fieldGrid || !fieldBounds) {
@@ -3266,13 +3184,7 @@ export async function initInteractiveMap(
       isEnabled: () => tropicalEnabled,
       setEnabled: (on) => {
         tropicalEnabled = on;
-        const set = (vis: 'visible' | 'none') => {
-          if (map.getLayer(STORMS_CIRCLE_LAYER))
-            map.setLayoutProperty(STORMS_CIRCLE_LAYER, 'visibility', vis);
-          if (map.getLayer(STORMS_LABEL_LAYER))
-            map.setLayoutProperty(STORMS_LABEL_LAYER, 'visibility', vis);
-        };
-        set(on ? 'visible' : 'none');
+        tropicalStormsOverlay.setEnabled(on);
       },
     },
     {
