@@ -3195,14 +3195,36 @@ export async function initInteractiveMap(
         maxzoom: gibsLayer.maxZoom,
         attribution: ATTRIBUTION_GIBS,
       });
+      // GIBS GOES products max at z6 (truecolor at z9); at city zoom
+      // the overzoom is 4-16× which makes the satellite raster
+      // essentially indistinguishable from the basemap. Surface that
+      // limit so the user understands why they're not seeing detail.
+      const currentZ = map.getZoom();
+      if (currentZ > gibsLayer.maxZoom + 1) {
+        showMsg(
+          `Satélite limitado a zoom z${gibsLayer.maxZoom} (NASA GIBS). Acercando más solo aparece la mancha del basemap.`,
+        );
+        window.setTimeout(hideMsg, 5000);
+      }
     } else {
-      // Radar still comes from RainViewer (multi-source, includes Mexico).
+      // Radar from RainViewer.
+      //
+      // The 256-pixel tile pyramid only reaches z≈8 — at z9+ the
+      // server returns a "Zoom Level Not Supported" placeholder PNG
+      // that ends up rendered all over the map (user-reported bug,
+      // visible at city zoom across MX). The 512-pixel pyramid covers
+      // up through z10, so we ask for size=512 and tell MapLibre the
+      // tileSize is 512 — equivalent visual density to a native 256
+      // tile at z+1 but with the higher z available.
+      //
+      // maxzoom: 10 retained — at zoom 11+ MapLibre auto-overzooms
+      // from the z10 tile, slightly blurry but a valid raster.
       if (!rvData) return;
-      const tileUrl = rainviewerTileUrl(rvData.host, frame);
+      const tileUrl = rainviewerTileUrl(rvData.host, frame, { size: 512 });
       map.addSource(RV_SOURCE, {
         type: 'raster',
         tiles: [tileUrl],
-        tileSize: 256,
+        tileSize: 512,
         maxzoom: 10,
         attribution: '© RainViewer',
       });
