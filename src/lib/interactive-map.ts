@@ -146,6 +146,10 @@ import { createAqiOverlay } from './map/overlays/aqi';
 import { createMarineOverlay } from './map/overlays/marine';
 import { createGraticuleOverlay } from './map/overlays/graticule';
 import { createFiresOverlay } from './map/overlays/fires';
+import { createBordersOverlay } from './map/overlays/borders';
+import { createRadarCoverageOverlay } from './map/overlays/radar-coverage';
+import { createNightLineOverlay } from './map/overlays/night-line';
+import { createNightLightsOverlay } from './map/overlays/night-lights';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -1728,199 +1732,18 @@ export async function initInteractiveMap(
   // Graticule overlay — extracted to src/lib/map/overlays/graticule.ts
   const graticuleOverlay = createGraticuleOverlay(map);
 
-  // ----------------------------------------------------------------
-  // Night lights overlay — NASA VIIRS Day-Night Band imagery, the
-  // satellite view of Earth at night that zoom.earth's Satélite layer
-  // exposes after dark. Painted as a translucent raster so the user
-  // sees the basemap + the night lights blended.
-  // ----------------------------------------------------------------
-  const NIGHT_LIGHTS_SOURCE = 'wx-night-lights-src';
-  const NIGHT_LIGHTS_LAYER = 'wx-night-lights-layer';
+  // Night lights + night line overlays — extracted to modules.
+  const nightLightsOverlay = createNightLightsOverlay(map);
+  const nightLineOverlay = createNightLineOverlay(map);
 
-  // ----------------------------------------------------------------
-  // Night line overlay (zoom.earth "Límite nocturno O") — just the
-  // day/night terminator drawn as a thin line, independent of which
-  // base layer is active. Reuses terminatorPolygon() from mapsun.ts;
-  // converts the polygon's outer ring to a LineString.
-  // ----------------------------------------------------------------
-  const NIGHT_LINE_SOURCE = 'wx-night-line-src';
-  const NIGHT_LINE_LAYER = 'wx-night-line-layer';
-  let nightLineTimer = 0;
+  // Borders overlay — extracted to src/lib/map/overlays/borders.ts.
+  const bordersOverlay = createBordersOverlay(map, {
+    fetch: cachedFetch,
+    base,
+  });
 
-  function nightLineFeatureCollection(): FeatureCollection {
-    const poly = terminatorPolygon(Date.now(), 180, 90);
-    const rings = (poly.coordinates ?? []) as [number, number][][];
-    const features = rings.map((ring) => ({
-      type: 'Feature' as const,
-      properties: {},
-      geometry: { type: 'LineString' as const, coordinates: ring },
-    }));
-    return { type: 'FeatureCollection', features };
-  }
-
-  function setNightLineEnabled(on: boolean): void {
-    if (!on) {
-      if (map.getLayer(NIGHT_LINE_LAYER)) map.removeLayer(NIGHT_LINE_LAYER);
-      if (map.getSource(NIGHT_LINE_SOURCE))
-        map.removeSource(NIGHT_LINE_SOURCE);
-      if (nightLineTimer) {
-        window.clearInterval(nightLineTimer);
-        nightLineTimer = 0;
-      }
-      return;
-    }
-    if (map.getSource(NIGHT_LINE_SOURCE)) return;
-    map.addSource(NIGHT_LINE_SOURCE, {
-      type: 'geojson',
-      data: nightLineFeatureCollection(),
-    });
-    map.addLayer({
-      id: NIGHT_LINE_LAYER,
-      type: 'line',
-      source: NIGHT_LINE_SOURCE,
-      paint: {
-        'line-color': '#fde68a',
-        'line-width': 1.6,
-        'line-opacity': 0.55,
-        'line-dasharray': [3, 3],
-      },
-    });
-    // Earth rotates 15°/hour; refresh the terminator every 5 minutes so
-    // the line keeps pace without flickering.
-    nightLineTimer = window.setInterval(() => {
-      const src = map.getSource(NIGHT_LINE_SOURCE) as
-        | maplibregl.GeoJSONSource
-        | undefined;
-      if (src) src.setData(nightLineFeatureCollection());
-    }, 5 * 60 * 1000);
-  }
-
-  // ----------------------------------------------------------------
-  // Borders overlay (zoom.earth "Líneas fronteras F") — white admin
-  // boundaries of MX + neighbors fetched on demand from
-  // /data/borders-na.json (~34 KB gzipped). Lazy.
-  // ----------------------------------------------------------------
-  const BORDERS_SOURCE = 'wx-borders-src';
-  const BORDERS_LAYER = 'wx-borders-line';
-  let bordersFetchPromise: Promise<FeatureCollection> | null = null;
-
-  function fetchBorders(): Promise<FeatureCollection> {
-    if (bordersFetchPromise) return bordersFetchPromise;
-    bordersFetchPromise = cachedFetch(`${base}data/borders-na.json`)
-      .then((r) =>
-        r.ok
-          ? (r.json() as Promise<FeatureCollection>)
-          : ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
-      )
-      .catch(
-        () =>
-          ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
-      );
-    return bordersFetchPromise;
-  }
-
-  async function setBordersEnabled(on: boolean): Promise<void> {
-    if (!on) {
-      if (map.getLayer(BORDERS_LAYER)) map.removeLayer(BORDERS_LAYER);
-      if (map.getSource(BORDERS_SOURCE)) map.removeSource(BORDERS_SOURCE);
-      return;
-    }
-    if (map.getSource(BORDERS_SOURCE)) return;
-    const data = await fetchBorders();
-    if (map.getSource(BORDERS_SOURCE)) return;
-    map.addSource(BORDERS_SOURCE, { type: 'geojson', data });
-    map.addLayer({
-      id: BORDERS_LAYER,
-      type: 'line',
-      source: BORDERS_SOURCE,
-      paint: {
-        'line-color': '#ffffff',
-        'line-width': 0.9,
-        'line-opacity': 0.7,
-      },
-    });
-  }
-
-  // ----------------------------------------------------------------
-  // Radar coverage overlay (zoom.earth "Cobertura de radar Q") —
-  // hardcoded SMN/CONAGUA station list rendered as ~230 km radius
-  // discs. RainViewer's mosaic aggregates these stations but doesn't
-  // expose per-station shapes; this is the closest UX parity.
-  // ----------------------------------------------------------------
-  const RADAR_COVERAGE_SOURCE = 'wx-radar-coverage-src';
-  const RADAR_COVERAGE_LAYER = 'wx-radar-coverage-fill';
-  const RADAR_STATIONS: ReadonlyArray<{
-    name: string;
-    lat: number;
-    lng: number;
-    rangeKm: number;
-  }> = [
-    { name: 'Cancún', lat: 21.04, lng: -86.85, rangeKm: 230 },
-    { name: 'Mérida', lat: 20.94, lng: -89.65, rangeKm: 230 },
-    { name: 'Cerro Catedral', lat: 19.55, lng: -99.43, rangeKm: 230 },
-    { name: 'Guasave', lat: 25.57, lng: -108.46, rangeKm: 230 },
-    { name: 'Hermosillo', lat: 28.99, lng: -111.04, rangeKm: 230 },
-    { name: 'La Paz', lat: 24.16, lng: -110.32, rangeKm: 230 },
-    { name: 'Mazatlán', lat: 23.21, lng: -106.42, rangeKm: 230 },
-    { name: 'Querétaro', lat: 20.61, lng: -100.39, rangeKm: 230 },
-    { name: 'Sabancuy', lat: 18.96, lng: -91.18, rangeKm: 230 },
-    { name: 'Tampico', lat: 22.27, lng: -97.86, rangeKm: 230 },
-    { name: 'Veracruz', lat: 19.18, lng: -96.13, rangeKm: 230 },
-  ];
-
-  function circlePolygon(
-    lat: number,
-    lng: number,
-    rangeKm: number,
-  ): { type: 'Polygon'; coordinates: [number, number][][] } {
-    const KM_PER_DEG_LAT = 110.574;
-    const km_per_deg_lng = 111.32 * Math.cos((lat * Math.PI) / 180);
-    const dLat = rangeKm / KM_PER_DEG_LAT;
-    const dLng = rangeKm / km_per_deg_lng;
-    const ring: [number, number][] = [];
-    const STEPS = 64;
-    for (let i = 0; i <= STEPS; i++) {
-      const t = (i / STEPS) * 2 * Math.PI;
-      ring.push([lng + dLng * Math.cos(t), lat + dLat * Math.sin(t)]);
-    }
-    return { type: 'Polygon', coordinates: [ring] };
-  }
-
-  function radarCoverageFeatureCollection(): FeatureCollection {
-    return {
-      type: 'FeatureCollection',
-      features: RADAR_STATIONS.map((s) => ({
-        type: 'Feature',
-        properties: { name: s.name },
-        geometry: circlePolygon(s.lat, s.lng, s.rangeKm),
-      })),
-    };
-  }
-
-  function setRadarCoverageEnabled(on: boolean): void {
-    if (!on) {
-      if (map.getLayer(RADAR_COVERAGE_LAYER))
-        map.removeLayer(RADAR_COVERAGE_LAYER);
-      if (map.getSource(RADAR_COVERAGE_SOURCE))
-        map.removeSource(RADAR_COVERAGE_SOURCE);
-      return;
-    }
-    if (map.getSource(RADAR_COVERAGE_SOURCE)) return;
-    map.addSource(RADAR_COVERAGE_SOURCE, {
-      type: 'geojson',
-      data: radarCoverageFeatureCollection(),
-    });
-    map.addLayer({
-      id: RADAR_COVERAGE_LAYER,
-      type: 'fill',
-      source: RADAR_COVERAGE_SOURCE,
-      paint: {
-        'fill-color': '#10b981',
-        'fill-opacity': 0.12,
-        'fill-outline-color': '#34d399',
-      },
-    });
-  }
+  // Radar coverage overlay — extracted to src/lib/map/overlays/radar-coverage.ts.
+  const radarCoverageOverlay = createRadarCoverageOverlay(map);
 
   // Fires overlay — extracted to src/lib/map/overlays/fires.ts. Takes
   // cachedFetch + the site base for the cached JSON path.
@@ -2029,33 +1852,6 @@ export async function initInteractiveMap(
     }
   }
 
-  function setNightLightsEnabled(on: boolean): void {
-    if (!on) {
-      if (map.getLayer(NIGHT_LIGHTS_LAYER)) map.removeLayer(NIGHT_LIGHTS_LAYER);
-      if (map.getSource(NIGHT_LIGHTS_SOURCE))
-        map.removeSource(NIGHT_LIGHTS_SOURCE);
-      return;
-    }
-    if (map.getSource(NIGHT_LIGHTS_SOURCE)) return;
-    map.addSource(NIGHT_LIGHTS_SOURCE, {
-      type: 'raster',
-      tiles: [gibsTileUrl(GIBS_LAYERS.viirsNightLights, gibsRoundedTime())],
-      tileSize: 256,
-      maxzoom: GIBS_LAYERS.viirsNightLights.maxZoom,
-      attribution: ATTRIBUTION_GIBS,
-    });
-    map.addLayer({
-      id: NIGHT_LIGHTS_LAYER,
-      type: 'raster',
-      source: NIGHT_LIGHTS_SOURCE,
-      paint: {
-        // 0.7 opacity so basemap labels still read; matches zoom.earth's
-        // "blend" feel on the satellite night layer.
-        'raster-opacity': 0.7,
-        'raster-resampling': 'linear',
-      },
-    });
-  }
 
   // ----------------------------------------------------------------
   // Tropical storms overlay (zoom.earth "Sistemas tropicales T") —
@@ -3490,23 +3286,23 @@ export async function initInteractiveMap(
       id: 'nightLights',
       label: 'Luces nocturnas',
       shortcut: 'N',
-      isEnabled: () => !!map.getLayer(NIGHT_LIGHTS_LAYER),
-      setEnabled: (on) => setNightLightsEnabled(on),
+      isEnabled: () => nightLightsOverlay.isEnabled(),
+      setEnabled: (on) => nightLightsOverlay.setEnabled(on),
     },
     {
       id: 'nightLine',
       label: 'Límite nocturno',
       shortcut: 'O',
-      isEnabled: () => !!map.getLayer(NIGHT_LINE_LAYER),
-      setEnabled: (on) => setNightLineEnabled(on),
+      isEnabled: () => nightLineOverlay.isEnabled(),
+      setEnabled: (on) => nightLineOverlay.setEnabled(on),
     },
     {
       id: 'borders',
       label: 'Líneas fronteras',
       shortcut: 'F',
-      isEnabled: () => !!map.getLayer(BORDERS_LAYER),
+      isEnabled: () => bordersOverlay.isEnabled(),
       setEnabled: (on) => {
-        void setBordersEnabled(on);
+        void bordersOverlay.setEnabled(on);
       },
     },
     {
@@ -3522,8 +3318,8 @@ export async function initInteractiveMap(
       id: 'radarCoverage',
       label: 'Cobertura de radar',
       shortcut: 'Q',
-      isEnabled: () => !!map.getLayer(RADAR_COVERAGE_LAYER),
-      setEnabled: (on) => setRadarCoverageEnabled(on),
+      isEnabled: () => radarCoverageOverlay.isEnabled(),
+      setEnabled: (on) => radarCoverageOverlay.setEnabled(on),
     },
     {
       id: 'clouds',
