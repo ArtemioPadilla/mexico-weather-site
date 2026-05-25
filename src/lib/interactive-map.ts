@@ -142,6 +142,8 @@ import { createQuakesOverlay } from './map/overlays/quakes';
 import { createLakesOverlay } from './map/overlays/lakes';
 import { createHistStormsOverlay } from './map/overlays/hist-storms';
 import { createWebcamsOverlay } from './map/overlays/webcams';
+import { createAqiOverlay } from './map/overlays/aqi';
+import { createMarineOverlay } from './map/overlays/marine';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -2039,257 +2041,8 @@ export async function initInteractiveMap(
   // (refactor: see PLAN_UX_PARITY.md §Refactor). Factory returns an
   // object matching the overlay registry interface.
   const volcanoesOverlay = createVolcanoesOverlay(map);
-
-  // ----------------------------------------------------------------
-  // Air-quality (PM2.5) by city — MX-unique. Open-Meteo air-quality
-  // API is keyless + CORS-enabled. Sampled at the major MX metros
-  // (covers ~80% of MX urban population). Renders as colored circles
-  // with the µg/m³ value as a label.
-  // ----------------------------------------------------------------
-  const AQI_SOURCE = 'wx-aqi-src';
-  const AQI_CIRCLE_LAYER = 'wx-aqi-circle';
-  const AQI_LABEL_LAYER = 'wx-aqi-label';
-  const MX_AQI_CITIES: { name: string; lng: number; lat: number }[] = [
-    { name: 'CDMX', lng: -99.13, lat: 19.43 },
-    { name: 'Guadalajara', lng: -103.35, lat: 20.66 },
-    { name: 'Monterrey', lng: -100.31, lat: 25.67 },
-    { name: 'Puebla', lng: -98.2, lat: 19.04 },
-    { name: 'Tijuana', lng: -117.04, lat: 32.51 },
-    { name: 'León', lng: -101.67, lat: 21.13 },
-    { name: 'Toluca', lng: -99.65, lat: 19.29 },
-    { name: 'Mérida', lng: -89.61, lat: 20.97 },
-    { name: 'Querétaro', lng: -100.39, lat: 20.59 },
-    { name: 'Chihuahua', lng: -106.07, lat: 28.63 },
-    { name: 'Hermosillo', lng: -110.95, lat: 29.07 },
-    { name: 'Veracruz', lng: -96.13, lat: 19.18 },
-  ];
-
-  async function fetchAqi(): Promise<FeatureCollection> {
-    const lats = MX_AQI_CITIES.map((c) => c.lat).join(',');
-    const lngs = MX_AQI_CITIES.map((c) => c.lng).join(',');
-    const url =
-      `https://air-quality-api.open-meteo.com/v1/air-quality?` +
-      `latitude=${lats}&longitude=${lngs}&current=pm2_5&timezone=UTC`;
-    try {
-      const r = await cachedFetch(url);
-      if (!r.ok) throw new Error('aqi http');
-      const json = (await r.json()) as
-        | { current?: { pm2_5?: number } }
-        | { current?: { pm2_5?: number } }[];
-      const arr = Array.isArray(json) ? json : [json];
-      const features = MX_AQI_CITIES.map((c, i) => {
-        const v = arr[i]?.current?.pm2_5;
-        const pm = typeof v === 'number' && Number.isFinite(v) ? v : null;
-        return {
-          type: 'Feature',
-          properties: {
-            name: c.name,
-            pm,
-            label: pm === null ? c.name : `${c.name}\n${Math.round(pm)} µg/m³`,
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [c.lng, c.lat],
-          },
-        };
-      }).filter((f) => f.properties.pm !== null);
-      return { type: 'FeatureCollection', features } as FeatureCollection;
-    } catch {
-      return { type: 'FeatureCollection', features: [] } as FeatureCollection;
-    }
-  }
-
-  async function setAqiEnabled(on: boolean): Promise<void> {
-    if (!on) {
-      if (map.getLayer(AQI_LABEL_LAYER)) map.removeLayer(AQI_LABEL_LAYER);
-      if (map.getLayer(AQI_CIRCLE_LAYER)) map.removeLayer(AQI_CIRCLE_LAYER);
-      if (map.getSource(AQI_SOURCE)) map.removeSource(AQI_SOURCE);
-      return;
-    }
-    if (map.getSource(AQI_SOURCE)) return;
-    const data = await fetchAqi();
-    if (map.getSource(AQI_SOURCE)) return;
-    map.addSource(AQI_SOURCE, { type: 'geojson', data });
-    map.addLayer({
-      id: AQI_CIRCLE_LAYER,
-      type: 'circle',
-      source: AQI_SOURCE,
-      paint: {
-        'circle-radius': 9,
-        // PM2.5 EPA breakpoints (µg/m³, 24h avg): 0-12 good, 12-35.4
-        // moderate, 35.4-55.4 USG, 55.4-150.4 unhealthy, 150.4+ very
-        // unhealthy / hazardous. Color codes are the canonical EPA AQI.
-        'circle-color': [
-          'interpolate',
-          ['linear'],
-          ['get', 'pm'],
-          0, '#22c55e',
-          12, '#facc15',
-          35, '#f97316',
-          55, '#dc2626',
-          150, '#7c2d12',
-        ],
-        'circle-opacity': 0.85,
-        'circle-stroke-color': '#1e293b',
-        'circle-stroke-width': 1.2,
-      },
-    });
-    map.addLayer({
-      id: AQI_LABEL_LAYER,
-      type: 'symbol',
-      source: AQI_SOURCE,
-      minzoom: 4,
-      layout: {
-        'text-field': ['get', 'label'],
-        'text-size': 10,
-        'text-offset': [0, 1.4],
-        'text-anchor': 'top',
-        'text-allow-overlap': false,
-        'text-optional': true,
-      },
-      paint: {
-        'text-color': '#0f172a',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1.3,
-      },
-    });
-  }
-
-  // ----------------------------------------------------------------
-  // Beaches / marine overlay — MX-unique. Wave height (Hs) + sea-
-  // surface temperature at major MX coastal destinations. Open-Meteo
-  // marine API is keyless + CORS-enabled. Pacific + Caribbean +
-  // Gulf coverage.
-  // ----------------------------------------------------------------
-  const MARINE_SOURCE = 'wx-marine-src';
-  const MARINE_CIRCLE_LAYER = 'wx-marine-circle';
-  const MARINE_LABEL_LAYER = 'wx-marine-label';
-  const MX_BEACHES: { name: string; lng: number; lat: number }[] = [
-    { name: 'Cancún', lng: -86.85, lat: 21.16 },
-    { name: 'Playa del Carmen', lng: -87.07, lat: 20.63 },
-    { name: 'Cozumel', lng: -86.95, lat: 20.42 },
-    { name: 'Veracruz', lng: -96.13, lat: 19.18 },
-    { name: 'Tampico', lng: -97.86, lat: 22.25 },
-    { name: 'Acapulco', lng: -99.82, lat: 16.85 },
-    { name: 'Puerto Vallarta', lng: -105.23, lat: 20.65 },
-    { name: 'Mazatlán', lng: -106.42, lat: 23.22 },
-    { name: 'Los Cabos', lng: -109.7, lat: 22.89 },
-    { name: 'La Paz', lng: -110.31, lat: 24.14 },
-    { name: 'Huatulco', lng: -96.13, lat: 15.77 },
-    { name: 'Puerto Escondido', lng: -97.07, lat: 15.86 },
-    { name: 'Manzanillo', lng: -104.32, lat: 19.11 },
-    { name: 'Ensenada', lng: -116.6, lat: 31.86 },
-  ];
-
-  async function fetchMarine(): Promise<FeatureCollection> {
-    const lats = MX_BEACHES.map((c) => c.lat).join(',');
-    const lngs = MX_BEACHES.map((c) => c.lng).join(',');
-    const url =
-      `https://marine-api.open-meteo.com/v1/marine?` +
-      `latitude=${lats}&longitude=${lngs}` +
-      `&current=wave_height,sea_surface_temperature&timezone=UTC`;
-    try {
-      const r = await cachedFetch(url);
-      if (!r.ok) throw new Error('marine http');
-      const json = (await r.json()) as
-        | { current?: { wave_height?: number; sea_surface_temperature?: number } }
-        | { current?: { wave_height?: number; sea_surface_temperature?: number } }[];
-      const arr = Array.isArray(json) ? json : [json];
-      const sstToColor = (sst: number): string => {
-        // Cold (18°) → blue, warm (32°) → orange. Coarse 5-stop ramp.
-        if (sst <= 18) return '#5b8ff9';
-        if (sst <= 22) return '#7dd1c8';
-        if (sst <= 26) return '#7ad151';
-        if (sst <= 29) return '#f9d423';
-        return '#f08a24';
-      };
-      const features = MX_BEACHES.map((c, i) => {
-        const cur = arr[i]?.current;
-        const hs = typeof cur?.wave_height === 'number' ? cur.wave_height : null;
-        const sst =
-          typeof cur?.sea_surface_temperature === 'number'
-            ? cur.sea_surface_temperature
-            : null;
-        if (hs === null && sst === null) return null;
-        const parts: string[] = [c.name];
-        if (hs !== null) parts.push(`🌊 ${hs.toFixed(1)} m`);
-        if (sst !== null) parts.push(`🌡 ${Math.round(sst)}°`);
-        return {
-          type: 'Feature',
-          properties: {
-            name: c.name,
-            hs: hs ?? 0,
-            color: sst === null ? '#94a3b8' : sstToColor(sst),
-            label: parts.join('\n'),
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [c.lng, c.lat],
-          },
-        };
-      }).filter((f): f is NonNullable<typeof f> => f !== null);
-      return { type: 'FeatureCollection', features } as FeatureCollection;
-    } catch {
-      return { type: 'FeatureCollection', features: [] } as FeatureCollection;
-    }
-  }
-
-  async function setMarineEnabled(on: boolean): Promise<void> {
-    if (!on) {
-      if (map.getLayer(MARINE_LABEL_LAYER))
-        map.removeLayer(MARINE_LABEL_LAYER);
-      if (map.getLayer(MARINE_CIRCLE_LAYER))
-        map.removeLayer(MARINE_CIRCLE_LAYER);
-      if (map.getSource(MARINE_SOURCE)) map.removeSource(MARINE_SOURCE);
-      return;
-    }
-    if (map.getSource(MARINE_SOURCE)) return;
-    const data = await fetchMarine();
-    if (map.getSource(MARINE_SOURCE)) return;
-    map.addSource(MARINE_SOURCE, { type: 'geojson', data });
-    map.addLayer({
-      id: MARINE_CIRCLE_LAYER,
-      type: 'circle',
-      source: MARINE_SOURCE,
-      paint: {
-        // Radius grows with wave height (Hs in m): calm 5 px, big swell 14 px.
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'hs'],
-          0, 5,
-          1.5, 8,
-          3, 11,
-          5, 14,
-        ],
-        // Color is pre-baked per feature by SST (no expression null-handling
-        // headaches in MapLibre style spec).
-        'circle-color': ['get', 'color'],
-        'circle-opacity': 0.85,
-        'circle-stroke-color': '#0f172a',
-        'circle-stroke-width': 1.2,
-      },
-    });
-    map.addLayer({
-      id: MARINE_LABEL_LAYER,
-      type: 'symbol',
-      source: MARINE_SOURCE,
-      minzoom: 4,
-      layout: {
-        'text-field': ['get', 'label'],
-        'text-size': 10,
-        'text-offset': [0, 1.5],
-        'text-anchor': 'top',
-        'text-allow-overlap': false,
-        'text-optional': true,
-      },
-      paint: {
-        'text-color': '#0f172a',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1.3,
-      },
-    });
-  }
+  const aqiOverlay = createAqiOverlay(map, { fetch: cachedFetch });
+  const marineOverlay = createMarineOverlay(map, { fetch: cachedFetch });
 
   // USGS earthquakes overlay — extracted to src/lib/map/overlays/quakes.ts
   // (refactor). The factory takes a fetch function so it can be the
@@ -3925,18 +3678,18 @@ export async function initInteractiveMap(
       id: 'aqi',
       label: 'Calidad del aire (PM2.5)',
       shortcut: 'Y',
-      isEnabled: () => !!map.getLayer(AQI_CIRCLE_LAYER),
+      isEnabled: () => aqiOverlay.isEnabled(),
       setEnabled: (on) => {
-        void setAqiEnabled(on);
+        void aqiOverlay.setEnabled(on);
       },
     },
     {
       id: 'marine',
       label: 'Playas (oleaje + SST)',
       shortcut: 'Z',
-      isEnabled: () => !!map.getLayer(MARINE_CIRCLE_LAYER),
+      isEnabled: () => marineOverlay.isEnabled(),
       setEnabled: (on) => {
-        void setMarineEnabled(on);
+        void marineOverlay.setEnabled(on);
       },
     },
     {
