@@ -165,6 +165,7 @@ import {
 } from './map/settings';
 import { createAutocompleteController } from './map/chrome/autocomplete';
 import { createSnapshotCompare } from './map/chrome/snapshot-compare';
+import { createModelToggle } from './map/chrome/model-toggle';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -3423,35 +3424,31 @@ export async function initInteractiveMap(
   // round-trips. Changing model invalidates the cached grids and forces
   // a refetch via setActiveLayer.
   if (features.layerRail) {
-    const modelWrap = document.getElementById('mw-model-toggle');
-    const modelBtns = modelWrap?.querySelectorAll<HTMLButtonElement>('button.mw-model-btn');
-    function refreshModelBtns(): void {
-      modelBtns?.forEach((b) => {
-        b.setAttribute(
-          'aria-pressed',
-          String((b.dataset.model || 'best_match') === activeModel),
-        );
-      });
-    }
-    refreshModelBtns();
-    modelBtns?.forEach((b) => {
-      b.addEventListener('click', () => {
-        const next = b.dataset.model || 'best_match';
-        if (next === activeModel) return;
+    // Model toggle pills (plan P1.1) — DOM wiring extracted to
+    // src/lib/map/chrome/model-toggle.ts. The caller still owns the
+    // activeModel variable + the cache-invalidation side-effects.
+    createModelToggle(
+      { wrap: document.getElementById('mw-model-toggle') },
+      () => activeModel,
+      (next) => {
         activeModel = next;
-        refreshModelBtns();
-        // Invalidate cached grids + force re-fetch with new model.
+        // Invalidate cached grids + force re-fetch with the new model.
         fieldGrid = null;
         lastTempGrid = null;
         lastHumidityGrid = null;
         lastPressureGrid = null;
         windGrid = null;
-        if (activeLayer !== 'base' && activeLayer !== 'satellite' && activeLayer !== 'radar' && activeLayer !== 'sunlight') {
+        if (
+          activeLayer !== 'base' &&
+          activeLayer !== 'satellite' &&
+          activeLayer !== 'radar' &&
+          activeLayer !== 'sunlight'
+        ) {
           void setActiveLayer(activeLayer);
         }
         syncHash();
-      });
-    });
+      },
+    );
   }
 
   // Snapshot compare (plan 3.3). Captures the WebGL canvas to an
