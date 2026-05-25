@@ -163,6 +163,7 @@ import {
   readSettings,
   writeSettings,
 } from './map/settings';
+import { createAutocompleteController } from './map/chrome/autocomplete';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -694,93 +695,25 @@ export async function initInteractiveMap(
   let qTimer = 0;
   let searchGen = 0;
 
-  type GeoItem = {
-    name: string;
-    admin1?: string;
-    country?: string;
-    lat: number;
-    lng: number;
-    tz: string;
-    population?: number;
-    featureCode?: string;
-  };
-  let acResults: GeoItem[] = [];
-  let acActive = -1;
-
-  function closeAcList(): void {
-    if (!acList || !q) return;
-    acList.classList.add('hidden');
-    acList.textContent = '';
-    q.setAttribute('aria-expanded', 'false');
-    q.removeAttribute('aria-activedescendant');
-    acResults = [];
-    acActive = -1;
-  }
-
-  function highlightAc(): void {
-    if (!acList || !q) return;
-    Array.from(acList.children).forEach((li, i) => {
-      if (i === acActive) {
-        li.classList.add('bg-gray-100', 'dark:bg-gray-800');
-        li.setAttribute('aria-selected', 'true');
-        q.setAttribute('aria-activedescendant', li.id);
-      } else {
-        li.classList.remove('bg-gray-100', 'dark:bg-gray-800');
-        li.setAttribute('aria-selected', 'false');
-      }
-    });
-    if (acActive < 0) q.removeAttribute('aria-activedescendant');
-  }
-
-  function selectAc(r: GeoItem): void {
-    hideMsg();
-    closeAcList();
-    setUserPin(r.name, r.lat, r.lng, 'search');
-  }
-
-  function renderAcList(): void {
-    if (!acList || !q) return;
-    acList.textContent = '';
-    acResults.forEach((r, i) => {
-      const li = document.createElement('li');
-      li.id = (acList.id || 'mapac') + '-' + i;
-      li.setAttribute('role', 'option');
-      li.setAttribute('aria-selected', 'false');
-      li.className =
-        'px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800';
-
-      const primary = document.createElement('div');
-      primary.className = 'flex items-center gap-2';
-
-      const nameEl = document.createElement('span');
-      nameEl.className = 'font-semibold text-gray-900 dark:text-gray-100';
-      nameEl.textContent = r.name;
-      primary.appendChild(nameEl);
-
-      if (typeof r.population === 'number' && r.population >= 50000) {
-        const badge = document.createElement('span');
-        badge.className =
-          'rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400';
-        badge.textContent = 'ciudad';
-        primary.appendChild(badge);
-      }
-      li.appendChild(primary);
-
-      const sub = [r.admin1, r.country].filter(Boolean).join(' · ');
-      if (sub) {
-        const subEl = document.createElement('div');
-        subEl.className = 'text-xs text-gray-500 dark:text-gray-400';
-        subEl.textContent = sub;
-        li.appendChild(subEl);
-      }
-
-      li.addEventListener('click', () => selectAc(r));
-      acList.appendChild(li);
-    });
-    acList.classList.remove('hidden');
-    q.setAttribute('aria-expanded', 'true');
-    acActive = -1;
-  }
+  // Search autocomplete listbox — controller extracted to
+  // src/lib/map/chrome/autocomplete.ts. The controller manages state +
+  // DOM rendering; this layer wires the select handler (drop pin + set
+  // active layer) and the search-input keyboard handlers below.
+  const ac =
+    q && acList
+      ? createAutocompleteController(
+          q as HTMLInputElement,
+          acList as HTMLUListElement,
+          (r) => {
+            hideMsg();
+            ac?.close();
+            setUserPin(r.name, r.lat, r.lng, 'search');
+          },
+        )
+      : null;
+  // Thin wrappers preserve the historical names used by existing call
+  // sites in this file (keyboard handlers, debounced fetch).
+  const closeAcList = (): void => ac?.close();
 
   // ------------------------------------------------------------------
   // Weather layer state machine.
@@ -3284,9 +3217,8 @@ export async function initInteractiveMap(
             showMsg(`${t.no_results} «${query}»`);
             return;
           }
-          acResults = results;
           hideMsg();
-          renderAcList();
+          ac?.setResults(results);
         } catch {
           if (gen !== searchGen) return;
           closeAcList();
@@ -3296,22 +3228,26 @@ export async function initInteractiveMap(
     });
 
     q.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (acResults.length === 0) {
+      const results = ac?.getResults() ?? [];
+      if (results.length === 0) {
         if (e.key === 'Escape') closeAcList();
         return;
       }
+      const active = ac?.getActiveIndex() ?? -1;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        acActive = (acActive + 1) % acResults.length;
-        highlightAc();
+        ac?.setActiveIndex((active + 1) % results.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        acActive = acActive <= 0 ? acResults.length - 1 : acActive - 1;
-        highlightAc();
+        ac?.setActiveIndex(active <= 0 ? results.length - 1 : active - 1);
       } else if (e.key === 'Enter') {
-        if (acActive >= 0 && acActive < acResults.length) {
+        if (active >= 0 && active < results.length) {
           e.preventDefault();
-          selectAc(acResults[acActive]);
+          // Re-uses the select callback the controller was wired with
+          // via setResults's click handlers — but a keyboard Enter has
+          // to dispatch manually. Simulate a click on the active option.
+          const li = (acList?.children[active] ?? null) as HTMLElement | null;
+          li?.click();
         }
       } else if (e.key === 'Escape') {
         closeAcList();
