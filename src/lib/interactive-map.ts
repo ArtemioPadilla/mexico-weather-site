@@ -138,6 +138,7 @@ import {
   formatArea as measureFmtArea,
 } from './map/utils';
 import { createVolcanoesOverlay } from './map/overlays/volcanoes';
+import { createQuakesOverlay } from './map/overlays/quakes';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -2629,89 +2630,10 @@ export async function initInteractiveMap(
     });
   }
 
-  // ----------------------------------------------------------------
-  // USGS earthquakes overlay — MX-unique. Past 7 days, M≥2.5,
-  // filtered to a generous MX bbox. USGS earthquake GeoJSON is
-  // CORS-enabled and updated every minute; no API key.
-  // ----------------------------------------------------------------
-  const QUAKES_SOURCE = 'wx-quakes-src';
-  const QUAKES_LAYER = 'wx-quakes-circle';
-  const QUAKES_URL =
-    'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson';
-  let quakesFetchPromise: Promise<FeatureCollection> | null = null;
-
-  function fetchQuakes(): Promise<FeatureCollection> {
-    if (quakesFetchPromise) return quakesFetchPromise;
-    quakesFetchPromise = cachedFetch(QUAKES_URL)
-      .then(async (r) => {
-        if (!r.ok) {
-          return {
-            type: 'FeatureCollection',
-            features: [],
-          } as FeatureCollection;
-        }
-        const fc = (await r.json()) as FeatureCollection;
-        // MX-relevant bbox: lng -120..-85, lat 12..35 — covers all of
-        // Mexico, the Caribbean subduction zone, and the southern US
-        // border where felt quakes affect MX users.
-        const features = (fc.features ?? []).filter((f) => {
-          const c = (f.geometry as { coordinates?: number[] } | undefined)
-            ?.coordinates;
-          if (!Array.isArray(c) || c.length < 2) return false;
-          const lng = c[0];
-          const lat = c[1];
-          return lng >= -120 && lng <= -85 && lat >= 12 && lat <= 35;
-        });
-        return { type: 'FeatureCollection', features } as FeatureCollection;
-      })
-      .catch(
-        () =>
-          ({ type: 'FeatureCollection', features: [] } as FeatureCollection),
-      );
-    return quakesFetchPromise;
-  }
-
-  async function setQuakesEnabled(on: boolean): Promise<void> {
-    if (!on) {
-      if (map.getLayer(QUAKES_LAYER)) map.removeLayer(QUAKES_LAYER);
-      if (map.getSource(QUAKES_SOURCE)) map.removeSource(QUAKES_SOURCE);
-      return;
-    }
-    if (map.getSource(QUAKES_SOURCE)) return;
-    const data = await fetchQuakes();
-    if (map.getSource(QUAKES_SOURCE)) return;
-    map.addSource(QUAKES_SOURCE, { type: 'geojson', data });
-    map.addLayer({
-      id: QUAKES_LAYER,
-      type: 'circle',
-      source: QUAKES_SOURCE,
-      paint: {
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'mag'],
-          2.5, 3,
-          4, 6,
-          5, 10,
-          6, 16,
-          7, 22,
-        ],
-        'circle-color': [
-          'interpolate',
-          ['linear'],
-          ['get', 'mag'],
-          2.5, '#22c55e',
-          4, '#facc15',
-          5, '#f97316',
-          6, '#ef4444',
-          7, '#7f1d1d',
-        ],
-        'circle-opacity': 0.75,
-        'circle-stroke-color': '#1e293b',
-        'circle-stroke-width': 0.8,
-      },
-    });
-  }
+  // USGS earthquakes overlay — extracted to src/lib/map/overlays/quakes.ts
+  // (refactor). The factory takes a fetch function so it can be the
+  // existing cachedFetch in production and a stub in unit tests.
+  const quakesOverlay = createQuakesOverlay(map, { fetch: cachedFetch });
 
   // ----------------------------------------------------------------
   // Cloud cover overlay (zoom.earth's "Nubes" — translucent grayscale
@@ -4302,9 +4224,9 @@ export async function initInteractiveMap(
       id: 'quakes',
       label: 'Sismos (USGS)',
       shortcut: 'K',
-      isEnabled: () => !!map.getLayer(QUAKES_LAYER),
+      isEnabled: () => quakesOverlay.isEnabled(),
       setEnabled: (on) => {
-        void setQuakesEnabled(on);
+        void quakesOverlay.setEnabled(on);
       },
     },
     {
