@@ -371,6 +371,20 @@ export async function initInteractiveMap(
         marker.setPopup(popup);
       }
       marker.addTo(map);
+      // MapLibre adds aria-label="Map marker" on a role-less div which
+      // axe-core flags as aria-prohibited-attr. Add role=button to make
+      // it valid + give it a real name (city / coords) so screen readers
+      // announce something useful.
+      try {
+        const el = marker.getElement();
+        el.setAttribute('role', 'button');
+        el.setAttribute(
+          'aria-label',
+          p.name ? `Marcador: ${p.name}` : 'Marcador en el mapa',
+        );
+      } catch {
+        /* best-effort */
+      }
       markers.push(marker);
     }
   }

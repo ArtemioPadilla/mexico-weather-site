@@ -513,7 +513,7 @@ const t = ui[lang];
           </section>`;
 
         const contextHtml = `
-          <div class="rounded-md border border-yellow-600/60 bg-yellow-600/10 p-3 text-sm text-yellow-700 dark:text-yellow-200">
+          <div class="rounded-md border border-yellow-600/60 bg-yellow-600/10 p-3 text-sm text-yellow-900 dark:text-yellow-100">
             ⚠️ Contexto SMN/CONAGUA — avisos vigentes:
             <a href="${esc(baseUrl)}/rss.xml" target="_blank" rel="noopener noreferrer" class="underline">rss.xml</a>
           </div>
@@ -902,10 +902,22 @@ const t = ui[lang];
                         `<div class="text-sm"><strong>${esc(loc.name || (loc.lat + ', ' + loc.lng))}</strong><br>` +
                         `<a href="${esc(fcUrl)}" class="text-blue-600 underline">${esc(t.full_forecast)} →</a></div>`;
                       const popup = new ml.Popup({ offset: 24 }).setHTML(popupHtml);
-                      new ml.Marker({ color: '#2563eb' })
+                      const fcMarker = new ml.Marker({ color: '#2563eb' })
                         .setLngLat([loc.lng, loc.lat])
                         .setPopup(popup)
                         .addTo(handle.map);
+                      // a11y: MapLibre's default aria-label on a role-less
+                      // div trips axe-core. Promote to role=button + name.
+                      try {
+                        const mEl = fcMarker.getElement();
+                        mEl.setAttribute('role', 'button');
+                        mEl.setAttribute(
+                          'aria-label',
+                          loc.name ? `Marcador: ${loc.name}` : 'Marcador en el mapa',
+                        );
+                      } catch {
+                        /* best-effort */
+                      }
                     });
                   });
                 })
