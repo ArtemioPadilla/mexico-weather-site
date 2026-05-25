@@ -176,6 +176,7 @@ import { createCloudsOverlay } from './map/overlays/clouds';
 import { createCityValuesOverlay } from './map/overlays/city-values';
 import { createTimelinePlayer } from './map/chrome/timeline-player';
 import { createSubOptionsGroup } from './map/chrome/sub-options';
+import { createPinManager } from './map/chrome/pin-manager';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -348,9 +349,9 @@ export async function initInteractiveMap(
     });
   }
 
-  let pins: MapPin[] = features.presetPins ? presetPins(cities) : [];
-  const markers: maplibregl.Marker[] = [];
-
+  // Pin manager owns the per-pin Marker + Popup lifecycle. The popup
+  // HTML builders stay here because they reference the local `base`,
+  // `t`, and `esc` closure references.
   function popupHtml(p: MapPin): string {
     const fc = `${base}forecast?lat=${p.lat}&lng=${p.lng}&name=${encodeURIComponent(p.name)}`;
     return (
@@ -371,6 +372,22 @@ export async function initInteractiveMap(
       `</div>`
     );
   }
+
+  const pinManager = createPinManager(
+    map,
+    features.presetPins ? presetPins(cities) : [],
+    { maplibre, popupHtml, enablePopups: !!markerPopups },
+  );
+  // Aliases kept so the rest of the file's wiring stays unchanged.
+  const renderPins = (): void => pinManager.render();
+  const setUserPin = (
+    name: string,
+    lat: number,
+    lng: number,
+    kind: 'search' | 'geo',
+  ): void => {
+    pinManager.setUserPin({ name, lat, lng, kind });
+  };
 
   // Click-to-place popup — zoom.earth-style. When the user clicks on
   // empty map (not on a city marker), open a popup with the cursor's
@@ -395,35 +412,6 @@ export async function initInteractiveMap(
         .setHTML(placePopupHtml(e.lngLat.lat, e.lngLat.lng))
         .addTo(map);
     });
-  }
-
-  function renderPins(): void {
-    while (markers.length) markers.pop()!.remove();
-    for (const p of pins) {
-      const marker = new maplibre.Marker({
-        color: p.kind === 'preset' ? '#2563eb' : '#dc2626',
-      }).setLngLat([p.lng, p.lat]);
-      if (markerPopups) {
-        const popup = new maplibre.Popup({ offset: 24 }).setHTML(popupHtml(p));
-        marker.setPopup(popup);
-      }
-      marker.addTo(map);
-      // MapLibre adds aria-label="Map marker" on a role-less div which
-      // axe-core flags as aria-prohibited-attr. Add role=button to make
-      // it valid + give it a real name (city / coords) so screen readers
-      // announce something useful.
-      try {
-        const el = marker.getElement();
-        el.setAttribute('role', 'button');
-        el.setAttribute(
-          'aria-label',
-          p.name ? `Marcador: ${p.name}` : 'Marcador en el mapa',
-        );
-      } catch {
-        /* best-effort */
-      }
-      markers.push(marker);
-    }
   }
 
   function syncHash(): void {
@@ -681,23 +669,8 @@ export async function initInteractiveMap(
     disconnect: () => basemapTheme.dispose(),
   };
 
-  function setUserPin(
-    name: string,
-    lat: number,
-    lng: number,
-    kind: 'search' | 'geo',
-  ): void {
-    pins = withUserPin(pins, { name, lat, lng, kind });
-    renderPins();
-    const reducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-    map.flyTo({
-      center: [lng, lat],
-      zoom: Math.max(map.getZoom(), 9),
-      animate: !reducedMotion,
-    });
-  }
+  // setUserPin and renderPins now delegate to pinManager (defined
+  // earlier in the file via createPinManager).
 
   // ------------------------------------------------------------------
   // Search autocomplete (scoped to the supplied els.search / els.acList).
@@ -2088,7 +2061,7 @@ export async function initInteractiveMap(
   // factory (createSubOptionsGroup) replaces five near-identical
   // copies — see src/lib/map/chrome/sub-options.ts.
   // ----------------------------------------------------------------
-  const tempSub = createSubOptionsGroup<TempSubOption>(opts.els.layerBtns, {
+  const tempSub = createSubOptionsGroup<TempSubOption>(opts.els.layerBtns ?? null, {
     containerId: 'temp-sub-options',
     getActive: () => tempSubOption,
     onSelect: (id) => {
@@ -2105,7 +2078,7 @@ export async function initInteractiveMap(
   const refreshTempSubOptions = (): void => tempSub.refresh();
 
   const humiditySub = createSubOptionsGroup<HumiditySubOption>(
-    opts.els.layerBtns,
+    opts.els.layerBtns ?? null,
     {
       containerId: 'humidity-sub-options',
       getActive: () => humiditySubOption,
@@ -2123,7 +2096,7 @@ export async function initInteractiveMap(
   const refreshHumiditySubOptions = (): void => humiditySub.refresh();
 
   const pressureSub = createSubOptionsGroup<PressureSubOption>(
-    opts.els.layerBtns,
+    opts.els.layerBtns ?? null,
     {
       containerId: 'pressure-sub-options',
       getActive: () => pressureSubOption,
@@ -2140,7 +2113,7 @@ export async function initInteractiveMap(
   );
   const refreshPressureSubOptions = (): void => pressureSub.refresh();
 
-  const windSub = createSubOptionsGroup<WindSubOption>(opts.els.layerBtns, {
+  const windSub = createSubOptionsGroup<WindSubOption>(opts.els.layerBtns ?? null, {
     containerId: 'wind-sub-options',
     getActive: () => windSubOption,
     onSelect: (id) => {
@@ -2156,7 +2129,7 @@ export async function initInteractiveMap(
   const refreshWindSubOptions = (): void => windSub.refresh();
 
   const satelliteSub = createSubOptionsGroup<SatelliteSubOption>(
-    opts.els.layerBtns,
+    opts.els.layerBtns ?? null,
     {
       containerId: 'satellite-sub-options',
       getActive: () => satelliteSubOption,
@@ -2855,7 +2828,7 @@ export async function initInteractiveMap(
       themeObserver?.disconnect();
       sunLayer.remove(); // also stops the internal ticker
       if (windRaf) window.cancelAnimationFrame(windRaf);
-      if (tlTimer) window.clearInterval(tlTimer);
+      tlPlayer.stop(); // clears the timeline timer if running
       try {
         map.remove();
       } catch {
