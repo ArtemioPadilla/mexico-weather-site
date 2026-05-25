@@ -32,8 +32,10 @@ test.describe('static routes', () => {
     expect(res.headers()['content-type']).toMatch(/xml/);
     const body = await res.text();
     expect(body).toMatch(/<(urlset|sitemapindex)/);
-    // City landing pages should appear so search engines can discover them.
+    // City + beach landing pages should appear so search engines can
+    // discover them.
     expect(body).toContain('clima/cdmx/');
+    expect(body).toContain('playa/cancun/');
   });
 
   test('clima-1: /clima/cdmx/ has SEO title + H1 with city name', async ({ page }) => {
@@ -49,5 +51,13 @@ test.describe('static routes', () => {
     const href = await cta.getAttribute('href');
     expect(href).toMatch(/forecast\/\?lat=19\.43/);
     expect(href).toMatch(/lng=-99\.13/);
+  });
+
+  test('playa-1: /playa/cancun/ has marine-focused title + H1', async ({ page }) => {
+    await page.goto('playa/cancun/');
+    await expect(page).toHaveTitle(/oleaje en Cancún/);
+    const h1 = page.getByRole('heading', { level: 1 });
+    await expect(h1).toContainText('Cancún');
+    await expect(h1).toContainText('Quintana Roo');
   });
 });
