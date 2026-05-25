@@ -137,6 +137,7 @@ import {
   formatDistance as measureFmtDist,
   formatArea as measureFmtArea,
 } from './map/utils';
+import { createVolcanoesOverlay } from './map/overlays/volcanoes';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -2372,78 +2373,10 @@ export async function initInteractiveMap(
     });
   }
 
-  // ----------------------------------------------------------------
-  // Active volcanoes overlay — MX-unique. Static list of currently-
-  // monitored MX volcanoes (CENAPRED). Static because there are only
-  // a handful, locations don't change, and no public CORS-friendly
-  // live activity feed is available.
-  // ----------------------------------------------------------------
-  const VOLCANOES_SOURCE = 'wx-volcanoes-src';
-  const VOLCANOES_CIRCLE_LAYER = 'wx-volcanoes-circle';
-  const VOLCANOES_LABEL_LAYER = 'wx-volcanoes-label';
-  const MX_VOLCANOES: { name: string; lng: number; lat: number }[] = [
-    { name: 'Popocatépetl', lng: -98.6225, lat: 19.0231 },
-    { name: 'Colima (Fuego)', lng: -103.6175, lat: 19.5142 },
-    { name: 'El Chichón', lng: -93.2289, lat: 17.36 },
-    { name: 'Tacaná', lng: -92.111, lat: 15.13 },
-    { name: 'Citlaltépetl', lng: -97.268, lat: 19.03 },
-    { name: 'Tres Vírgenes', lng: -112.59, lat: 27.47 },
-    { name: 'Bárcena (San Benedicto)', lng: -110.812, lat: 19.302 },
-    { name: 'Evermann (Socorro)', lng: -111.045, lat: 18.78 },
-  ];
-
-  function setVolcanoesEnabled(on: boolean): void {
-    if (!on) {
-      if (map.getLayer(VOLCANOES_LABEL_LAYER))
-        map.removeLayer(VOLCANOES_LABEL_LAYER);
-      if (map.getLayer(VOLCANOES_CIRCLE_LAYER))
-        map.removeLayer(VOLCANOES_CIRCLE_LAYER);
-      if (map.getSource(VOLCANOES_SOURCE))
-        map.removeSource(VOLCANOES_SOURCE);
-      return;
-    }
-    if (map.getSource(VOLCANOES_SOURCE)) return;
-    const data: FeatureCollection = {
-      type: 'FeatureCollection',
-      features: MX_VOLCANOES.map((v) => ({
-        type: 'Feature',
-        properties: { name: v.name, label: `🌋 ${v.name}` },
-        geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
-      })),
-    };
-    map.addSource(VOLCANOES_SOURCE, { type: 'geojson', data });
-    map.addLayer({
-      id: VOLCANOES_CIRCLE_LAYER,
-      type: 'circle',
-      source: VOLCANOES_SOURCE,
-      paint: {
-        'circle-radius': 6,
-        'circle-color': '#dc2626',
-        'circle-opacity': 0.85,
-        'circle-stroke-color': '#fef3c7',
-        'circle-stroke-width': 1.2,
-      },
-    });
-    map.addLayer({
-      id: VOLCANOES_LABEL_LAYER,
-      type: 'symbol',
-      source: VOLCANOES_SOURCE,
-      minzoom: 5,
-      layout: {
-        'text-field': ['get', 'label'],
-        'text-size': 11,
-        'text-offset': [0, 1.1],
-        'text-anchor': 'top',
-        'text-allow-overlap': false,
-        'text-optional': true,
-      },
-      paint: {
-        'text-color': '#dc2626',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1.2,
-      },
-    });
-  }
+  // Active volcanoes overlay — extracted to src/lib/map/overlays/volcanoes.ts
+  // (refactor: see PLAN_UX_PARITY.md §Refactor). Factory returns an
+  // object matching the overlay registry interface.
+  const volcanoesOverlay = createVolcanoesOverlay(map);
 
   // ----------------------------------------------------------------
   // Air-quality (PM2.5) by city — MX-unique. Open-Meteo air-quality
@@ -4356,8 +4289,8 @@ export async function initInteractiveMap(
       id: 'volcanoes',
       label: 'Volcanes activos',
       shortcut: 'J',
-      isEnabled: () => !!map.getLayer(VOLCANOES_CIRCLE_LAYER),
-      setEnabled: (on) => setVolcanoesEnabled(on),
+      isEnabled: () => volcanoesOverlay.isEnabled(),
+      setEnabled: (on) => volcanoesOverlay.setEnabled(on),
     },
     {
       id: 'cityValues',
