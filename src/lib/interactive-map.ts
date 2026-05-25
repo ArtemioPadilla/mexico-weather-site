@@ -1142,6 +1142,7 @@ export async function initInteractiveMap(
     gridCols: FIELD_GRID_COLS,
     gridRows: FIELD_GRID_ROWS,
     getModel: () => activeModel,
+    base,
   });
 
 
@@ -1267,6 +1268,17 @@ export async function initInteractiveMap(
     fieldBlobUrl = render.blobUrl;
   }
 
+  /** Default hourly variables we pre-bake via the field-grids.yml
+   *  workflow. When the user hasn't touched a sub-option AND is on
+   *  best_match, the static cache is byte-compatible with the live
+   *  response and we can skip the live API entirely. */
+  const STATIC_FIELD_VARS: ReadonlySet<string> = new Set([
+    'temperature_2m',
+    'relative_humidity_2m',
+    'pressure_msl',
+    'cloud_cover',
+  ]);
+
   async function loadFieldGrid(layerId: string): Promise<boolean> {
     const cfg = FIELD_CONFIGS[layerId];
     if (!cfg) return false;
@@ -1282,6 +1294,42 @@ export async function initInteractiveMap(
     fieldAbort?.abort();
     const ac = new AbortController();
     fieldAbort = ac;
+
+    // Static-first: when the current sub-option resolves to a pre-baked
+    // hourly variable on best_match, try the snapshot before the live
+    // API. Static returns the same FieldGrid shape so no conversion
+    // needed; on miss / network failure we fall through to live.
+    const wantsStatic =
+      activeModel === 'best_match' && STATIC_FIELD_VARS.has(cfg.hourlyVar);
+    if (wantsStatic) {
+      try {
+        const r = await deps.fetch(
+          `${base}data/field-grids/${cfg.hourlyVar}.json`,
+          { signal: ac.signal },
+        );
+        if (!ac.signal.aborted && r.ok) {
+          const snap = (await r.json()) as FieldGrid | null;
+          if (
+            snap &&
+            Array.isArray(snap.points) &&
+            snap.points.length === grid.length &&
+            Array.isArray(snap.times) &&
+            snap.times.length > 0
+          ) {
+            fieldGrid = snap;
+            if (layerId === 'temperature') lastTempGrid = snap;
+            else if (layerId === 'humidity') lastHumidityGrid = snap;
+            else if (layerId === 'pressure') lastPressureGrid = snap;
+            if (fieldAbort === ac) fieldAbort = null;
+            return true;
+          }
+        }
+      } catch {
+        /* fall through to live */
+      }
+      if (ac.signal.aborted) return false;
+    }
+
     // Cold-load resilience: the first Open-Meteo fetch occasionally
     // fails (network race on page init, transient DNS, etc.). Retry
     // once after 500 ms before falling back to base layer — empirically

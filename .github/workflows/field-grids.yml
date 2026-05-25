@@ -1,0 +1,52 @@
+name: Map Field Grids
+
+# Pre-bakes Open-Meteo field grids (32x24) for the default
+# /mapa layers — temperature, humidity, pressure, cloud cover. The
+# interactive map reads these on first paint so the initial overlay
+# load doesn't pay for a ~5-KB-URL bulk request. Sub-options and
+# non-default NWP models still go through the live API.
+
+on:
+  schedule:
+    - cron: '37 * * * *'  # offset from other hourly snapshots
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: field-grids
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh field-grid snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Build field-grid snapshots
+        run: python3 scripts/build-field-grids.py
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A public/data/field-grids/
+          git diff --cached --quiet || (
+            git commit -m 'chore: refresh field-grid snapshots' &&
+            git push &&
+            echo 'committed=true' >> "$GITHUB_OUTPUT"
+          )
+
+      - name: Trigger CD deploy
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run cd.yml

@@ -11,6 +11,7 @@
 import type maplibregl from 'maplibre-gl';
 import {
   buildFieldUrl,
+  type FieldGrid,
   parseFieldResponse,
   viewportGrid,
 } from '../../mapfields';
@@ -31,6 +32,10 @@ export interface CloudsOverlayDeps {
   gridRows: number;
   /** Optional NWP model id (passed through to buildFieldUrl). */
   getModel?: () => string;
+  /** Optional site base. When set + model is best_match, the overlay
+   *  reads the static cloud_cover snapshot from
+   *  ${base}data/field-grids/cloud_cover.json before the live API. */
+  base?: string;
 }
 
 export function createCloudsOverlay(
@@ -68,14 +73,46 @@ export function createCloudsOverlay(
       const bounds: RasterBounds = { ...deps.bounds };
       const grid = viewportGrid(bounds, deps.gridCols, deps.gridRows);
       try {
-        const url = buildFieldUrl(grid, 'cloud_cover', deps.getModel?.());
-        const res = await deps.fetch(url, { signal: ac.signal });
-        if (!res.ok || ac.signal.aborted) return;
-        const cloudGrid = parseFieldResponse(
-          await res.json(),
-          grid,
-          'cloud_cover',
-        );
+        let cloudGrid: FieldGrid | null = null;
+
+        // Static-first: only on best_match (or no explicit model)
+        // does the snapshot match the live response exactly.
+        const model = deps.getModel?.();
+        const canUseStatic = !model || model === 'best_match';
+        if (deps.base && canUseStatic) {
+          try {
+            const r = await deps.fetch(
+              `${deps.base}data/field-grids/cloud_cover.json`,
+              { signal: ac.signal },
+            );
+            if (r.ok && !ac.signal.aborted) {
+              const snap = (await r.json()) as FieldGrid | null;
+              if (
+                snap &&
+                Array.isArray(snap.points) &&
+                snap.points.length === grid.length &&
+                Array.isArray(snap.times) &&
+                snap.times.length > 0
+              ) {
+                cloudGrid = snap;
+              }
+            }
+          } catch {
+            /* fall through to live */
+          }
+        }
+        if (ac.signal.aborted) return;
+
+        if (!cloudGrid) {
+          const url = buildFieldUrl(grid, 'cloud_cover', model);
+          const res = await deps.fetch(url, { signal: ac.signal });
+          if (!res.ok || ac.signal.aborted) return;
+          cloudGrid = parseFieldResponse(
+            await res.json(),
+            grid,
+            'cloud_cover',
+          );
+        }
         if (!cloudGrid || ac.signal.aborted) return;
         // Render grayscale raster: alpha = clamp(cloud% / 100, 0..0.85).
         // White colour so light cloud reads as haze, dense cloud reads
