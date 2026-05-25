@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { TOP_CITIES, type TopCity } from '../../lib/top-cities';
 import { siteBase } from '../../utils/paths';
+import { breadcrumbLd, cityLd } from '../../lib/structured-data';
 
 /**
  * Statically generated per-city landing page (one per slug in
@@ -41,9 +42,26 @@ const description =
   `Pronóstico del tiempo para ${city.name}, ${city.admin}. ` +
   `Temperatura actual, lluvia, viento y los próximos 7 días. ` +
   `Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.`;
+
+const canonical = new URL(`${base}clima/${city.slug}/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  cityLd({
+    name: city.name,
+    admin: city.admin,
+    lat: city.lat,
+    lng: city.lng,
+    canonical,
+  }),
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Clima por ciudad', url: homeUrl },
+    { name: city.name, url: canonical },
+  ]),
+];
 ---
 
-<BaseLayout title={title} description={description} lang="es">
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <nav aria-label="breadcrumb" class="text-sm">
