@@ -129,7 +129,14 @@ export interface InteractiveMapFeatures {
 // (extracted in F2 of the architecture migration — see docs/ARCHITECTURE.md).
 // Re-imported here so existing call sites in this monolith keep working
 // unchanged.
-import { cachedFetch, formatLatLngDM } from './map/utils';
+import {
+  cachedFetch,
+  formatLatLngDM,
+  polylineLengthKm as measurePolylineLen,
+  sphericalAreaKm2 as measureSphArea,
+  formatDistance as measureFmtDist,
+  formatArea as measureFmtArea,
+} from './map/utils';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -4601,6 +4608,139 @@ export async function initInteractiveMap(
         () => showMsg(t.geo_denied),
         { timeout: 10000 },
       );
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Measure tools (plan P2.1). Two modes — 'distance' (open polyline)
+  // and 'area' (closed polygon). Pure math lives in
+  // src/lib/map/utils/measure.ts; this block is the MapLibre wiring.
+  // ESC exits the active mode.
+  if (features.layerRail) {
+    const MEASURE_SOURCE = 'mw-measure-src';
+    const MEASURE_LINE_LAYER = 'mw-measure-line';
+    const MEASURE_POINTS_LAYER = 'mw-measure-points';
+    type MeasureMode = 'distance' | 'area' | null;
+    let measureMode: MeasureMode = null;
+    let measurePts: [number, number][] = [];
+    const distBtn = document.getElementById('mw-measure-distance');
+    const areaBtn = document.getElementById('mw-measure-area');
+    const wrap = document.getElementById('mw-measure-wrap');
+    const resultEl = document.getElementById('mw-measure-result');
+    function ensureMeasureLayers(): void {
+      if (!map.getSource(MEASURE_SOURCE)) {
+        map.addSource(MEASURE_SOURCE, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+      }
+      if (!map.getLayer(MEASURE_LINE_LAYER)) {
+        map.addLayer({
+          id: MEASURE_LINE_LAYER,
+          type: 'line',
+          source: MEASURE_SOURCE,
+          filter: ['==', ['geometry-type'], 'LineString'],
+          paint: {
+            'line-color': '#2563eb',
+            'line-width': 2.5,
+            'line-dasharray': [2, 2],
+          },
+        });
+      }
+      if (!map.getLayer(MEASURE_POINTS_LAYER)) {
+        map.addLayer({
+          id: MEASURE_POINTS_LAYER,
+          type: 'circle',
+          source: MEASURE_SOURCE,
+          filter: ['==', ['geometry-type'], 'Point'],
+          paint: {
+            'circle-radius': 4,
+            'circle-color': '#2563eb',
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.5,
+          },
+        });
+      }
+    }
+    function refreshMeasureGeometry(): void {
+      ensureMeasureLayers();
+      const src = map.getSource(MEASURE_SOURCE) as
+        | maplibregl.GeoJSONSource
+        | undefined;
+      if (!src) return;
+      const features: Feature[] = measurePts.map((p) => ({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Point', coordinates: p },
+      }));
+      if (measurePts.length >= 2) {
+        const coords =
+          measureMode === 'area' && measurePts.length >= 3
+            ? [...measurePts, measurePts[0]]
+            : measurePts;
+        features.push({
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: coords },
+        });
+      }
+      src.setData({ type: 'FeatureCollection', features });
+    }
+    function refreshMeasureResult(): void {
+      if (!resultEl) return;
+      if (!measureMode || measurePts.length < 1) {
+        resultEl.classList.add('hidden');
+        resultEl.textContent = '';
+        return;
+      }
+      if (measureMode === 'distance') {
+        if (measurePts.length < 2) {
+          resultEl.textContent = 'Toca otro punto para medir';
+        } else {
+          const km = measurePolylineLen(measurePts);
+          const n = measurePts.length - 1;
+          resultEl.textContent = `${measureFmtDist(km)} · ${n} ${n === 1 ? 'segmento' : 'segmentos'}`;
+        }
+      } else {
+        if (measurePts.length < 3) {
+          resultEl.textContent = `Añade ${3 - measurePts.length} punto(s) más`;
+        } else {
+          const km2 = measureSphArea(measurePts);
+          resultEl.textContent = measureFmtArea(km2);
+        }
+      }
+      resultEl.classList.remove('hidden');
+    }
+    function setMeasureMode(next: MeasureMode): void {
+      measureMode = next;
+      measurePts = [];
+      distBtn?.setAttribute('aria-pressed', String(next === 'distance'));
+      areaBtn?.setAttribute('aria-pressed', String(next === 'area'));
+      refreshMeasureGeometry();
+      refreshMeasureResult();
+      map.getCanvas().style.cursor = next ? 'crosshair' : '';
+    }
+    distBtn?.addEventListener('click', () => {
+      setMeasureMode(measureMode === 'distance' ? null : 'distance');
+    });
+    areaBtn?.addEventListener('click', () => {
+      setMeasureMode(measureMode === 'area' ? null : 'area');
+    });
+    map.on('click', (e) => {
+      if (!measureMode) return;
+      measurePts.push([e.lngLat.lng, e.lngLat.lat]);
+      refreshMeasureGeometry();
+      refreshMeasureResult();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && measureMode) {
+        e.preventDefault();
+        setMeasureMode(null);
+      }
+    });
+    map.once('idle', () => {
+      wrap?.classList.remove('hidden');
+      wrap?.classList.add('flex');
     });
   }
 

@@ -21,3 +21,11 @@ export {
   bearingToCardinal16,
   bearingToArrow,
 } from './geo-format';
+
+export {
+  haversineKm,
+  polylineLengthKm,
+  sphericalAreaKm2,
+  formatDistance,
+  formatArea,
+} from './measure';
