@@ -164,6 +164,7 @@ import {
   writeSettings,
 } from './map/settings';
 import { createAutocompleteController } from './map/chrome/autocomplete';
+import { createSnapshotCompare } from './map/chrome/snapshot-compare';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -3459,54 +3460,16 @@ export async function initInteractiveMap(
   // extra network fetches — pure client-side canvas → data URL.
   // ----------------------------------------------------------------
   if (features.layerRail) {
-    const snapCapBtn = document.getElementById('mw-snapshot-capture');
-    const snapToggleBtn = document.getElementById('mw-snapshot-toggle');
-    const snapClearBtn = document.getElementById('mw-snapshot-clear');
-    const snapImg = document.getElementById(
-      'mw-snapshot-img',
-    ) as HTMLImageElement | null;
-    let snapVisible = true;
-    function refreshSnapBtns(): void {
-      if (!snapImg) return;
-      const has = !!snapImg.src;
-      snapCapBtn?.classList.toggle('hidden', has);
-      snapToggleBtn?.classList.toggle('hidden', !has);
-      snapClearBtn?.classList.toggle('hidden', !has);
-      snapImg.classList.toggle('hidden', !has || !snapVisible);
-      if (snapToggleBtn) {
-        snapToggleBtn.textContent = snapVisible
-          ? '👁 Ocultar comparación'
-          : '👁 Mostrar comparación';
-        snapToggleBtn.setAttribute('aria-pressed', String(snapVisible));
-      }
-    }
-    snapCapBtn?.addEventListener('click', () => {
-      try {
-        // MapLibre needs preserveDrawingBuffer=true to read the canvas;
-        // we trigger a synchronous render first to ensure we capture
-        // the most recent frame.
-        map.triggerRepaint();
-        const url = map.getCanvas().toDataURL('image/png');
-        if (snapImg) {
-          snapImg.src = url;
-          snapVisible = true;
-          refreshSnapBtns();
-        }
-      } catch {
-        /* WebGL context lost / canvas tainted — degrade silently */
-      }
-    });
-    snapToggleBtn?.addEventListener('click', () => {
-      snapVisible = !snapVisible;
-      refreshSnapBtns();
-    });
-    snapClearBtn?.addEventListener('click', () => {
-      if (!snapImg) return;
-      snapImg.removeAttribute('src');
-      snapVisible = true;
-      refreshSnapBtns();
-    });
-    refreshSnapBtns();
+    // Snapshot compare tool — extracted to chrome/snapshot-compare.ts.
+    createSnapshotCompare({
+      map,
+      captureBtn: document.getElementById('mw-snapshot-capture'),
+      toggleBtn: document.getElementById('mw-snapshot-toggle'),
+      clearBtn: document.getElementById('mw-snapshot-clear'),
+      imgEl: document.getElementById(
+        'mw-snapshot-img',
+      ) as HTMLImageElement | null,
+    }).refresh();
   }
 
   return {
