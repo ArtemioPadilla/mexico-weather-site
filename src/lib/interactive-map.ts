@@ -177,6 +177,7 @@ import { createCityValuesOverlay } from './map/overlays/city-values';
 import { createTimelinePlayer } from './map/chrome/timeline-player';
 import { createSubOptionsGroup } from './map/chrome/sub-options';
 import { createPinManager } from './map/chrome/pin-manager';
+import { createOverlayRegistry } from './map/chrome/overlay-registry';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -2339,78 +2340,26 @@ export async function initInteractiveMap(
     },
   ];
 
-  function buildOverlayCheckboxes(): void {
-    const wrap = opts.els.overlayBtns;
-    if (!wrap || !features.layerRail) return;
-    for (const def of overlayDefs) {
-      const id = `overlay-${def.id}`;
-      const row = document.createElement('label');
-      row.htmlFor = id;
-      row.className =
-        'flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 hover:bg-blue-500/10';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.id = id;
-      cb.checked = def.isEnabled();
-      cb.className = 'accent-blue-600';
-      cb.addEventListener('change', () => def.setEnabled(cb.checked));
-      const lbl = document.createElement('span');
-      lbl.textContent = def.label;
-      lbl.className = 'flex-1';
-      const kbd = document.createElement('kbd');
-      kbd.textContent = def.shortcut;
-      kbd.className =
-        'rounded border border-gray-500/40 px-1 text-[10px] font-mono text-gray-400';
-      row.appendChild(cb);
-      row.appendChild(lbl);
-      row.appendChild(kbd);
-      wrap.appendChild(row);
-    }
-  }
-  buildOverlayCheckboxes();
-
-  function refreshOverlayCheckboxes(): void {
-    for (const def of overlayDefs) {
-      const cb = document.getElementById(
-        `overlay-${def.id}`,
-      ) as HTMLInputElement | null;
-      if (cb) cb.checked = def.isEnabled();
-    }
-  }
-
-  // Keyboard shortcuts to activate layers (zoom.earth M/R/A/T/H/P/V/L parity).
-  // Only bound when the layer rail is enabled (full /mapa page); embeds
-  // don't hijack global key events. Ignores keys typed into inputs/textareas.
+  // Overlay registry — extracted to chrome/overlay-registry.ts. Owns
+  // the Superposiciones panel build + the global keyboard shortcuts.
+  const overlayRegistry = createOverlayRegistry(
+    { wrap: features.layerRail ? opts.els.overlayBtns ?? null : null },
+    overlayDefs,
+    {
+      layers: LAYERS.filter(
+        (l): l is typeof l & { shortcut: string } => !!l.shortcut,
+      ).map((l) => ({ shortcut: l.shortcut, id: l.id })),
+      onLayerShortcut: (id) => void setActiveLayer(id),
+    },
+  );
+  overlayRegistry.build();
+  const refreshOverlayCheckboxes = (): void => overlayRegistry.refresh();
   if (features.layerRail) {
-    window.addEventListener('keydown', (e) => {
-      // Don't capture keys while the user is typing in an input/textarea or
-      // when a modifier is held (so cmd+R reload still works).
-      const target = e.target as HTMLElement | null;
-      if (
-        e.ctrlKey ||
-        e.metaKey ||
-        e.altKey ||
-        (target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.isContentEditable))
-      ) {
-        return;
+    (
+      overlayRegistry as ReturnType<typeof createOverlayRegistry> & {
+        installShortcuts: () => void;
       }
-      const key = e.key.toUpperCase();
-      const match = LAYERS.find((l) => l.shortcut === key);
-      if (match) {
-        e.preventDefault();
-        void setActiveLayer(match.id);
-        return;
-      }
-      const overlay = overlayDefs.find((o) => o.shortcut === key);
-      if (overlay) {
-        e.preventDefault();
-        overlay.setEnabled(!overlay.isEnabled());
-        refreshOverlayCheckboxes();
-      }
-    });
+    ).installShortcuts();
   }
 
   const opacityEl = features.layerRail ? opts.els.opacity ?? null : null;
