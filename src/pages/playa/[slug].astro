@@ -1,0 +1,226 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { TOP_BEACHES, type TopBeach } from '../../lib/top-beaches';
+import { siteBase } from '../../utils/paths';
+
+/**
+ * Statically generated per-beach landing pages (one per slug in
+ * TOP_BEACHES). Mirrors the structure of /clima/<slug>/ but the
+ * hydrated widget surfaces marine data (wave height + sea-surface
+ * temperature) from the shared marine-snapshot.json — no separate
+ * GH Action needed.
+ *
+ * Slugs intentionally overlap with /clima/<slug>/ for cities that
+ * are both metros and beach destinations (cancun, acapulco, …). The
+ * path prefix disambiguates and both pages cross-link.
+ */
+export function getStaticPaths() {
+  return TOP_BEACHES.map((beach) => ({
+    params: { slug: beach.slug },
+    props: {
+      beach,
+      otherBeaches: TOP_BEACHES.filter((b) => b.slug !== beach.slug).slice(0, 8),
+    },
+  }));
+}
+
+const { beach, otherBeaches } = Astro.props as {
+  beach: TopBeach;
+  otherBeaches: TopBeach[];
+};
+
+const base = siteBase();
+const forecastHref =
+  `${base}forecast/?lat=${beach.lat}&lng=${beach.lng}` +
+  `&name=${encodeURIComponent(beach.name)}` +
+  `&admin=${encodeURIComponent(beach.admin)}` +
+  `&tz=America/Mexico_City`;
+
+const title = `Clima y oleaje en ${beach.name} — Pronóstico de playa`;
+const description =
+  `Estado del mar en ${beach.name}, ${beach.admin}. ` +
+  `Altura de las olas, temperatura del mar y pronóstico marino. ` +
+  `Datos de Open-Meteo Marine, sin cuentas ni cookies.`;
+---
+
+<BaseLayout title={title} description={description} lang="es">
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li>Playas</li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">{beach.name}</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <span aria-hidden="true">🌊</span> Mar en {beach.name},
+          <span class="text-gray-700 dark:text-gray-300">{beach.admin}</span>
+        </h1>
+        <p class="text-base text-gray-700 dark:text-gray-300">
+          Estado del mar para {beach.name}: altura de las olas y temperatura del agua.
+          Datos del modelo marino de Open-Meteo, actualizados cada hora.
+        </p>
+      </header>
+
+      <section
+        aria-labelledby="marine-h"
+        class="rounded-lg border border-gray-200 bg-gradient-to-br from-cyan-50 to-blue-50 p-5 dark:border-gray-800 dark:from-gray-900 dark:to-gray-900"
+      >
+        <h2 id="marine-h" class="text-lg font-semibold">Ahora en la costa</h2>
+        <div id="m-loading" aria-hidden="true" class="mt-3 space-y-2 animate-pulse">
+          <div class="h-10 w-40 rounded bg-gray-200 dark:bg-gray-800"></div>
+          <div class="h-4 w-56 rounded bg-gray-200 dark:bg-gray-800"></div>
+        </div>
+        <div id="m-content" class="mt-3 hidden grid gap-4 sm:grid-cols-2">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Altura de las olas
+            </p>
+            <p class="mt-1">
+              <span id="m-wave" class="text-3xl font-bold tabular-nums">—</span>
+              <span class="text-base text-gray-500 dark:text-gray-400">m</span>
+            </p>
+            <p id="m-wave-label" class="text-sm text-gray-600 dark:text-gray-400">—</p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Temperatura del mar
+            </p>
+            <p class="mt-1">
+              <span id="m-sst" class="text-3xl font-bold tabular-nums">—</span>
+              <span class="text-base text-gray-500 dark:text-gray-400">°C</span>
+            </p>
+            <p id="m-sst-label" class="text-sm text-gray-600 dark:text-gray-400">—</p>
+          </div>
+        </div>
+        <p id="m-error" class="mt-3 hidden text-sm text-red-600 dark:text-red-400">
+          No pudimos cargar los datos marinos. <a href={forecastHref} class="underline">Ver el pronóstico general</a>.
+        </p>
+      </section>
+
+      <a
+        href={forecastHref}
+        class="block rounded-lg bg-cyan-700 px-5 py-4 text-center text-white shadow-sm hover:bg-cyan-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 dark:bg-cyan-600 dark:hover:bg-cyan-700"
+      >
+        <span class="font-semibold">Ver pronóstico completo de {beach.name}</span>
+        <span class="block text-sm opacity-90">
+          7 días, mapa interactivo, alertas SMN
+        </span>
+      </a>
+
+      <section
+        aria-labelledby="meta-h"
+        class="text-sm text-gray-600 dark:text-gray-400"
+      >
+        <h2 id="meta-h" class="sr-only">Detalles de ubicación</h2>
+        <p>Coordenadas: {beach.lat.toFixed(2)}°, {beach.lng.toFixed(2)}°</p>
+      </section>
+
+      <nav aria-label="Otras playas" class="border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Otras playas
+        </h2>
+        <ul class="flex flex-wrap gap-2">
+          {
+            otherBeaches.map((b) => (
+              <li>
+                <a
+                  href={`${base}playa/${b.slug}/`}
+                  class="inline-block rounded-md border border-gray-200 px-3 py-1 text-sm text-cyan-700 hover:bg-cyan-50 dark:border-gray-700 dark:text-cyan-400 dark:hover:bg-gray-900"
+                >
+                  {b.name}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </main>
+
+  <div
+    id="beach-data"
+    data-name={beach.name}
+    data-base={base}
+    class="hidden"
+  ></div>
+
+  <script>
+    const dataEl = document.getElementById('beach-data');
+    const beachName = dataEl?.dataset.name ?? '';
+    const base = dataEl?.dataset.base ?? '/';
+
+    interface MarineFeature {
+      properties?: { name?: string; hs?: number };
+      geometry?: { coordinates?: number[] };
+    }
+    interface MarineDoc {
+      features?: MarineFeature[];
+    }
+
+    function waveLabel(hs: number): string {
+      if (hs < 0.5) return 'Mar calmo';
+      if (hs < 1.0) return 'Olas pequeñas';
+      if (hs < 1.5) return 'Olas moderadas';
+      if (hs < 2.5) return 'Olas grandes';
+      return 'Olas peligrosas';
+    }
+
+    function sstLabel(sst: number): string {
+      if (sst < 18) return 'Frío';
+      if (sst < 22) return 'Fresco';
+      if (sst < 26) return 'Templado';
+      if (sst < 29) return 'Cálido';
+      return 'Muy cálido';
+    }
+
+    async function run(): Promise<void> {
+      const loadingEl = document.getElementById('m-loading');
+      const contentEl = document.getElementById('m-content');
+      const errorEl = document.getElementById('m-error');
+      try {
+        const r = await fetch(`${base}data/marine-snapshot.json`);
+        if (!r.ok) throw new Error('no snapshot');
+        const doc = (await r.json()) as MarineDoc;
+        const f = (doc.features ?? []).find(
+          (x) => x?.properties?.name === beachName,
+        );
+        if (!f) throw new Error('beach not in snapshot');
+
+        // The snapshot only carries hs (wave height) in properties and
+        // SST is implicit in the color ramp. Parse the label string
+        // emitted by build-marine-snapshot.py to recover the SST
+        // integer — '<name>\n🌊 1.2 m\n🌡 26°'.
+        const labelRaw = (f.properties as { label?: string } | undefined)?.label ?? '';
+        const sstMatch = /🌡\s*(-?\d+)/.exec(labelRaw);
+        const hs = typeof f.properties?.hs === 'number' ? f.properties.hs : null;
+        const sst = sstMatch ? Number(sstMatch[1]) : null;
+
+        loadingEl?.classList.add('hidden');
+        contentEl?.classList.remove('hidden');
+        const waveEl = document.getElementById('m-wave');
+        const waveLbl = document.getElementById('m-wave-label');
+        const sstEl = document.getElementById('m-sst');
+        const sstLbl = document.getElementById('m-sst-label');
+        if (waveEl) waveEl.textContent = hs === null ? '—' : hs.toFixed(1);
+        if (waveLbl) waveLbl.textContent = hs === null ? '—' : waveLabel(hs);
+        if (sstEl) sstEl.textContent = sst === null ? '—' : String(sst);
+        if (sstLbl) sstLbl.textContent = sst === null ? '—' : sstLabel(sst);
+      } catch {
+        loadingEl?.classList.add('hidden');
+        errorEl?.classList.remove('hidden');
+      }
+    }
+
+    void run();
+  </script>
+</BaseLayout>
