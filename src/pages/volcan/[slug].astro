@@ -1,0 +1,178 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { MX_VOLCANOES, type MxVolcano } from '../../lib/mx-volcanoes';
+import { siteBase } from '../../utils/paths';
+import { breadcrumbLd } from '../../lib/structured-data';
+
+/**
+ * Per-volcano landing pages — one per entry in MX_VOLCANOES (7
+ * monitored Mexican volcanoes). Each page server-renders biographical
+ * info (location, elevation, last eruption, brief context) and links
+ * out to CENAPRED for the live activity report. Pure static content
+ * — CENAPRED doesn't expose CORS-enabled JSON so we can't safely
+ * embed current alert levels here.
+ *
+ * Also links to the nearest weather forecast at the volcano's
+ * coordinates so users can check conditions for a hike or for the
+ * regional impact of an ash advisory.
+ */
+export function getStaticPaths() {
+  return MX_VOLCANOES.map((volcano) => ({
+    params: { slug: volcano.slug },
+    props: {
+      volcano,
+      otherVolcanoes: MX_VOLCANOES.filter((v) => v.slug !== volcano.slug),
+    },
+  }));
+}
+
+const { volcano, otherVolcanoes } = Astro.props as {
+  volcano: MxVolcano;
+  otherVolcanoes: MxVolcano[];
+};
+
+const base = siteBase();
+
+const forecastHref =
+  `${base}forecast/?lat=${volcano.lat}&lng=${volcano.lng}` +
+  `&name=${encodeURIComponent(volcano.name)}` +
+  `&admin=${encodeURIComponent(volcano.admin)}` +
+  `&tz=America/Mexico_City`;
+
+const title = `Volcán ${volcano.name} — Clima y monitoreo`;
+const description =
+  `Información sobre el volcán ${volcano.name} en ${volcano.admin}, ` +
+  `México: ubicación, elevación, última erupción y enlaces al monitoreo ` +
+  `oficial de CENAPRED.`;
+
+const canonical = new URL(`${base}volcan/${volcano.slug}/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `Volcán ${volcano.name}`,
+    url: canonical,
+    inLanguage: 'es-MX',
+    about: {
+      '@type': 'Mountain',
+      name: volcano.name,
+      elevation: `${volcano.elevationM} m`,
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: volcano.lat,
+        longitude: volcano.lng,
+      },
+    },
+  },
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Volcanes', url: homeUrl },
+    { name: volcano.name, url: canonical },
+  ]),
+];
+---
+
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li>Volcanes</li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">{volcano.name}</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <span aria-hidden="true">🌋</span> Volcán {volcano.name}
+        </h1>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{volcano.admin}</p>
+      </header>
+
+      <section class="prose prose-sm max-w-none dark:prose-invert">
+        <p class="text-base text-gray-800 dark:text-gray-200">{volcano.summary}</p>
+      </section>
+
+      <dl
+        class="grid grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm dark:border-gray-800 dark:bg-gray-900"
+      >
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Elevación
+          </dt>
+          <dd class="mt-1 font-semibold tabular-nums">{volcano.elevationM} m</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Última erupción
+          </dt>
+          <dd class="mt-1 font-semibold tabular-nums">
+            {volcano.lastEruptionYear === null ? 'Sin registro' : volcano.lastEruptionYear}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Latitud</dt>
+          <dd class="mt-1 font-mono text-sm">{volcano.lat.toFixed(3)}°</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Longitud</dt>
+          <dd class="mt-1 font-mono text-sm">{volcano.lng.toFixed(3)}°</dd>
+        </div>
+      </dl>
+
+      {
+        volcano.cenapredUrl && (
+          <a
+            href={volcano.cenapredUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block rounded-lg border-2 border-orange-500 bg-orange-50 px-5 py-4 text-orange-900 hover:bg-orange-100 dark:border-orange-600 dark:bg-orange-950 dark:text-orange-200 dark:hover:bg-orange-900"
+          >
+            <span class="font-semibold">Reporte oficial CENAPRED →</span>
+            <span class="block text-sm opacity-90">
+              Semáforo de Alerta Volcánica actualizado y boletín diario
+            </span>
+          </a>
+        )
+      }
+
+      <a
+        href={forecastHref}
+        class="block rounded-lg bg-blue-600 px-5 py-4 text-center text-white shadow-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600"
+      >
+        <span class="font-semibold">Clima en la zona del {volcano.name}</span>
+        <span class="block text-sm opacity-90">
+          Viento, visibilidad y temperatura para evaluar dispersión de ceniza o ascenso
+        </span>
+      </a>
+
+      <nav aria-label="Otros volcanes" class="border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Otros volcanes
+        </h2>
+        <ul class="flex flex-wrap gap-2">
+          {
+            otherVolcanoes.map((v) => (
+              <li>
+                <a
+                  href={`${base}volcan/${v.slug}/`}
+                  class="inline-block rounded-md border border-gray-200 px-3 py-1 text-sm text-orange-700 hover:bg-orange-50 dark:border-gray-700 dark:text-orange-400 dark:hover:bg-gray-900"
+                >
+                  {v.name}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </main>
+</BaseLayout>

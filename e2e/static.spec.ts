@@ -37,6 +37,7 @@ test.describe('static routes', () => {
     expect(body).toContain('clima/cdmx/');
     expect(body).toContain('playa/cancun/');
     expect(body).toContain('estado/jalisco/');
+    expect(body).toContain('volcan/popocatepetl/');
   });
 
   test('clima-1: /clima/cdmx/ has SEO title + H1 with city name', async ({ page }) => {
@@ -52,6 +53,20 @@ test.describe('static routes', () => {
     const href = await cta.getAttribute('href');
     expect(href).toMatch(/forecast\/\?lat=19\.43/);
     expect(href).toMatch(/lng=-99\.13/);
+  });
+
+  test('volcan-1: /volcan/popocatepetl/ has volcano title + CENAPRED link', async ({
+    page,
+  }) => {
+    await page.goto('volcan/popocatepetl/');
+    await expect(page).toHaveTitle(/Popocatépetl/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /Popocatépetl/ }),
+    ).toBeVisible();
+    const cenapred = page.getByRole('link', { name: /CENAPRED/ }).first();
+    await expect(cenapred).toBeVisible();
+    const href = await cenapred.getAttribute('href');
+    expect(href).toContain('cenapred');
   });
 
   test('estado-1: /estado/jalisco/ lists Guadalajara as a city', async ({ page }) => {
