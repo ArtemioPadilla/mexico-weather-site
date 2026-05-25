@@ -40,6 +40,15 @@ test.describe('static routes', () => {
     expect(body).toContain('volcan/popocatepetl/');
   });
 
+  test('index-1: /clima/ index lists all 30 cities', async ({ page }) => {
+    await page.goto('clima/');
+    await expect(page).toHaveTitle(/Clima por ciudad en México/);
+    const links = page.locator('main a[href*="/clima/"]');
+    // Each city has one link; plus the home breadcrumb.
+    const count = await links.count();
+    expect(count).toBeGreaterThanOrEqual(30);
+  });
+
   test('clima-1: /clima/cdmx/ has SEO title + H1 with city name', async ({ page }) => {
     await page.goto('clima/cdmx/');
     await expect(page).toHaveTitle(/Clima en Ciudad de México/);

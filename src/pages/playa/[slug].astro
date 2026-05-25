@@ -58,7 +58,7 @@ const jsonLd = [
   }),
   breadcrumbLd([
     { name: 'Inicio', url: homeUrl },
-    { name: 'Playas', url: homeUrl },
+    { name: 'Playas', url: new URL(`${base}playa/`, Astro.site).href },
     { name: beach.name, url: canonical },
   ]),
 ];

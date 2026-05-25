@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { TOP_CITIES } from '../../lib/top-cities';
+import { siteBase } from '../../utils/paths';
+import { breadcrumbLd } from '../../lib/structured-data';
+
+const base = siteBase();
+const title = 'Clima por ciudad en México — Pronóstico de las principales ciudades';
+const description =
+  'Pronóstico del tiempo para las principales ciudades de México: ' +
+  'CDMX, Guadalajara, Monterrey, Puebla, Tijuana y más. ' +
+  'Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.';
+const canonical = new URL(`${base}clima/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Clima por ciudad — México',
+    url: canonical,
+    inLanguage: 'es-MX',
+    description,
+  },
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Clima por ciudad', url: canonical },
+  ]),
+];
+
+// Population-sort so the largest metros are visually first.
+const cities = [...TOP_CITIES].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+---
+
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Clima por ciudad</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Clima por ciudad en México</h1>
+        <p class="text-base text-gray-700 dark:text-gray-300">
+          Pronóstico del tiempo para las {cities.length} principales ciudades de México.
+          Datos del modelo meteorológico de Open-Meteo. Cubre todas las 32 entidades
+          federativas con su capital o ciudad principal.
+        </p>
+      </header>
+
+      <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {
+          cities.map((c) => (
+            <li>
+              <a
+                href={`${base}clima/${c.slug}/`}
+                class="block rounded-md border border-gray-200 p-3 hover:border-blue-500/40 dark:border-gray-800 dark:hover:border-blue-500/40"
+              >
+                <div class="font-medium">{c.name}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">{c.admin}</div>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </main>
+</BaseLayout>

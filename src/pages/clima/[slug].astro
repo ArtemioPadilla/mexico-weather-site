@@ -58,7 +58,7 @@ const jsonLd = [
   }),
   breadcrumbLd([
     { name: 'Inicio', url: homeUrl },
-    { name: 'Clima por ciudad', url: homeUrl },
+    { name: 'Clima por ciudad', url: new URL(`${base}clima/`, Astro.site).href },
     { name: city.name, url: canonical },
   ]),
 ];

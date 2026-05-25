@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { TOP_BEACHES } from '../../lib/top-beaches';
+import { siteBase } from '../../utils/paths';
+import { breadcrumbLd } from '../../lib/structured-data';
+
+const base = siteBase();
+const title = 'Playas de México — Clima, oleaje y temperatura del mar';
+const description =
+  'Estado del mar en las principales playas y destinos costeros de México: ' +
+  'Cancún, Playa del Carmen, Los Cabos, Puerto Vallarta y más. ' +
+  'Altura de las olas y temperatura del mar de Open-Meteo Marine.';
+const canonical = new URL(`${base}playa/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Playas de México',
+    url: canonical,
+    inLanguage: 'es-MX',
+    description,
+  },
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Playas', url: canonical },
+  ]),
+];
+
+const beaches = [...TOP_BEACHES].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+---
+
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Playas</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <span aria-hidden="true">🌊</span> Playas de México
+        </h1>
+        <p class="text-base text-gray-700 dark:text-gray-300">
+          Estado del mar en los {beaches.length} principales destinos costeros de México.
+          Altura de las olas y temperatura del agua actualizados cada hora desde el modelo
+          marino de Open-Meteo.
+        </p>
+      </header>
+
+      <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {
+          beaches.map((b) => (
+            <li>
+              <a
+                href={`${base}playa/${b.slug}/`}
+                class="block rounded-md border border-gray-200 p-3 hover:border-cyan-500/40 dark:border-gray-800 dark:hover:border-cyan-500/40"
+              >
+                <div class="font-medium">{b.name}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">{b.admin}</div>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </main>
+</BaseLayout>
