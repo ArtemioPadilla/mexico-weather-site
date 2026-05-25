@@ -156,6 +156,7 @@ import {
   OSM_TILES as BASEMAP_OSM_TILES,
   CARTO_DARK_TILES as BASEMAP_CARTO_DARK_TILES,
 } from './map/chrome/basemap-theme';
+import { createSunLayer } from './map/layers/sun-layer';
 import { computeIsobars } from './map/utils/isobars';
 
 export interface InteractiveMapOptions {
@@ -990,138 +991,12 @@ export async function initInteractiveMap(
   let windRaf = 0;
   let windTexDirty = true;
 
-  const SUN_SOURCE_SOFT = 'wx-sun-src-soft';
-  const SUN_SOURCE_OUTER = 'wx-sun-src-outer';
-  const SUN_SOURCE_MID = 'wx-sun-src-mid';
-  const SUN_SOURCE_INNER = 'wx-sun-src';
-  const SUN_LAYER_SOFT = 'wx-sun-layer-soft';
-  const SUN_LAYER_OUTER = 'wx-sun-layer-outer';
-  const SUN_LAYER_MID = 'wx-sun-layer-mid';
-  const SUN_LAYER = 'wx-sun-layer';
-  // Soft 2-tier terminator: a wide outer band for the twilight feel and a
-  // crisp inner polygon for deep night. Stacking more polygons (the original
-  // 4-tier #119 stack) produced rectangular-looking masses because adjacent
-  // angular distances stack to ~full opacity over most of the night side,
-  // visually flattening the gradient into a single dark blob. Two tiers
-  // gives a clean curved terminator + a softer day-side feather.
-  const SUN_OPACITY_OUTER = 0.18; // twilight band
-  const SUN_OPACITY_INNER = 0.42; // deep night
-  const SUN_FEATHER_DEG = 1.5;
-  let sunTicker = 0;
-
-  function sunScale(): number {
-    return rvOpacity / 0.45;
-  }
-
-  /**
-   * Build a `fill-opacity` paint expression that scales the base opacity
-   * down at low zooms. At world view (z ≤ 4) Mercator distortion stretches
-   * the day/night polygon into a rectangular-looking mass, so we fade it
-   * to 40% of the configured opacity; from z = 6 upward it fills in to
-   * full strength.
-   *
-   * Typed as a generic data expression — maplibre-gl's
-   * `setPaintProperty`/`addLayer` accept either a number or an expression
-   * array for fill-opacity.
-   */
-  function sunZoomOpacityExpr(base: number): unknown {
-    return [
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      0,
-      base * 0.4,
-      4,
-      base * 0.4,
-      6,
-      base,
-    ];
-  }
-
-  function removeSun(): void {
-    if (sunTicker) {
-      window.clearInterval(sunTicker);
-      sunTicker = 0;
-    }
-    for (const id of [
-      SUN_LAYER,
-      SUN_LAYER_MID,
-      SUN_LAYER_OUTER,
-      SUN_LAYER_SOFT,
-    ]) {
-      if (map.getLayer(id)) map.removeLayer(id);
-    }
-    for (const id of [
-      SUN_SOURCE_INNER,
-      SUN_SOURCE_MID,
-      SUN_SOURCE_OUTER,
-      SUN_SOURCE_SOFT,
-    ]) {
-      if (map.getSource(id)) map.removeSource(id);
-    }
-  }
-
-  function refreshSun(): void {
-    const now = Date.now();
-    const outerPoly = terminatorPolygon(now, 180, 90 - SUN_FEATHER_DEG);
-    const innerPoly = terminatorPolygon(now, 180, 90 + SUN_FEATHER_DEG);
-    const toFc = (
-      poly: ReturnType<typeof terminatorPolygon>,
-    ): FeatureCollection => ({
-      type: 'FeatureCollection',
-      features: [{ type: 'Feature', geometry: poly, properties: {} }],
-    });
-    const scale = sunScale();
-    const tiers: Array<{
-      srcId: string;
-      layerId: string;
-      fc: FeatureCollection;
-      opacity: number;
-    }> = [
-      {
-        srcId: SUN_SOURCE_OUTER,
-        layerId: SUN_LAYER_OUTER,
-        fc: toFc(outerPoly),
-        opacity: SUN_OPACITY_OUTER * scale,
-      },
-      {
-        srcId: SUN_SOURCE_INNER,
-        layerId: SUN_LAYER,
-        fc: toFc(innerPoly),
-        opacity: SUN_OPACITY_INNER * scale,
-      },
-    ];
-    for (const tier of tiers) {
-      const src = map.getSource(tier.srcId) as
-        | maplibregl.GeoJSONSource
-        | undefined;
-      if (src) {
-        src.setData(tier.fc);
-        // Opacity may have changed (slider drag), so re-apply the
-        // zoom-attenuated expression on every refresh.
-        if (map.getLayer(tier.layerId)) {
-          map.setPaintProperty(
-            tier.layerId,
-            'fill-opacity',
-            sunZoomOpacityExpr(tier.opacity),
-          );
-        }
-        continue;
-      }
-      map.addSource(tier.srcId, { type: 'geojson', data: tier.fc });
-      map.addLayer({
-        id: tier.layerId,
-        type: 'fill',
-        source: tier.srcId,
-        paint: {
-          'fill-color': '#0b1320',
-          'fill-opacity': sunZoomOpacityExpr(
-            tier.opacity,
-          ) as unknown as number,
-        },
-      });
-    }
-  }
+  // Sun / day-night terminator layer — extracted to
+  // src/lib/map/layers/sun-layer.ts. The factory takes an opacity
+  // getter so the layer follows the opacity slider's value.
+  const sunLayer = createSunLayer(map, () => rvOpacity / 0.45);
+  const refreshSun = (): void => sunLayer.refresh();
+  const removeSun = (): void => sunLayer.remove();
 
   function removeWind(): void {
     if (windRaf) {
@@ -2658,7 +2533,7 @@ export async function initInteractiveMap(
       showTimeline(false);
       refreshLayerButtons();
       refreshSun();
-      sunTicker = window.setInterval(refreshSun, 60_000);
+      sunLayer.startTicker(60_000);
       syncHash();
       return;
     }
@@ -3360,19 +3235,10 @@ export async function initInteractiveMap(
         map.setPaintProperty(FIELD_LAYER, 'raster-opacity', rvOpacity);
       if (map.getLayer(WIND_CIRCLE_LAYER))
         map.setPaintProperty(WIND_CIRCLE_LAYER, 'circle-opacity', rvOpacity);
-      const sunScaleNow = sunScale();
-      if (map.getLayer(SUN_LAYER_OUTER))
-        map.setPaintProperty(
-          SUN_LAYER_OUTER,
-          'fill-opacity',
-          sunZoomOpacityExpr(SUN_OPACITY_OUTER * sunScaleNow),
-        );
-      if (map.getLayer(SUN_LAYER))
-        map.setPaintProperty(
-          SUN_LAYER,
-          'fill-opacity',
-          sunZoomOpacityExpr(SUN_OPACITY_INNER * sunScaleNow),
-        );
+      // Sun layer reads rvOpacity via its opacityScaleFn closure on
+      // each refresh — calling refresh() re-applies the expression to
+      // both tiers without duplicating the constants here.
+      sunLayer.refresh();
     });
   }
 
@@ -3842,7 +3708,7 @@ export async function initInteractiveMap(
     map,
     destroy(): void {
       themeObserver?.disconnect();
-      if (sunTicker) window.clearInterval(sunTicker);
+      sunLayer.remove(); // also stops the internal ticker
       if (windRaf) window.cancelAnimationFrame(windRaf);
       if (tlTimer) window.clearInterval(tlTimer);
       try {
