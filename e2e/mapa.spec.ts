@@ -26,14 +26,18 @@ const RAINVIEWER_MANIFEST = JSON.stringify({
 /** Minimal Open-Meteo bulk response: 140 points (14x10 grid — denser field
  *  sampling than the original 8x6 for visibly continuous gradients), 2 hourly
  *  steps, all field vars. Length must match the production grid size so
- *  parseFieldResponse accepts the mock. */
+ *  parseFieldResponse accepts the mock. Grid is 32×24 = 768 since #172. */
 const OPEN_METEO_FIELD = JSON.stringify(
-  Array.from({ length: 70 }, () => ({
+  Array.from({ length: 32 * 24 }, () => ({
     hourly: {
       time: ['2026-05-19T00:00', '2026-05-19T01:00'],
       temperature_2m: [22, 23],
       relative_humidity_2m: [60, 65],
       pressure_msl: [1013, 1012],
+      surface_pressure: [1010, 1009],
+      apparent_temperature: [22, 23],
+      dew_point_2m: [15, 16],
+      wet_bulb_temperature_2m: [18, 19],
     },
   })),
 );
@@ -45,6 +49,7 @@ const OPEN_METEO_WIND = JSON.stringify(
       time: ['2026-05-19T00:00', '2026-05-19T01:00'],
       wind_speed_10m: [5, 6],
       wind_direction_10m: [180, 200],
+      wind_gusts_10m: [8, 9],
     },
   })),
 );
@@ -54,6 +59,12 @@ test.describe('mapa page', () => {
     const res = await page.goto('mapa/');
     expect(res?.status()).toBe(200);
     await expect(page.locator('#map')).toBeVisible();
+    // P1.7 — Search is icon-only until clicked. Wait for the toggle
+    // AND verify the layer rail finished init (a known sentinel that
+    // the JS handlers have wired up) before clicking.
+    await expect(page.locator('#mw-search-toggle')).toBeVisible();
+    await expect(page.locator('#layerbtn-base')).toBeVisible();
+    await page.locator('#mw-search-toggle').click();
     await expect(page.getByPlaceholder(/Buscar un lugar/)).toBeVisible();
   });
 
@@ -129,8 +140,10 @@ test.describe('mapa page', () => {
     await page.goto('mapa/');
     await page.waitForResponse('**/api.rainviewer.com/public/weather-maps.json');
 
-    // Hidden until a raster layer is active.
-    await expect(page.locator('#timeline')).toBeHidden();
+    // P0.3 — Timeline pill is always visible now (was conditionally
+    // 'hidden' before). Initial state is the dash placeholder.
+    await expect(page.locator('#timeline')).toBeVisible();
+    await expect(page.locator('#tl-time')).toHaveText('—');
 
     await page.locator('#layerbtn-radar').click();
     await expect(page.locator('#timeline')).toBeVisible();
@@ -154,9 +167,10 @@ test.describe('mapa page', () => {
     await page.locator('#tl-next').click();
     expect(Number(await range.inputValue())).toBe(v1 + 1);
 
-    // Switching back to Base hides the timeline.
+    // Switching back to Base resets the timeline label to the placeholder.
+    // (Pill itself stays visible — see P0.3.)
     await page.locator('#layerbtn-base').click();
-    await expect(page.locator('#timeline')).toBeHidden();
+    await expect(page.locator('#tl-time')).toHaveText('—');
   });
 
   test('temperature field layer activates with a legend and timeline', async ({ page }) => {
@@ -180,13 +194,16 @@ test.describe('mapa page', () => {
     await fieldResp;
 
     await expect(page.locator('#layerbtn-temperature')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#legend')).toBeVisible();
+    // P0.2 — legend moved into a floating bar; check the parent
+    // wrapper which controls visibility.
+    await expect(page.locator('#legend-bar')).toBeVisible();
     await expect(page.locator('#timeline')).toBeVisible();
     await expect(page.locator('#opacitywrap')).toBeVisible();
 
     await page.locator('#layerbtn-base').click();
-    await expect(page.locator('#legend')).toBeHidden();
-    await expect(page.locator('#timeline')).toBeHidden();
+    await expect(page.locator('#legend-bar')).toBeHidden();
+    // P0.3 — timeline pill stays visible, only its label resets.
+    await expect(page.locator('#tl-time')).toHaveText('—');
   });
 
   for (const layer of ['humidity', 'pressure'] as const) {
@@ -211,13 +228,13 @@ test.describe('mapa page', () => {
       await fieldResp;
 
       await expect(btn).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.locator('#legend')).toBeVisible();
+      await expect(page.locator('#legend-bar')).toBeVisible();
       await expect(page.locator('#timeline')).toBeVisible();
       await expect(page.locator('#opacitywrap')).toBeVisible();
 
       await page.locator('#layerbtn-base').click();
-      await expect(page.locator('#legend')).toBeHidden();
-      await expect(page.locator('#timeline')).toBeHidden();
+      await expect(page.locator('#legend-bar')).toBeHidden();
+      await expect(page.locator('#tl-time')).toHaveText('—');
     });
   }
 
@@ -243,13 +260,13 @@ test.describe('mapa page', () => {
     await windResp;
 
     await expect(btn).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#legend')).toBeVisible();
+    await expect(page.locator('#legend-bar')).toBeVisible();
     await expect(page.locator('#timeline')).toBeVisible();
     await expect(page.locator('#opacitywrap')).toBeVisible();
 
     await page.locator('#layerbtn-base').click();
-    await expect(page.locator('#legend')).toBeHidden();
-    await expect(page.locator('#timeline')).toBeHidden();
+    await expect(page.locator('#legend-bar')).toBeHidden();
+    await expect(page.locator('#tl-time')).toHaveText('—');
   });
 
   test('search input shows an autocomplete listbox with multiple options before fly', async ({
@@ -271,7 +288,10 @@ test.describe('mapa page', () => {
     await expect(page.locator('.maplibregl-marker')).toHaveCount(5);
     const presetCount = 5;
 
+    // P1.7 — Search is collapsed by default; expand it via the icon.
+    await page.locator('#mw-search-toggle').click();
     const mapq = page.locator('#mapq');
+    await expect(mapq).toBeVisible();
     await expect(mapq).toHaveAttribute('aria-expanded', 'false');
     await mapq.fill('Ciudad');
 
@@ -311,8 +331,9 @@ test.describe('mapa page', () => {
     await btn.click();
 
     await expect(btn).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#legend')).toBeHidden();
-    await expect(page.locator('#timeline')).toBeHidden();
+    await expect(page.locator('#legend-bar')).toBeHidden();
+    // P0.3 — timeline stays mounted; just check the placeholder text.
+    await expect(page.locator('#tl-time')).toHaveText('—');
     await expect(page.locator('#opacitywrap')).toBeVisible();
 
     await page.locator('#layerbtn-base').click();

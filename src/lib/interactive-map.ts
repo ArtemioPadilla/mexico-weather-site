@@ -896,8 +896,16 @@ export async function initInteractiveMap(
 
   function showTimeline(show: boolean): void {
     if (!tlEl || !features.timeline) return;
-    tlEl.classList.toggle('hidden', !show);
-    tlEl.classList.toggle('flex', show);
+    // Plan P0.3 — timeline pill is now always visible; this function
+    // only toggles the controls that depend on having frames. The
+    // empty-state placeholder '—' is restored when frames clear.
+    if (!show && tlTime) {
+      tlTime.textContent = '—';
+    }
+    if (!show && tlRange) {
+      tlRange.value = '0';
+      tlRange.setAttribute('max', '0');
+    }
   }
 
   const FIELD_SOURCE = 'wx-field';
@@ -3272,7 +3280,9 @@ export async function initInteractiveMap(
     if (!el) return;
     if (!kind) {
       el.innerHTML = '';
-      if (bar) bar.classList.add('hidden');
+      // Inline display:none beats the base sm:flex utility in the
+      // cascade — otherwise the legend would stay visible at sm+.
+      if (bar) bar.style.display = 'none';
       if (unitEl) unitEl.textContent = '';
       return;
     }
@@ -3312,7 +3322,7 @@ export async function initInteractiveMap(
       wind: 'km/h',
     } as Record<string, string>;
     if (unitEl) unitEl.textContent = unit[kind] ?? '';
-    if (bar) bar.classList.remove('hidden');
+    if (bar) bar.style.display = '';
   }
 
   function refreshLayerButtons(): void {
