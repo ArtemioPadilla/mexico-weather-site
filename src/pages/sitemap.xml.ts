@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { siteBase } from '../utils/paths';
 import { TOP_CITIES } from '../lib/top-cities';
 import { TOP_BEACHES } from '../lib/top-beaches';
+import { MX_STATES } from '../lib/mx-states';
 
 /**
  * Hand-built sitemap (no @astrojs/sitemap dependency — follows the
@@ -18,6 +19,7 @@ export const GET: APIRoute = ({ site }) => {
     'pregunta/',
     ...TOP_CITIES.map((c) => `clima/${c.slug}/`),
     ...TOP_BEACHES.map((b) => `playa/${b.slug}/`),
+    ...MX_STATES.map((s) => `estado/${s.slug}/`),
   ];
   const urls = pages
     .map((page) => new URL(`${basePath}${page}`, site).href)

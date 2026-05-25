@@ -36,6 +36,7 @@ test.describe('static routes', () => {
     // discover them.
     expect(body).toContain('clima/cdmx/');
     expect(body).toContain('playa/cancun/');
+    expect(body).toContain('estado/jalisco/');
   });
 
   test('clima-1: /clima/cdmx/ has SEO title + H1 with city name', async ({ page }) => {
@@ -51,6 +52,19 @@ test.describe('static routes', () => {
     const href = await cta.getAttribute('href');
     expect(href).toMatch(/forecast\/\?lat=19\.43/);
     expect(href).toMatch(/lng=-99\.13/);
+  });
+
+  test('estado-1: /estado/jalisco/ lists Guadalajara as a city', async ({ page }) => {
+    await page.goto('estado/jalisco/');
+    await expect(page).toHaveTitle(/Clima en Jalisco/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /Jalisco/ }),
+    ).toBeVisible();
+    // Guadalajara should appear in the Ciudades section and link to /clima/guadalajara/.
+    const gdlLink = page.getByRole('link', { name: /Guadalajara/ }).first();
+    await expect(gdlLink).toBeVisible();
+    const href = await gdlLink.getAttribute('href');
+    expect(href).toContain('/clima/guadalajara/');
   });
 
   test('playa-1: /playa/cancun/ has marine-focused title + H1', async ({ page }) => {
