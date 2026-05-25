@@ -4,6 +4,7 @@ import { MX_STATES, resolveStateName, type MxState } from '../../lib/mx-states';
 import { TOP_CITIES, type TopCity } from '../../lib/top-cities';
 import { TOP_BEACHES } from '../../lib/top-beaches';
 import { siteBase } from '../../utils/paths';
+import { breadcrumbLd, stateLd } from '../../lib/structured-data';
 
 /**
  * Per-state landing pages — one per entry in MX_STATES (32 federal
@@ -43,9 +44,26 @@ const description =
   `Pronóstico del tiempo para ${state.name}, México. ` +
   `Capital ${state.capital} y principales ciudades. ` +
   `Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.`;
+
+const canonical = new URL(`${base}estado/${state.slug}/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  stateLd({
+    name: state.name,
+    capital: state.capital,
+    capitalLat: state.capitalLat,
+    capitalLng: state.capitalLng,
+    canonical,
+  }),
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Estados', url: homeUrl },
+    { name: state.name, url: canonical },
+  ]),
+];
 ---
 
-<BaseLayout title={title} description={description} lang="es">
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <nav aria-label="breadcrumb" class="text-sm">

@@ -11,6 +11,11 @@ interface Props {
   lang?: 'es' | 'en';
   image?: string;
   robots?: string;
+  /** Optional JSON-LD payload(s) for schema.org structured data.
+   *  Emitted as <script type="application/ld+json"> in <head>. Use
+   *  builders from src/lib/structured-data.ts so the shape matches
+   *  schema.org. */
+  jsonLd?: object | object[];
 }
 
 const base = siteBase();
@@ -29,7 +34,14 @@ const {
   lang = 'es',
   image = defaultImage,
   robots = 'index,follow',
+  jsonLd,
 } = Astro.props;
+
+const jsonLdEntries = jsonLd === undefined
+  ? []
+  : Array.isArray(jsonLd)
+    ? jsonLd
+    : [jsonLd];
 
 // Absolute canonical URL for the current page (Astro.site + current pathname).
 // Ensure a trailing slash on the path to match sitemap <loc> directory-style URLs.
@@ -184,6 +196,16 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
+
+    {
+      jsonLdEntries.map((entry) => (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(entry).replace(/</g, '\\u003c')}
+        />
+      ))
+    }
   </head>
   <body class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased">
     {/*

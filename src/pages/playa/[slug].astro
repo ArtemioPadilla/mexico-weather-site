@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { TOP_BEACHES, type TopBeach } from '../../lib/top-beaches';
 import { siteBase } from '../../utils/paths';
+import { beachLd, breadcrumbLd } from '../../lib/structured-data';
 
 /**
  * Statically generated per-beach landing pages (one per slug in
@@ -41,9 +42,26 @@ const description =
   `Estado del mar en ${beach.name}, ${beach.admin}. ` +
   `Altura de las olas, temperatura del mar y pronóstico marino. ` +
   `Datos de Open-Meteo Marine, sin cuentas ni cookies.`;
+
+const canonical = new URL(`${base}playa/${beach.slug}/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  beachLd({
+    name: beach.name,
+    admin: beach.admin,
+    lat: beach.lat,
+    lng: beach.lng,
+    canonical,
+  }),
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Playas', url: homeUrl },
+    { name: beach.name, url: canonical },
+  ]),
+];
 ---
 
-<BaseLayout title={title} description={description} lang="es">
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <nav aria-label="breadcrumb" class="text-sm">
