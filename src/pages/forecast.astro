@@ -1,6 +1,7 @@
 ---
 import AqiPanel from '../components/AqiPanel.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import MarinePanel from '../components/MarinePanel.astro';
 import SmnAvisos from '../components/SmnAvisos.astro';
 import { ui } from '../i18n/ui';
 
@@ -87,6 +88,7 @@ const t = ui[lang];
           polygon lookup. */}
       <SmnAvisos />
       <AqiPanel />
+      <MarinePanel />
 
       <section id="fc-root" class="hidden space-y-6" aria-live="polite"></section>
     </div>
