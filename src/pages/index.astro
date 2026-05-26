@@ -24,10 +24,24 @@ const base = siteBase();
         <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
           Pronósticos y alertas meteorológicas del SMN + Open-Meteo para las principales ciudades de México.
         </p>
-        <div class="max-w-xl mx-auto mt-6">
-          <div class="flex gap-2">
-            <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ac" aria-autocomplete="list" aria-label={t.search_placeholder} placeholder={t.search_placeholder} class="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
-            <button id="geo" type="button" class="bg-white border border-gray-300 rounded-lg px-3 text-sm text-blue-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-blue-300 dark:hover:bg-gray-800 motion-reduce:transition-none"><span aria-hidden="true">📍</span> {t.use_my_location}</button>
+        <div class="max-w-xl mx-auto mt-6 space-y-2">
+          {/* Primary CTA — geolocation is the fastest path to a local
+              forecast. Above the search bar by design (story 2.1) so
+              first-time visitors hit it before scanning the rest of
+              the page. */}
+          <button
+            id="geo"
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus-visible:ring-offset-gray-950 motion-reduce:transition-none"
+          >
+            <span aria-hidden="true" class="text-xl leading-none">📍</span>
+            <span id="geo-label">Mostrar mi clima</span>
+          </button>
+          {/* Secondary path: search by name. Kept full-width below
+              the primary CTA so the search input is wider + thumb-
+              reachable on mobile. */}
+          <div class="relative">
+            <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ac" aria-autocomplete="list" aria-label={t.search_placeholder} placeholder={`O busca otra ubicación: ${t.search_placeholder}`} class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100" />
           </div>
           <ul id="ac" role="listbox" class="hidden mt-1 text-start bg-white border border-gray-300 rounded-lg overflow-hidden dark:bg-gray-900 dark:border-gray-700"></ul>
           <p id="qmsg" class="hidden mt-1 text-xs text-gray-600 dark:text-gray-500" aria-live="polite"></p>
@@ -173,6 +187,11 @@ const base = siteBase();
     } from '../lib/city-snapshot';
     import { resolveStateByCoords } from '../lib/state-by-coords';
     import { avisosForState, loadSmnAvisos } from '../lib/smn-avisos';
+    // Story 2.1 — used to confirm the resolved coords are inside MX
+    // (polygon lookup returns null for points outside any state).
+    // The static-geocode/findSlugByCoords combo can't catch this on
+    // its own because it accepts any point that's within 5 km of a
+    // TOP_CITIES entry.
 
     const t = ui.es;
 
@@ -986,27 +1005,82 @@ const base = siteBase();
       }
     });
 
-    // ---- Use my location ----
-    if (geoBtn) {
+    // ---- Use my location (story 2.1) ----
+    // Hide button entirely when geolocation isn't available — older
+    // browsers, in-app webviews, file:// contexts. Users on those
+    // platforms can still use the search box below.
+    if (geoBtn && !navigator.geolocation) {
+      geoBtn.classList.add('hidden');
+    }
+    if (geoBtn && navigator.geolocation) {
+      const geoLabel = document.getElementById('geo-label');
+      const originalLabel = geoLabel?.textContent ?? 'Mostrar mi clima';
+
+      function setBusy(busy: boolean): void {
+        if (!geoBtn) return;
+        geoBtn.disabled = busy;
+        if (geoLabel) geoLabel.textContent = busy ? 'Buscando…' : originalLabel;
+      }
+
       geoBtn.addEventListener('click', () => {
-        if (!navigator.geolocation) {
-          showMsg(t.geo_denied);
-          return;
-        }
+        setBusy(true);
         showMsg(t.searching);
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
+          async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            // Resolve to MX state first so we can reject coords
+            // outside the country before redirecting anywhere. The
+            // polygon file gets cached as a side-effect, paying for
+            // itself on the next SMN ribbon load.
+            const stateSlug = await resolveStateByCoords(
+              latitude,
+              longitude,
+              base + '/',
+              window.fetch.bind(window),
+            );
+            if (!stateSlug) {
+              setBusy(false);
+              showMsg(
+                'Parece que estás fuera de México. Usa la búsqueda para otra ubicación.',
+              );
+              return;
+            }
+            // Inside MX — funnel into the curated /clima/<slug>/ page
+            // when coords match a TOP_CITIES entry, else the URL-param
+            // /forecast/ route (fullHref handles both).
             location.href = fullHref(
-              String(pos.coords.latitude),
-              String(pos.coords.longitude),
+              String(latitude),
+              String(longitude),
               'auto',
               'Tu ubicación',
             );
           },
-          () => {
-            showMsg(t.geo_denied);
+          (err) => {
+            setBusy(false);
+            // GeolocationPositionError.code: 1=PERMISSION_DENIED,
+            // 2=POSITION_UNAVAILABLE, 3=TIMEOUT. Surface a useful
+            // distinction so users know which to fix.
+            if (err.code === 1) {
+              showMsg(
+                'Necesitamos tu permiso para mostrar el clima local. Usa la búsqueda.',
+              );
+            } else if (err.code === 3) {
+              showMsg('Tiempo agotado al buscar tu ubicación. Intenta de nuevo.');
+            } else {
+              showMsg(t.geo_denied);
+            }
           },
-          { timeout: 10000 },
+          // 8 s timeout — long enough for cellular cold-start GPS,
+          // short enough that users don't think the page hung.
+          // maximumAge: 10 min — re-use a recent fix if the browser
+          // has one, otherwise force a fresh one. enableHighAccuracy
+          // false = save battery, indoor accuracy is fine for state
+          // resolution.
+          {
+            enableHighAccuracy: false,
+            timeout: 8000,
+            maximumAge: 600000,
+          },
         );
       });
     }
