@@ -23,6 +23,7 @@ export const GET: APIRoute = ({ site }) => {
     'estado/',
     'volcan/',
     'compara/',
+    'huracanes/',
     ...TOP_CITIES.map((c) => `clima/${c.slug}/`),
     ...TOP_BEACHES.map((b) => `playa/${b.slug}/`),
     ...MX_STATES.map((s) => `estado/${s.slug}/`),

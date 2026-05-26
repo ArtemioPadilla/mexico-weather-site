@@ -1,0 +1,278 @@
+---
+/**
+ * /huracanes/ — active tropical-systems index. Story 1.3.
+ *
+ * Reads public/data/storms-snapshot.json (refreshed every 15 min by
+ * scripts/build-storms-snapshot.py) at page-load time and renders a
+ * card per active Atlantic/East Pacific storm.
+ *
+ * Off-season: zero active systems → friendly "no active storms"
+ * message with a link to the NHC for the latest. We intentionally
+ * still ship the page year-round (rather than conditionally) so
+ * deep links + the sitemap entry don't 404 in the off-season.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { siteBase } from '../../utils/paths';
+import { breadcrumbLd } from '../../lib/structured-data';
+
+const base = siteBase();
+
+const title = 'Huracanes activos — Clima México';
+const description =
+  'Sistemas tropicales activos en el Atlántico y Pacífico oriental ' +
+  'que pueden afectar a México. Datos del Centro Nacional de Huracanes ' +
+  '(NHC) actualizados cada 15 minutos.';
+const canonical = new URL(`${base}huracanes/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Huracanes activos',
+    url: canonical,
+    inLanguage: 'es-MX',
+    description,
+  },
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Huracanes', url: canonical },
+  ]),
+];
+---
+
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Huracanes</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          <span aria-hidden="true">🌀</span> Huracanes activos
+        </h1>
+        <p class="text-base text-gray-700 dark:text-gray-300">
+          Sistemas tropicales activos en el Atlántico y Pacífico oriental
+          que pueden afectar a México. Datos del{' '}
+          <a
+            href="https://www.nhc.noaa.gov/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline">Centro Nacional de Huracanes</a
+          > actualizados cada 15 minutos.
+        </p>
+      </header>
+
+      <div id="huracanes-loading" aria-hidden="true" class="space-y-3 animate-pulse">
+        <div class="h-24 rounded-lg bg-gray-100 dark:bg-gray-900"></div>
+        <div class="h-24 rounded-lg bg-gray-100 dark:bg-gray-900"></div>
+      </div>
+
+      <div id="huracanes-empty" class="hidden">
+        <div
+          class="rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-900 dark:bg-green-950"
+        >
+          <p class="text-2xl">
+            <span aria-hidden="true">✓</span>
+          </p>
+          <p class="mt-2 text-lg font-semibold text-green-900 dark:text-green-200">
+            Sin sistemas tropicales activos
+          </p>
+          <p class="mt-1 text-sm text-green-800 dark:text-green-300">
+            Por ahora no hay huracanes ni tormentas tropicales en seguimiento por el NHC.
+          </p>
+          <p
+            id="huracanes-updated"
+            class="mt-3 text-xs text-green-700 dark:text-green-400"
+          ></p>
+        </div>
+      </div>
+
+      <ul id="huracanes-list" class="hidden space-y-3"></ul>
+
+      <p
+        id="huracanes-error"
+        class="hidden rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+      >
+        No pudimos cargar los datos. Consulta el{' '}
+        <a
+          href="https://www.nhc.noaa.gov/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline">sitio del NHC</a
+        > directamente.
+      </p>
+
+      <section
+        aria-labelledby="more-h"
+        class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900 dark:bg-blue-950"
+      >
+        <h2 id="more-h" class="font-semibold text-blue-900 dark:text-blue-200">
+          ¿Quieres ver el mapa interactivo?
+        </h2>
+        <p class="mt-1 text-blue-800 dark:text-blue-300">
+          Activa la capa <strong>Sistemas tropicales</strong> en el{' '}
+          <a href={`${base}mapa/`} class="font-medium underline"
+            >mapa interactivo</a
+          > para ver posiciones, históricos (huracanes MX) y trayectorias en contexto.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    interface Storm {
+      name?: string;
+      lat?: number;
+      lng?: number;
+      classification?: string;
+      intensityKt?: number;
+    }
+    interface StormsDoc {
+      updated?: string;
+      source?: string;
+      storms?: Storm[];
+    }
+
+    const base = (() => {
+      const b = (import.meta.env.BASE_URL as string) || '/';
+      return b.endsWith('/') ? b : b + '/';
+    })();
+
+    function categoryLabel(cls: string, ktN: number): string {
+      const c = (cls || '').toUpperCase();
+      if (c === 'TD') return 'Depresión tropical';
+      if (c === 'TS') return 'Tormenta tropical';
+      if (c === 'HU' || c === 'HC') {
+        // Saffir-Simpson — kt is sustained-wind knots.
+        if (ktN >= 137) return 'Huracán categoría 5';
+        if (ktN >= 113) return 'Huracán categoría 4';
+        if (ktN >= 96) return 'Huracán categoría 3';
+        if (ktN >= 83) return 'Huracán categoría 2';
+        if (ktN >= 64) return 'Huracán categoría 1';
+        return 'Huracán';
+      }
+      if (c === 'EX') return 'Ciclón post-tropical';
+      if (c === 'PT') return 'Tormenta potencial';
+      return cls || '—';
+    }
+
+    function categoryColor(cls: string, ktN: number): string {
+      const c = (cls || '').toUpperCase();
+      if (c === 'HU' || c === 'HC') {
+        if (ktN >= 113)
+          return 'bg-red-100 text-red-900 ring-red-400 dark:bg-red-950 dark:text-red-200 dark:ring-red-700';
+        if (ktN >= 83)
+          return 'bg-orange-100 text-orange-900 ring-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800';
+        return 'bg-amber-100 text-amber-900 ring-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800';
+      }
+      if (c === 'TS')
+        return 'bg-yellow-100 text-yellow-900 ring-yellow-300 dark:bg-yellow-950 dark:text-yellow-200 dark:ring-yellow-800';
+      return 'bg-gray-100 text-gray-900 ring-gray-300 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700';
+    }
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function fmtUpdated(iso: string | undefined): string {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+        const rel = (Date.now() - d.getTime()) / 60000;
+        if (rel < 60) return `Actualizado hace ${Math.round(rel)} min`;
+        return `Actualizado hace ${Math.round(rel / 60)} h`;
+      } catch {
+        return '';
+      }
+    }
+
+    async function load(): Promise<void> {
+      const loadingEl = document.getElementById('huracanes-loading');
+      const emptyEl = document.getElementById('huracanes-empty');
+      const listEl = document.getElementById('huracanes-list');
+      const errorEl = document.getElementById('huracanes-error');
+      const updatedEl = document.getElementById('huracanes-updated');
+      try {
+        const r = await fetch(`${base}data/storms-snapshot.json`);
+        if (!r.ok) {
+          loadingEl?.classList.add('hidden');
+          // 404 most likely = workflow hasn't produced the snapshot yet
+          // in this deploy. Render the empty state, not an error,
+          // since "no data available" is functionally equivalent to
+          // "no active systems" on the happy path.
+          emptyEl?.classList.remove('hidden');
+          if (updatedEl) updatedEl.textContent = '';
+          return;
+        }
+        const doc = (await r.json()) as StormsDoc;
+        loadingEl?.classList.add('hidden');
+        const storms = doc.storms ?? [];
+        if (storms.length === 0) {
+          emptyEl?.classList.remove('hidden');
+          if (updatedEl) updatedEl.textContent = fmtUpdated(doc.updated);
+          return;
+        }
+        if (!listEl) return;
+        listEl.innerHTML = storms
+          .map((s) => {
+            const name = escapeHtml(s.name ?? 'UNNAMED');
+            const cls = s.classification ?? '';
+            const kt = Number(s.intensityKt ?? 0);
+            const label = categoryLabel(cls, kt);
+            const tw = categoryColor(cls, kt);
+            const lat = typeof s.lat === 'number' ? s.lat.toFixed(2) : '—';
+            const lng = typeof s.lng === 'number' ? s.lng.toFixed(2) : '—';
+            const kmh = Math.round(kt * 1.852);
+            return `<li class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-xl font-semibold">${name}</h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(label)}</p>
+                </div>
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${tw}">${escapeHtml(cls)}</span>
+              </div>
+              <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Vientos sostenidos</dt>
+                  <dd class="mt-0.5 font-semibold tabular-nums">${kt} kt · ${kmh} km/h</dd>
+                </div>
+                <div>
+                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Posición</dt>
+                  <dd class="mt-0.5 font-mono text-sm">${lat}°, ${lng}°</dd>
+                </div>
+              </dl>
+              <p class="mt-3 text-xs">
+                <a
+                  href="https://www.nhc.noaa.gov/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-700 underline hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                >Boletín completo en NHC →</a>
+              </p>
+            </li>`;
+          })
+          .join('');
+        listEl.classList.remove('hidden');
+      } catch {
+        loadingEl?.classList.add('hidden');
+        errorEl?.classList.remove('hidden');
+      }
+    }
+
+    void load();
+  </script>
+</BaseLayout>
