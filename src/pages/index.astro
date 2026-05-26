@@ -171,6 +171,8 @@ const base = siteBase();
       findSlugByCoords,
       type CitySnapshot,
     } from '../lib/city-snapshot';
+    import { resolveStateByCoords } from '../lib/state-by-coords';
+    import { avisosForState, loadSmnAvisos } from '../lib/smn-avisos';
 
     const t = ui.es;
 
@@ -345,6 +347,14 @@ const base = siteBase();
       star.title = 'Agregar a favoritos';
       star.textContent = '☆';
       card.appendChild(star);
+
+      // SMN alert badge — initially hidden, populated by the
+      // enrichSmnBadges() pass after the SMN + polygon docs load.
+      const smnBadge = document.createElement('a');
+      smnBadge.className =
+        'js-smn-badge hidden absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-900';
+      smnBadge.setAttribute('aria-label', 'Avisos SMN activos para esta ubicación');
+      card.appendChild(smnBadge);
 
       const head = document.createElement('div');
       head.className = 'flex items-center justify-between';
@@ -689,6 +699,46 @@ const base = siteBase();
         if (star) wireStar(star);
       });
       syncAllStars();
+      void enrichSmnBadges();
+    }
+
+    /**
+     * One-shot per render: resolve every card's lat/lng → state slug
+     * → count of active SMN avisos, and stamp the badge if any.
+     *
+     * Loads the SMN doc + polygon file at most once per page life
+     * (both modules cache internally). 5 preset + up to 12 fav cards
+     * × ~32 ray-casts each = trivial CPU. Network cost is one 8 KB
+     * SMN doc + one 62 KB polygon doc, both hit after the cards
+     * already painted so they don't block first paint.
+     */
+    async function enrichSmnBadges(): Promise<void> {
+      const baseUrl = base + '/';
+      const doc = await loadSmnAvisos(baseUrl);
+      if (!doc) return;
+      const cards = [...presetCards, ...favCards];
+      for (const card of cards) {
+        const badge = card.querySelector('.js-smn-badge') as HTMLAnchorElement | null;
+        if (!badge) continue;
+        const lat = Number((card as HTMLElement).dataset.lat);
+        const lng = Number((card as HTMLElement).dataset.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        const slug = await resolveStateByCoords(lat, lng, baseUrl);
+        if (!slug) continue;
+        // Count state-tagged avisos only (global avisos appear on every
+        // page and shouldn't make every favorite light up amber).
+        const list = doc.byState?.[slug] ?? [];
+        if (list.length === 0) continue;
+        const stateHits = list.length;
+        badge.textContent = `⚠️ ${stateHits} aviso${stateHits === 1 ? '' : 's'}`;
+        badge.title = `${stateHits} aviso(s) SMN activo(s) en ${slug}`;
+        // Link to the curated /clima/<slug>/ page (the SmnAvisos
+        // widget surfaces the full list there). Falls through to the
+        // /forecast page for off-list locations whose state polygon
+        // resolved but city doesn't match TOP_CITIES.
+        badge.href = `${baseUrl}clima/${slug}/`;
+        badge.classList.remove('hidden');
+      }
     }
 
     function renderFavorites(): void {
@@ -740,6 +790,7 @@ const base = siteBase();
         }, staggerDelay(i));
       });
       syncAllStars();
+      void enrichSmnBadges();
     }
 
     // Initial render: presets first (so they show immediately), then
