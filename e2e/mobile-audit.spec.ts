@@ -91,7 +91,9 @@ test.describe('mobile UX — 360x640 portrait', () => {
           // Targets where the element is small but is inside a larger
           // touchable parent (the parent's hit area is what counts).
           // We check the parent <li> / wrapper for grid lists.
-          const parent = el.closest('li, .card, [data-card], [data-row]');
+          // <label> wrappers around inputs also count — the label is
+          // the actual hit area users tap.
+          const parent = el.closest('li, label, .card, [data-card], [data-row]');
           const target = parent && parent.getBoundingClientRect();
           const effectiveW = target ? Math.max(r.width, target.width) : r.width;
           const effectiveH = target ? Math.max(r.height, target.height) : r.height;

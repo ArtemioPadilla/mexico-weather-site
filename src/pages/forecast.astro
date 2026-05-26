@@ -114,11 +114,37 @@ const t = ui[lang];
       <AqiPanel />
       <MarinePanel />
 
+      {/* Outdoor mode toggle (Story 9.1) — emphasizes UV, AQI,
+          wind gusts for users planning outdoor activities. State
+          is per-page (sessionStorage), not global, so users can
+          toggle once and have it stick through their session. */}
+      <div class="flex items-center justify-end">
+        <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
+          <input
+            id="fc-outdoor-mode"
+            type="checkbox"
+            class="h-4 w-4 accent-green-600"
+          />
+          <span aria-hidden="true">🥾</span>
+          <span data-i18n-en="Outdoor mode">Modo aire libre</span>
+        </label>
+      </div>
+
       <section id="fc-root" class="hidden space-y-6" aria-live="polite"></section>
     </div>
   </main>
 
   <style is:global>
+    /* Outdoor mode (Story 9.1) — applied via .outdoor-mode on the
+       root section. Hides low-stakes detail panels (humidity,
+       pressure, visibility) and emphasizes UV / wind gusts. */
+    #fc-root.outdoor-mode [data-low-priority] {
+      display: none !important;
+    }
+    #fc-root.outdoor-mode [data-outdoor-emphasis] {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
     /* Issue #107 — reserve map height BEFORE MapLibre loads to prevent CLS.
        Bumped to 320 px (sm: 360 px) so the embedded INTERACTIVE map (full
        MapLibre instance with pan/zoom + popup; previously a 160-px static
@@ -599,10 +625,10 @@ const t = ui[lang];
               </div>
               <div class="rounded-md bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 p-3 space-y-1">
                 <div class="text-xs text-gray-600 dark:text-gray-500"><span aria-hidden="true">☀️</span> <span>${esc(t.uv_index)}</span></div>
-                <div class="text-lg font-semibold">${esc(String(uv.value))}</div>
+                <div data-outdoor-emphasis class="text-lg font-semibold">${esc(String(uv.value))}</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">${esc(uv.level)}</div>
               </div>
-              <div class="rounded-md bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 p-3 space-y-1">
+              <div data-low-priority class="rounded-md bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 p-3 space-y-1">
                 <div class="text-xs text-gray-600 dark:text-gray-500"><span aria-hidden="true">☁️</span> <span>${esc(t.sky_air)}</span></div>
                 <div class="text-lg font-semibold">${Math.round(current.cloudCover)}%</div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">${esc(t.humidity)} ${Math.round(current.humidity)}% · ${esc(t.pressure)} ${fmt(current.pressure)} hPa · ${esc(t.visibility)} ${esc(String(current.visibilityKm))} km</div>
@@ -1086,6 +1112,43 @@ const t = ui[lang];
         }
       }
     }
+
+    // --- Outdoor mode toggle (Story 9.1) -------------------------------
+    // Adds/removes .outdoor-mode on #fc-root, which the CSS rules
+    // in <style is:global> use to hide low-priority panels and
+    // emphasize UV. State persists in sessionStorage so the toggle
+    // sticks across page navigations within the same session.
+    (function () {
+      const KEY = 'mw:outdoor-mode';
+      const toggle = document.getElementById('fc-outdoor-mode') as HTMLInputElement | null;
+      const root = document.getElementById('fc-root');
+      if (!toggle || !root) return;
+      let initial = false;
+      try {
+        initial = sessionStorage.getItem(KEY) === '1';
+      } catch {
+        /* ignore */
+      }
+      toggle.checked = initial;
+      if (initial) root.classList.add('outdoor-mode');
+      toggle.addEventListener('change', () => {
+        if (toggle.checked) {
+          root.classList.add('outdoor-mode');
+          try {
+            sessionStorage.setItem(KEY, '1');
+          } catch {
+            /* ignore */
+          }
+        } else {
+          root.classList.remove('outdoor-mode');
+          try {
+            sessionStorage.removeItem(KEY);
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    })();
 
     // --- param parsing --------------------------------------------------
     const params = new URLSearchParams(location.search);
