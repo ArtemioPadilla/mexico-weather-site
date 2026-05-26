@@ -1,4 +1,5 @@
 ---
+import AqiPanel from '../../components/AqiPanel.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SmnAvisos from '../../components/SmnAvisos.astro';
 import { TOP_CITIES, type TopCity } from '../../lib/top-cities';
@@ -99,6 +100,8 @@ const jsonLd = [
       </header>
 
       <SmnAvisos stateSlug={state?.slug} />
+
+      <AqiPanel coords={{ lat: city.lat, lng: city.lng }} />
 
       <section
         aria-labelledby="now-h"

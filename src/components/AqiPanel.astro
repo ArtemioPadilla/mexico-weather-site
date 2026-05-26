@@ -1,0 +1,119 @@
+---
+/**
+ * Air quality panel for detail pages.
+ *
+ * Accepts either:
+ *   - `coords` (lat/lng known at build time): /clima/<slug>/,
+ *     /playa/<slug>/, /estado/<slug>/, /volcan/<slug>/
+ *   - nothing: the runtime script reads URL params (?lat=&lng=) so
+ *     /forecast/ can embed the same component
+ *
+ * Shows PM2.5 (μg/m³) + EPA band + Spanish advice. Hidden when no
+ * station is within 50 km (most rural locations).
+ */
+import { siteBase } from '../utils/paths';
+
+interface Props {
+  coords?: { lat: number; lng: number };
+}
+
+const { coords } = Astro.props;
+const base = siteBase();
+---
+
+<section
+  data-aqi-panel
+  data-lat={coords?.lat ?? ''}
+  data-lng={coords?.lng ?? ''}
+  data-base={base}
+  aria-labelledby="aqi-h"
+  class="hidden rounded-lg border p-4"
+>
+  <h2 id="aqi-h" class="flex items-center gap-2 text-base font-semibold">
+    <span aria-hidden="true">🌬️</span>
+    <span>Calidad del aire</span>
+    <span
+      data-aqi-band
+      class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium ring-1"
+    ></span>
+  </h2>
+  <p class="mt-3 flex items-baseline gap-2">
+    <span data-aqi-pm class="text-3xl font-bold tabular-nums">—</span>
+    <span class="text-sm text-gray-500 dark:text-gray-400">μg/m³ PM2.5</span>
+  </p>
+  <p data-aqi-advice class="mt-2 text-sm text-gray-700 dark:text-gray-300"></p>
+  <p
+    data-aqi-meta
+    class="mt-2 text-xs text-gray-500 dark:text-gray-500"
+  ></p>
+</section>
+
+<script>
+  import { findNearestAqi } from '../lib/aqi';
+
+  async function init(host: HTMLElement): Promise<void> {
+    const base = host.dataset.base || '/';
+    let lat = Number(host.dataset.lat);
+    let lng = Number(host.dataset.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      // /forecast and friends get coords from URL params.
+      const params = new URLSearchParams(window.location.search);
+      const latS = params.get('lat');
+      const lngS = params.get('lng');
+      if (latS && lngS) {
+        lat = Number(latS);
+        lng = Number(lngS);
+      }
+    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const result = await findNearestAqi(lat, lng, base);
+    if (!result) {
+      // No station nearby — keep the panel hidden. Most rural
+      // locations land here; not worth surfacing 'no data' noise.
+      return;
+    }
+
+    const pmEl = host.querySelector('[data-aqi-pm]') as HTMLElement | null;
+    const bandEl = host.querySelector('[data-aqi-band]') as HTMLElement | null;
+    const adviceEl = host.querySelector('[data-aqi-advice]') as HTMLElement | null;
+    const metaEl = host.querySelector('[data-aqi-meta]') as HTMLElement | null;
+
+    if (pmEl) pmEl.textContent = String(Math.round(result.pm));
+    if (bandEl) {
+      bandEl.textContent = result.level.label;
+      bandEl.className =
+        'ml-auto rounded-full px-2 py-0.5 text-xs font-medium ring-1 ' +
+        result.level.tw;
+    }
+    if (adviceEl) adviceEl.textContent = result.level.advice;
+    if (metaEl) {
+      const dist = result.distanceKm.toFixed(0);
+      metaEl.textContent = `Estación más cercana: ${result.name} (${dist} km)`;
+    }
+
+    // Match the visual treatment to the AQI severity — calm gray
+    // for 'good', match the level tw for everything else.
+    host.classList.remove('hidden');
+    if (result.level.band === 'good') {
+      host.classList.add(
+        'border-gray-200',
+        'bg-gray-50',
+        'dark:border-gray-800',
+        'dark:bg-gray-900/40',
+      );
+    } else {
+      // Just outline color shift; keep the panel readable.
+      host.classList.add(
+        'border-amber-200',
+        'bg-amber-50/50',
+        'dark:border-amber-900',
+        'dark:bg-amber-950/30',
+      );
+    }
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-aqi-panel]')
+    .forEach((el) => void init(el));
+</script>
