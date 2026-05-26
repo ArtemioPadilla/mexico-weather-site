@@ -1,0 +1,136 @@
+---
+/**
+ * Climate-anomaly badge.
+ *
+ * Compares today's expected high temp to the 10-year climatology
+ * for the same day-of-year + nearest baseline city. Hidden when:
+ *   - No nearby (≤100 km) baseline city
+ *   - |Δ| < 1° (within seasonal noise, no signal)
+ *   - Forecast or baseline data unavailable
+ *
+ * Pass `coords` for curated detail pages (build-time known) or
+ * leave empty and let the runtime read URL params.
+ */
+import { siteBase } from '../utils/paths';
+
+interface Props {
+  coords?: { lat: number; lng: number };
+}
+
+const { coords } = Astro.props;
+const base = siteBase();
+---
+
+<div
+  data-climate-anomaly
+  data-lat={coords?.lat ?? ''}
+  data-lng={coords?.lng ?? ''}
+  data-base={base}
+  class="hidden"
+  aria-live="polite"
+></div>
+
+<script>
+  import { getClimateAnomaly, getForecast } from '../lib/forecast';
+
+  function severity(anomalyC: number): { tw: string; label: string; icon: string } {
+    if (anomalyC >= 5) {
+      return {
+        tw: 'bg-red-100 text-red-900 ring-red-400 dark:bg-red-950 dark:text-red-200 dark:ring-red-700',
+        label: 'Mucho más cálido',
+        icon: '🔥',
+      };
+    }
+    if (anomalyC >= 3) {
+      return {
+        tw: 'bg-orange-100 text-orange-900 ring-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800',
+        label: 'Más cálido',
+        icon: '🔥',
+      };
+    }
+    if (anomalyC >= 1) {
+      return {
+        tw: 'bg-amber-100 text-amber-900 ring-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800',
+        label: 'Algo más cálido',
+        icon: '🔥',
+      };
+    }
+    if (anomalyC <= -5) {
+      return {
+        tw: 'bg-blue-100 text-blue-900 ring-blue-400 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-700',
+        label: 'Mucho más fresco',
+        icon: '❄️',
+      };
+    }
+    if (anomalyC <= -3) {
+      return {
+        tw: 'bg-sky-100 text-sky-900 ring-sky-300 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-800',
+        label: 'Más fresco',
+        icon: '❄️',
+      };
+    }
+    return {
+      tw: 'bg-cyan-100 text-cyan-900 ring-cyan-300 dark:bg-cyan-950 dark:text-cyan-200 dark:ring-cyan-800',
+      label: 'Algo más fresco',
+      icon: '❄️',
+    };
+  }
+
+  async function init(host: HTMLElement): Promise<void> {
+    const base = host.dataset.base || '/';
+    let lat = Number(host.dataset.lat);
+    let lng = Number(host.dataset.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      const params = new URLSearchParams(window.location.search);
+      const latS = params.get('lat');
+      const lngS = params.get('lng');
+      if (latS && lngS) {
+        lat = Number(latS);
+        lng = Number(lngS);
+      }
+    }
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    try {
+      // We need today's forecast Tmax to compare against the
+      // baseline. Use getForecast() — already snapshot-cached by the
+      // /clima/<slug>/ page or live-fetched for /forecast.
+      const fc = await getForecast(
+        { lat, lng, tz: 'auto' },
+        { fetch: window.fetch.bind(window) },
+      );
+      const today = fc.daily[0];
+      if (!today || today.tmax === null || !today.date) return;
+
+      const monthDay = today.date.slice(5);
+      const anomaly = await getClimateAnomaly(
+        { lat, lng, tz: 'auto' },
+        today.tmax,
+        monthDay,
+        {
+          fetch: window.fetch.bind(window),
+          sleep: (ms: number) => new Promise((r) => setTimeout(r, ms)),
+          baseUrl: base,
+        },
+      );
+      if (!anomaly) return;
+      if (Math.abs(anomaly.anomalyC) < 1) return; // within noise
+
+      const s = severity(anomaly.anomalyC);
+      const sign = anomaly.anomalyC >= 0 ? '+' : '';
+      const tooltip = `vs. promedio ${anomaly.yearsUsed} años (${anomaly.baselineTmax.toFixed(1)}°C)`;
+      host.innerHTML =
+        `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ring-1 ${s.tw}" title="${tooltip}">` +
+        `<span aria-hidden="true">${s.icon}</span>` +
+        `<span>${sign}${Math.abs(anomaly.anomalyC).toFixed(1)}°C ${s.label}</span>` +
+        `</span>`;
+      host.classList.remove('hidden');
+    } catch {
+      /* anomaly is optional — silent failure */
+    }
+  }
+
+  document
+    .querySelectorAll<HTMLElement>('[data-climate-anomaly]')
+    .forEach((el) => void init(el));
+</script>

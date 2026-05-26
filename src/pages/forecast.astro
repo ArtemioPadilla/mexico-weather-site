@@ -349,7 +349,7 @@ const t = ui[lang];
             <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
             <p id="fc-models" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-1" aria-live="polite"></p>
-            <p id="fc-anomaly" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-0.5" aria-live="polite"></p>
+            <p id="fc-anomaly" class="hidden mt-2" aria-live="polite"></p>
             <div id="fc-alert-banner" class="hidden mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200" aria-live="polite"></div>
             <div id="fc-alert-panel" class="hidden mt-2 rounded-md border border-blue-200 bg-blue-50/70 px-3 py-2 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
               <div class="font-semibold mb-1">Crear alerta personal</div>
@@ -802,18 +802,38 @@ const t = ui[lang];
             )
               .then((a) => {
                 if (!a) return;
+                // Hide entirely when |Δ| < 1° — within seasonal noise,
+                // no signal worth surfacing.
+                if (Math.abs(a.anomalyC) < 1) return;
                 const sign = a.anomalyC >= 0 ? '+' : '';
-                const color =
-                  Math.abs(a.anomalyC) < 1
-                    ? 'text-gray-600 dark:text-gray-400'
-                    : a.anomalyC > 0
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-blue-600 dark:text-blue-400';
+                const abs = Math.abs(a.anomalyC);
+                // Severity ramps: 1-3° = mild (light), 3-5° = notable
+                // (medium), 5°+ = striking (strong). Symmetric for
+                // hotter/cooler.
+                const TWS = {
+                  hot5: 'bg-red-100 text-red-900 ring-red-400 dark:bg-red-950 dark:text-red-200 dark:ring-red-700',
+                  hot3: 'bg-orange-100 text-orange-900 ring-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800',
+                  hot1: 'bg-amber-100 text-amber-900 ring-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800',
+                  cold5: 'bg-blue-100 text-blue-900 ring-blue-400 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-700',
+                  cold3: 'bg-sky-100 text-sky-900 ring-sky-300 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-800',
+                  cold1: 'bg-cyan-100 text-cyan-900 ring-cyan-300 dark:bg-cyan-950 dark:text-cyan-200 dark:ring-cyan-800',
+                };
+                let tw: string;
+                let label: string;
+                if (a.anomalyC >= 5) { tw = TWS.hot5; label = 'Mucho más cálido'; }
+                else if (a.anomalyC >= 3) { tw = TWS.hot3; label = 'Más cálido'; }
+                else if (a.anomalyC >= 1) { tw = TWS.hot1; label = 'Algo más cálido'; }
+                else if (a.anomalyC <= -5) { tw = TWS.cold5; label = 'Mucho más fresco'; }
+                else if (a.anomalyC <= -3) { tw = TWS.cold3; label = 'Más fresco'; }
+                else { tw = TWS.cold1; label = 'Algo más fresco'; }
+                const tooltip =
+                  `vs. promedio ${a.yearsUsed} años (${a.baselineTmax.toFixed(1)}°)`;
                 anomalyEl.innerHTML =
-                  `<span class="font-semibold">Anomalía:</span> ` +
-                  `<span class="${color}">${sign}${a.anomalyC.toFixed(1)}°</span> ` +
-                  `vs. promedio ${a.yearsUsed} años (` +
-                  `${a.baselineTmax.toFixed(1)}°).`;
+                  `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ring-1 ${tw}" title="${tooltip}">` +
+                  `<span aria-hidden="true">${a.anomalyC > 0 ? '🔥' : '❄️'}</span>` +
+                  `<span>${sign}${abs.toFixed(1)}°C ${label}</span>` +
+                  `</span>` +
+                  `<span class="ml-2 text-xs text-gray-500 dark:text-gray-400">${tooltip}</span>`;
                 anomalyEl.classList.remove('hidden');
               })
               .catch(() => {
