@@ -3,18 +3,28 @@
     "collect": {
       "startServerCommand": "npm run preview",
       "startServerReadyPattern": "ready in",
+      "numberOfRuns": 1,
       "url": [
         "http://localhost:4321/mexico-weather/",
-        "http://localhost:4321/mexico-weather/forecast/",
-        "http://localhost:4321/mexico-weather/privacidad/"
+        "http://localhost:4321/mexico-weather/forecast/?lat=19.43&lng=-99.13&name=Ciudad%20de%20M%C3%A9xico&tz=America/Mexico_City",
+        "http://localhost:4321/mexico-weather/privacidad/",
+        "http://localhost:4321/mexico-weather/clima/cdmx/",
+        "http://localhost:4321/mexico-weather/playa/cancun/",
+        "http://localhost:4321/mexico-weather/estado/jalisco/",
+        "http://localhost:4321/mexico-weather/volcan/popocatepetl/",
+        "http://localhost:4321/mexico-weather/clima/",
+        "http://localhost:4321/mexico-weather/mapa/"
       ]
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.8 }],
-        "categories:accessibility": ["warn", { "minScore": 0.9 }],
-        "categories:seo": ["warn", { "minScore": 0.9 }],
-        "categories:best-practices": ["warn", { "minScore": 0.9 }]
+        "categories:performance": ["warn", { "minScore": 0.9 }],
+        "categories:accessibility": ["warn", { "minScore": 0.95 }],
+        "categories:seo": ["warn", { "minScore": 0.95 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }]
       }
     },
     "upload": {

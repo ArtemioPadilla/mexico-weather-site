@@ -1,7 +1,18 @@
 name: Lighthouse CI
 
-# Informational only. Assertions are warn-level and the step is
-# continue-on-error, so this workflow never blocks a merge.
+# Performance + a11y + SEO + best-practices baseline.
+#
+# Configured warn-level on every assertion so a regression surfaces
+# in the PR check summary without blocking merge. Promote individual
+# assertions to 'error' once the baseline is stable enough that a
+# real regression matters more than CI runner variance (~5%).
+#
+# Targets (from ROADMAP Story 8.2):
+#   - Performance ≥0.90 on /, /forecast/?lat=…, /clima/<slug>/
+#   - Accessibility ≥0.95 across the board (axe enforces 0 crit/serious
+#     separately in e2e/a11y.spec.ts)
+#   - SEO ≥0.95 across the board
+#   - LCP ≤2.5 s, CLS ≤0.1, TBT ≤200 ms
 
 on:
   pull_request:
@@ -9,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   lighthouse:
@@ -23,8 +35,30 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Run Lighthouse CI
+        id: lhci
         uses: treosh/lighthouse-ci-action@v12
-        # Advisory only: never fail the job on regressions.
+        # Advisory only: never fail the job on regressions. Promote
+        # to 'error' once the baseline is stable.
         continue-on-error: true
         with:
           configPath: ./.lighthouserc.json
+
+      - name: Comment with results URL
+        if: github.event_name == 'pull_request' && steps.lhci.outputs.links != ''
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const links = JSON.parse(`${{ steps.lhci.outputs.links }}` || '{}');
+            const body = '## Lighthouse CI results\n\n' +
+              Object.entries(links)
+                .map(([url, link]) => `- [${url}](${link})`)
+                .join('\n') +
+              '\n\nTargets per [ROADMAP Story 8.2](../blob/main/ROADMAP.md):\n' +
+              '- Performance ≥0.90 · Accessibility ≥0.95 · SEO ≥0.95\n' +
+              '- LCP ≤2.5 s · CLS ≤0.1 · TBT ≤200 ms\n';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
