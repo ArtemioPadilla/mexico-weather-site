@@ -40,3 +40,71 @@
     border-color: var(--color-gray-200, currentColor);
   }
 }
+
+/*
+ * Print stylesheet (Story 7.3). Produces a clean, ink-economical
+ * page for users printing the forecast for an outdoor event.
+ *
+ *   - Force a white background regardless of dark mode
+ *   - Hide nav, footer, share buttons, install hints, theme toggle,
+ *     SMN alert ribbon, floating UI
+ *   - Hide the interactive map embeds (they don't print usefully)
+ *   - Show the page URL in the header so the printed sheet
+ *     references its source
+ *   - Keep type readable: 11pt black on white
+ *
+ * The .no-print utility hides custom elements from print without
+ * needing extra selectors here. Used by Astro components that
+ * should never appear on paper.
+ */
+@media print {
+  :root {
+    color-scheme: light !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  /* Hide site chrome + interactive surfaces. */
+  nav[aria-label='Principal'],
+  #smn-alert-ribbon,
+  #pwa-install-wrap,
+  #ios-install-sheet,
+  #fc-share,
+  #fc-share-toast,
+  #cmp-empty,
+  [data-smn-avisos],
+  [data-share-button],
+  [data-mapa-smn-panel],
+  #mapa-smn-panel,
+  .maplibregl-map,
+  .im-rail,
+  .im-tooltip,
+  .no-print,
+  footer button,
+  details#catalog-dropdown {
+    display: none !important;
+  }
+  /* Inline links: show URL alongside link text. */
+  a[href^='http']::after,
+  a[href^='/']::after {
+    content: ' [' attr(href) ']';
+    color: #555;
+    font-size: 9pt;
+  }
+  /* Page break hints for the 7-day forecast. */
+  h2 {
+    page-break-after: avoid;
+  }
+  ul,
+  ol,
+  table {
+    page-break-inside: avoid;
+  }
+  /* Remove decorative shadows / rings — print eats ink. */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
