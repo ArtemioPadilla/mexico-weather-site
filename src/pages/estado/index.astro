@@ -52,10 +52,23 @@ const states = [...MX_STATES].sort((a, b) => a.name.localeCompare(b.name, 'es'))
         </p>
       </header>
 
-      <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <input
+        id="catalog-filter"
+        type="search"
+        placeholder="Filtrar por nombre o capital…"
+        aria-label="Filtrar estados"
+        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-gray-700 dark:bg-gray-900"
+      />
+      <ul id="catalog-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {
           states.map((s) => (
-            <li>
+            <li
+              data-catalog-item
+              data-search={`${s.name} ${s.capital}`
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[̀-ͯ]/g, '')}
+            >
               <a
                 href={`${base}estado/${s.slug}/`}
                 class="block rounded-md border border-gray-200 p-3 hover:border-red-500/40 dark:border-gray-800 dark:hover:border-red-500/40"
@@ -67,6 +80,32 @@ const states = [...MX_STATES].sort((a, b) => a.name.localeCompare(b.name, 'es'))
           ))
         }
       </ul>
+      <p id="catalog-empty" class="hidden text-sm text-gray-500 dark:text-gray-400">
+        Sin resultados.
+      </p>
+      <script is:inline>
+        (function () {
+          var input = document.getElementById('catalog-filter');
+          var empty = document.getElementById('catalog-empty');
+          if (!input) return;
+          function norm(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+          var timer;
+          input.addEventListener('input', function () {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(function () {
+              var q = norm(input.value.trim());
+              var items = document.querySelectorAll('[data-catalog-item]');
+              var visible = 0;
+              items.forEach(function (li) {
+                var match = !q || (li.getAttribute('data-search') || '').indexOf(q) !== -1;
+                li.classList.toggle('hidden', !match);
+                if (match) visible++;
+              });
+              if (empty) empty.classList.toggle('hidden', visible > 0);
+            }, 100);
+          });
+        })();
+      </script>
     </div>
   </main>
 </BaseLayout>
