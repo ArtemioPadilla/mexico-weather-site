@@ -1,0 +1,306 @@
+---
+/**
+ * Compare view — Story 5.1.
+ *
+ * /compara/?slugs=cdmx,guadalajara,monterrey renders 1-4 columns
+ * side-by-side with synchronized day rows. Each column shows:
+ *   - Current temp + condition + AQI band (if available)
+ *   - Today's high/low/rain
+ *   - Next 3 days summary
+ *
+ * All data is read from the static per-city snapshots
+ * (public/data/city-forecast/<slug>.json) so the page hydrates with
+ * zero live API calls when the slug list overlaps TOP_CITIES.
+ *
+ * Mobile: stacks vertically. Desktop: up to 4 columns.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { TOP_CITIES } from '../../lib/top-cities';
+import { siteBase } from '../../utils/paths';
+import { breadcrumbLd } from '../../lib/structured-data';
+
+const base = siteBase();
+
+const title = 'Comparar clima entre ciudades — Clima México';
+const description =
+  'Compara el clima de hasta 4 ciudades de México lado a lado. ' +
+  'Temperatura, lluvia y los próximos 3 días sincronizados.';
+const canonical = new URL(`${base}compara/`, Astro.site).href;
+const homeUrl = new URL(base, Astro.site).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Comparar clima',
+    url: canonical,
+    applicationCategory: 'Weather',
+    inLanguage: 'es-MX',
+    description,
+  },
+  breadcrumbLd([
+    { name: 'Inicio', url: homeUrl },
+    { name: 'Comparar', url: canonical },
+  ]),
+];
+---
+
+<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+  <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+    <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <nav aria-label="breadcrumb" class="text-sm">
+        <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
+          <li>
+            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+              Inicio
+            </a>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Comparar</li>
+        </ol>
+      </nav>
+
+      <header class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          Comparar clima entre ciudades
+        </h1>
+        <p class="text-base text-gray-700 dark:text-gray-300">
+          Selecciona hasta 4 ciudades para ver su clima lado a lado.
+        </p>
+      </header>
+
+      <section
+        aria-labelledby="picker-h"
+        class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900"
+      >
+        <h2 id="picker-h" class="sr-only">Selección de ciudades</h2>
+        <p id="cmp-selected" class="text-sm text-gray-600 dark:text-gray-400 mb-2"></p>
+        <div class="flex flex-wrap gap-2">
+          {
+            TOP_CITIES.map((c) => (
+              <button
+                type="button"
+                data-cmp-toggle
+                data-slug={c.slug}
+                data-name={c.name}
+                class="cmp-toggle inline-block rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                {c.name}
+              </button>
+            ))
+          }
+        </div>
+        <p id="cmp-cap" class="mt-2 hidden text-xs text-amber-700 dark:text-amber-400">
+          Máximo 4 ciudades.
+        </p>
+      </section>
+
+      <section aria-labelledby="grid-h">
+        <h2 id="grid-h" class="sr-only">Comparación</h2>
+        <p
+          id="cmp-empty"
+          class="rounded-md border border-gray-200 bg-white p-6 text-center text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+        >
+          Selecciona al menos una ciudad para ver la comparación.
+        </p>
+        <div id="cmp-grid" class="hidden grid gap-3" data-cols="1"></div>
+      </section>
+    </div>
+  </main>
+
+  <style is:global>
+    /* Selected toggle state. */
+    .cmp-toggle[aria-pressed='true'] {
+      background-color: rgb(37 99 235);
+      color: white;
+      border-color: rgb(37 99 235);
+    }
+    .dark .cmp-toggle[aria-pressed='true'] {
+      background-color: rgb(59 130 246);
+      border-color: rgb(59 130 246);
+    }
+    /* Dynamic column layout — driven by data-cols. */
+    #cmp-grid[data-cols='1'] { grid-template-columns: 1fr; }
+    @media (min-width: 640px) {
+      #cmp-grid[data-cols='2'] { grid-template-columns: repeat(2, 1fr); }
+      #cmp-grid[data-cols='3'] { grid-template-columns: repeat(3, 1fr); }
+      #cmp-grid[data-cols='4'] { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      #cmp-grid[data-cols='4'] { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+
+  <script>
+    import { TOP_CITIES, findCityBySlug } from '../../lib/top-cities';
+    import type { CitySnapshot } from '../../lib/city-snapshot';
+
+    const MAX_SLUGS = 4;
+    const base = (() => {
+      const b = (import.meta.env.BASE_URL as string) || '/';
+      return b.endsWith('/') ? b : b + '/';
+    })();
+
+    const grid = document.getElementById('cmp-grid') as HTMLElement | null;
+    const empty = document.getElementById('cmp-empty');
+    const selectedEl = document.getElementById('cmp-selected');
+    const capEl = document.getElementById('cmp-cap');
+    const toggles = document.querySelectorAll<HTMLButtonElement>('[data-cmp-toggle]');
+
+    function readSlugsFromUrl(): string[] {
+      const raw = new URLSearchParams(location.search).get('slugs') ?? '';
+      const slugs = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .filter((s, i, arr) => arr.indexOf(s) === i) // dedupe
+        .slice(0, MAX_SLUGS);
+      // Only known slugs.
+      return slugs.filter((s) => findCityBySlug(s));
+    }
+
+    function writeSlugsToUrl(slugs: string[]): void {
+      const url = new URL(location.href);
+      if (slugs.length === 0) {
+        url.searchParams.delete('slugs');
+      } else {
+        url.searchParams.set('slugs', slugs.join(','));
+      }
+      history.replaceState({}, '', url.toString());
+    }
+
+    async function loadSnapshot(slug: string): Promise<CitySnapshot | null> {
+      try {
+        const r = await fetch(`${base}data/city-forecast/${slug}.json`);
+        if (!r.ok) return null;
+        return (await r.json()) as CitySnapshot;
+      } catch {
+        return null;
+      }
+    }
+
+    function dayShort(iso: string): string {
+      try {
+        const d = new Date(iso + 'T12:00:00');
+        return d.toLocaleDateString('es-MX', { weekday: 'short' });
+      } catch {
+        return iso.slice(5);
+      }
+    }
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderColumn(slug: string, snap: CitySnapshot | null): string {
+      const city = findCityBySlug(slug);
+      if (!city) return '';
+      const name = escapeHtml(city.name);
+      const admin = escapeHtml(city.admin);
+      const detailHref = `${base}clima/${slug}/`;
+      if (!snap || !snap.current) {
+        return `<article class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+          <header class="border-b border-gray-100 pb-2 mb-2 dark:border-gray-800">
+            <h3 class="font-semibold"><a href="${escapeHtml(detailHref)}" class="hover:underline">${name}</a></h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">${admin}</p>
+          </header>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Datos no disponibles.</p>
+        </article>`;
+      }
+      const cur = snap.current;
+      const today = snap.today;
+      const next = (snap.next ?? []).slice(0, 3);
+      const todayRow = today
+        ? `<div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600 dark:text-gray-400">Hoy</span>
+            <span class="tabular-nums">
+              <span class="font-semibold">${today.hi !== null && today.hi !== undefined ? Math.round(today.hi) : '—'}°</span>
+              <span class="text-gray-500 dark:text-gray-400">/ ${today.lo !== null && today.lo !== undefined ? Math.round(today.lo) : '—'}°</span>
+            </span>
+          </div>`
+        : '';
+      const nextRows = next
+        .map(
+          (d) => `<div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600 dark:text-gray-400 capitalize">${escapeHtml(d.date ? dayShort(d.date) : '—')}</span>
+            <span class="tabular-nums">
+              <span class="font-semibold">${d.hi !== null && d.hi !== undefined ? Math.round(d.hi) : '—'}°</span>
+              <span class="text-gray-500 dark:text-gray-400">/ ${d.lo !== null && d.lo !== undefined ? Math.round(d.lo) : '—'}°</span>
+            </span>
+          </div>`,
+        )
+        .join('');
+      return `<article class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+        <header class="border-b border-gray-100 pb-2 mb-2 dark:border-gray-800">
+          <h3 class="font-semibold"><a href="${escapeHtml(detailHref)}" class="hover:underline">${name}</a></h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400">${admin}</p>
+        </header>
+        <p class="text-3xl font-bold tabular-nums">${cur.temperature !== null && cur.temperature !== undefined ? Math.round(cur.temperature) : '—'}°<span class="text-base text-gray-500 dark:text-gray-400">C</span></p>
+        <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(cur.condition ?? '—')}</p>
+        <div class="mt-3 space-y-1">${todayRow}${nextRows}</div>
+      </article>`;
+    }
+
+    async function render(slugs: string[]): Promise<void> {
+      if (!grid || !empty) return;
+      // Update toggle pressed state.
+      toggles.forEach((b) => {
+        const s = b.dataset.slug ?? '';
+        b.setAttribute('aria-pressed', slugs.includes(s) ? 'true' : 'false');
+      });
+      if (selectedEl) {
+        selectedEl.textContent = slugs.length
+          ? `${slugs.length} de ${MAX_SLUGS} ciudades seleccionadas`
+          : '';
+      }
+      if (slugs.length === 0) {
+        grid.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      grid.classList.remove('hidden');
+      grid.dataset.cols = String(slugs.length);
+      grid.innerHTML = '<p class="text-sm text-gray-500 col-span-full">Cargando…</p>';
+      const snaps = await Promise.all(slugs.map(loadSnapshot));
+      grid.innerHTML = slugs.map((s, i) => renderColumn(s, snaps[i] ?? null)).join('');
+    }
+
+    let currentSlugs = readSlugsFromUrl();
+
+    function handleToggle(btn: HTMLButtonElement): void {
+      const slug = btn.dataset.slug ?? '';
+      if (!slug) return;
+      const isOn = currentSlugs.includes(slug);
+      if (isOn) {
+        currentSlugs = currentSlugs.filter((s) => s !== slug);
+      } else {
+        if (currentSlugs.length >= MAX_SLUGS) {
+          if (capEl) {
+            capEl.classList.remove('hidden');
+            window.setTimeout(() => capEl.classList.add('hidden'), 3000);
+          }
+          return;
+        }
+        currentSlugs = [...currentSlugs, slug];
+      }
+      writeSlugsToUrl(currentSlugs);
+      void render(currentSlugs);
+    }
+
+    toggles.forEach((b) => {
+      b.addEventListener('click', () => handleToggle(b));
+    });
+
+    // Initial render from URL params, or pre-fill with the first
+    // two if the URL is empty (gives users an example to start from).
+    if (currentSlugs.length === 0) {
+      currentSlugs = TOP_CITIES.slice(0, 2).map((c) => c.slug);
+      writeSlugsToUrl(currentSlugs);
+    }
+    void render(currentSlugs);
+  </script>
+</BaseLayout>
