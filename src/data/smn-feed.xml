@@ -5,15 +5,15 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Tue, 26 May 2026 19:09:20 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 26 May 2026 20:02:42 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
-      <title>⚠️ Alerta SMN: Lluvias muy fuertes con puntuales intensas (75 a 150 mm): Tamps y SLP. Temperaturas máximas de 40 a 45 °C: Sin, Chih, Nay, Jal, Col, Mich, Gro, Oax, Tab, Camp y Yuc.</title>
+      <title>⚠️ Alerta SMN: Lluvias muy fuertes con puntuales intensas (75 a 150 mm): Tamaulipas (suroeste) y San Luis Potosí (noreste).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Viento de 40 a 50 km/h con rachas de 60 a 80 km/h y tolvaneras: BC, Chih, Dgo y Zac; y con posibilidad para la formación de torbellinos o tornados: Coah. Viento d...]]></description>
-      <pubDate>Tue, 26 May 2026 13:09:10 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-26-859d</guid>
+      <description><![CDATA[Vientos con rachas muy fuertes y probabilidad de formación de torbellinos o tornados en Coahuila, Nuevo León y Tamaulipas.]]></description>
+      <pubDate>Tue, 26 May 2026 14:02:31 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-26-a3d5</guid>
       <category>Alerta</category>
     </item>
     <item>
