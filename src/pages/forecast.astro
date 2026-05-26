@@ -348,7 +348,50 @@ const t = ui[lang];
               <span class="text-sm text-gray-600 dark:text-gray-400 pb-2">${esc(t.feels_like)} ${fmt(current.feelsLike)}°</span>
             </div>
             <p class="text-lg text-gray-800 dark:text-gray-200">${esc(current.condition)}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(d0 ? d0.sunrise : null))} · ${esc(t.sunset)} ${esc(timeOnly(d0 ? d0.sunset : null))}</p>
+            ${(() => {
+              // Visual daylight curve (Story 3.4). Renders a parabolic
+              // arc from sunrise to sunset with a marker at the
+              // current sun position. Falls back to the plain text
+              // line when sunrise/sunset aren't available (high
+              // latitudes / polar day) — though the MX bbox never
+              // hits that case in practice.
+              const sr = d0 ? d0.sunrise : null;
+              const ss = d0 ? d0.sunset : null;
+              if (!sr || !ss) {
+                return `<p class="text-xs text-gray-600 dark:text-gray-500">${esc(t.sunrise)} ${esc(timeOnly(sr))} · ${esc(t.sunset)} ${esc(timeOnly(ss))}</p>`;
+              }
+              const srMs = Date.parse(sr);
+              const ssMs = Date.parse(ss);
+              const nowMs = Date.now();
+              // Position fraction: 0 at sunrise, 1 at sunset. Clamped.
+              const tFrac = Math.max(
+                0,
+                Math.min(1, (nowMs - srMs) / Math.max(1, ssMs - srMs)),
+              );
+              const sunVisible = nowMs >= srMs && nowMs <= ssMs;
+              // Parabolic arc: y = 4*t*(1-t) gives a smooth bump.
+              const sx = 12 + (180 - 12) * tFrac;
+              const sy = 50 - 40 * (4 * tFrac * (1 - tFrac));
+              return `<div class="mt-1 flex items-center gap-3">
+                <svg
+                  width="180"
+                  height="56"
+                  viewBox="0 0 192 56"
+                  aria-hidden="true"
+                  class="flex-shrink-0"
+                >
+                  <path d="M 12 50 Q 96 -30 180 50" stroke="currentColor" stroke-width="1.5" fill="none" class="text-gray-300 dark:text-gray-700" />
+                  <line x1="12" y1="50" x2="180" y2="50" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" class="text-gray-300 dark:text-gray-700" />
+                  ${sunVisible ? `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" class="fill-yellow-400 dark:fill-yellow-300" />` : ''}
+                  <text x="12" y="56" text-anchor="middle" font-size="9" fill="currentColor" class="text-gray-600 dark:text-gray-400">${esc(timeOnly(sr))}</text>
+                  <text x="180" y="56" text-anchor="middle" font-size="9" fill="currentColor" class="text-gray-600 dark:text-gray-400">${esc(timeOnly(ss))}</text>
+                </svg>
+                <p class="text-xs text-gray-600 dark:text-gray-500" aria-label="${esc(t.sunrise)} ${esc(timeOnly(sr))} y ${esc(t.sunset)} ${esc(timeOnly(ss))}">
+                  ${esc(t.sunrise)} <span class="font-semibold">${esc(timeOnly(sr))}</span><br />
+                  ${esc(t.sunset)} <span class="font-semibold">${esc(timeOnly(ss))}</span>
+                </p>
+              </div>`;
+            })()}
             <p id="fc-updated" class="text-xs text-gray-500 dark:text-gray-500"></p>
             <p id="fc-models" class="hidden text-xs text-gray-600 dark:text-gray-400 pt-1" aria-live="polite"></p>
             <p id="fc-anomaly" class="hidden mt-2" aria-live="polite"></p>
@@ -506,7 +549,28 @@ const t = ui[lang];
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div class="rounded-md bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 p-3 space-y-1">
                 <div class="text-xs text-gray-600 dark:text-gray-500"><span aria-hidden="true">🧭</span> <span>${esc(t.wind)}</span></div>
-                <div class="text-lg font-semibold">${Math.round(current.windSpeed)} km/h</div>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg font-semibold">${Math.round(current.windSpeed)} km/h</span>
+                  ${(() => {
+                    // Story 3.5 — wind direction arrow. Meteorological
+                    // dir = where wind comes FROM, so we rotate the
+                    // arrow by dir+180 to point in the direction wind
+                    // is going. SVG default points up = 0deg, so a
+                    // 'wind from north' (0°) arrow points down (180°).
+                    const rot = (current.windDir + 180) % 360;
+                    return `<svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      aria-label="${esc(t.wind)} ${esc(wd.label)}, ${Math.round(current.windSpeed)} km/h"
+                      role="img"
+                      class="text-blue-600 dark:text-blue-400"
+                      style="transform: rotate(${rot}deg)"
+                    >
+                      <path d="M12 2 L18 14 L12 11 L6 14 Z" fill="currentColor" />
+                    </svg>`;
+                  })()}
+                </div>
                 <div class="text-xs text-gray-600 dark:text-gray-400">${esc(wd.label)} · ${esc(t.gusts)} ${Math.round(current.windGusts)} km/h</div>
               </div>
               <div class="rounded-md bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 p-3 space-y-1">
