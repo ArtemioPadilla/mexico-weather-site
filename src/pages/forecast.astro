@@ -86,6 +86,30 @@ const t = ui[lang];
       {/* Coords come from URL params (?lat=&lng=); SmnAvisos reads
           them at runtime and resolves the state via the static
           polygon lookup. */}
+      {/* Reverse-geocode hint (Story 2.2): when the URL coords map
+          to a TOP_CITIES entry within ~10 km, suggest the curated
+          /clima/<slug>/ page. Dismissible per-session. */}
+      <div
+        id="fc-curated-hint"
+        class="hidden rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm dark:border-blue-900 dark:bg-blue-950"
+      >
+        <span aria-hidden="true">📍</span>
+        <span class="text-blue-900 dark:text-blue-200">
+          ¿Buscabas <a
+            id="fc-curated-link"
+            href="#"
+            class="font-semibold underline">la página dedicada</a
+          >?
+        </span>
+        <button
+          type="button"
+          id="fc-curated-dismiss"
+          aria-label="Cerrar sugerencia"
+          class="float-right text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+          >✕</button
+        >
+      </div>
+
       <SmnAvisos />
       <AqiPanel />
       <MarinePanel />
@@ -1088,6 +1112,51 @@ const t = ui[lang];
       showEmpty();
     } else {
       void render({ lat, lng, tz, name, admin });
+      // Story 2.2 — reverse-geocode hint. If the URL coords land
+      // within ~10 km of a TOP_CITIES entry, suggest the curated
+      // /clima/<slug>/ page. Suppressed when this session has
+      // already been shown + dismissed.
+      void (async () => {
+        const DISMISS_KEY = 'mw:curated-hint-dismissed';
+        try {
+          if (sessionStorage.getItem(DISMISS_KEY) === '1') return;
+        } catch {
+          /* private mode — show anyway */
+        }
+        const { TOP_CITIES } = await import('../lib/top-cities');
+        const TOL = 0.1; // ~10 km
+        let nearest: typeof TOP_CITIES[number] | null = null;
+        let bestDist = Infinity;
+        for (const c of TOP_CITIES) {
+          const d = Math.abs(c.lat - lat) + Math.abs(c.lng - lng);
+          if (Math.abs(c.lat - lat) <= TOL && Math.abs(c.lng - lng) <= TOL) {
+            if (d < bestDist) {
+              bestDist = d;
+              nearest = c;
+            }
+          }
+        }
+        if (!nearest) return;
+        // If the user came from /clima/<slug>/ (via the page-Compartir
+        // CTA, for instance), don't re-suggest it.
+        if (document.referrer.includes(`/clima/${nearest.slug}/`)) return;
+        const hint = document.getElementById('fc-curated-hint');
+        const link = document.getElementById('fc-curated-link') as HTMLAnchorElement | null;
+        const dismiss = document.getElementById('fc-curated-dismiss');
+        if (!hint || !link) return;
+        const base = (import.meta.env.BASE_URL as string).replace(/\/$/, '');
+        link.href = `${base}/clima/${nearest.slug}/`;
+        link.textContent = nearest.name;
+        hint.classList.remove('hidden');
+        dismiss?.addEventListener('click', () => {
+          hint.classList.add('hidden');
+          try {
+            sessionStorage.setItem(DISMISS_KEY, '1');
+          } catch {
+            /* private mode — dismiss only for this view */
+          }
+        });
+      })();
     }
   </script>
 </BaseLayout>
