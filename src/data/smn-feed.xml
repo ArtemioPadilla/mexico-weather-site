@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Wed, 27 May 2026 09:33:04 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 27 May 2026 11:32:32 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -23,7 +23,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Viento de 40 a 50 km/h con rachas de 60 a 80 km/h y con probabilidad de formación de torbellinos o tornados: Coahuila (norte).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Viento de 40 a 50 km/h con rachas de 60 a 80 km/h y con probabilidad de formación de torbellinos o tornados: Coahuila (norte).]]></description>
-      <pubDate>Wed, 27 May 2026 03:32:52 -0600</pubDate>
+      <pubDate>Wed, 27 May 2026 05:32:22 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-27-15e3</guid>
       <category>Alerta</category>
     </item>
