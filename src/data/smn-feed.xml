@@ -5,15 +5,26 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Wed, 27 May 2026 05:47:30 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 27 May 2026 07:47:19 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 27 de mayo del 2026 | Emisión 00:00h</title>
+      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
+      <description><![CDATA[Aviso de Potencial de Tormentas
+Ciudad de México, 27 de mayo del 2026
+Emisión: 00:00
+Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
+      <pubDate>Wed, 27 May 2026 12:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-27-12</guid>
+      <category>Aviso Tormentas</category>
+    </item>
     <item>
       <title>⚠️ Alerta SMN: Viento de 40 a 50 km/h con rachas de 60 a 80 km/h y con probabilidad de formación de torbellinos o tornados: Coahuila (norte).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Viento de 40 a 50 km/h con rachas de 60 a 80 km/h y con probabilidad de formación de torbellinos o tornados: Coahuila (norte).]]></description>
-      <pubDate>Tue, 26 May 2026 23:47:21 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-26-15e3</guid>
+      <pubDate>Wed, 27 May 2026 01:47:07 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-27-15e3</guid>
       <category>Alerta</category>
     </item>
     <item>
@@ -43,17 +54,6 @@ Para esta noche y madrugada del miércoles, una vaguada en niveles altos de la
       <pubDate>Tue, 26 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-pronostico-general-2026-05-26-292</guid>
       <category>Pronóstico General</category>
-    </item>
-    <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 26 de mayo del 2026 | Emisión 21:00h</title>
-      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
-      <description><![CDATA[Aviso de Potencial de Tormentas
-Ciudad de México, 26 de mayo del 2026
-Emisión: 21:00
-Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
-      <pubDate>Tue, 26 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-26-12</guid>
-      <category>Aviso Tormentas</category>
     </item>
     <item>
       <title>📋 SMN Reporte Matutino 26 MAY 2026: Se pronostican lluvias intensas en el noreste de México, así como condiciones para torbellinos o tornados en el norte ...</title>
