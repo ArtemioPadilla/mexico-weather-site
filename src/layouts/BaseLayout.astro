@@ -70,6 +70,20 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Clima MX" />
     <link rel="canonical" href={canonical} />
+    {/* hreflang (Story 6.3) — query-param strategy.
+        The Spanish version is the canonical (no param). The English
+        version lives at the same URL with ?lang=en, where the
+        BaseLayout pre-paint script (below) reads the param and
+        swaps every data-i18n-en text node before first paint.
+        Google supports query-param hreflang as long as the param
+        produces distinct content. */}
+    <link rel="alternate" hreflang="es-MX" href={canonical} />
+    <link
+      rel="alternate"
+      hreflang="en-US"
+      href={`${canonical}${canonical.includes('?') ? '&' : '?'}lang=en`}
+    />
+    <link rel="alternate" hreflang="x-default" href={canonical} />
     {/* Anti-FOUC: resolver y aplicar el tema antes del primer pintado. */}
     <script is:inline>
       (function () {
@@ -93,7 +107,21 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     <script is:inline>
       (function () {
         var lang;
-        try { lang = sessionStorage.getItem('mw:lang'); } catch (e) { lang = null; }
+        // Priority order: URL ?lang= param (Story 6.3 hreflang
+        // landing) → sessionStorage → navigator.language → 'es'.
+        // A ?lang= param ALSO writes through to sessionStorage so
+        // subsequent in-session navigation stays in that language
+        // without the param.
+        try {
+          var p = new URLSearchParams(window.location.search).get('lang');
+          if (p === 'en' || p === 'es') {
+            lang = p;
+            try { sessionStorage.setItem('mw:lang', lang); } catch (e) { /* ignore */ }
+          }
+        } catch (e) { /* SSR / no URLSearchParams */ }
+        if (!lang) {
+          try { lang = sessionStorage.getItem('mw:lang'); } catch (e) { lang = null; }
+        }
         if (lang !== 'en' && lang !== 'es') {
           var nl = (navigator && navigator.language) || '';
           lang = nl.toLowerCase().indexOf('en') === 0 ? 'en' : 'es';

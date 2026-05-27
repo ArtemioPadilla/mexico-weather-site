@@ -40,4 +40,27 @@ test.describe('language toggle', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByRole('link', { name: 'Home' }).first()).toBeVisible();
   });
+
+  test('?lang=en URL param activates English on first load (Story 6.3)', async ({
+    page,
+  }) => {
+    // Fresh visit via the hreflang sibling URL.
+    await page.goto('clima/cdmx/?lang=en');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    // Nav strings should be English.
+    await expect(page.getByRole('link', { name: 'Home' }).first()).toBeVisible();
+  });
+
+  test('hreflang link tags are present on landing pages', async ({ page }) => {
+    await page.goto('clima/cdmx/');
+    const es = page.locator('link[rel="alternate"][hreflang="es-MX"]');
+    const en = page.locator('link[rel="alternate"][hreflang="en-US"]');
+    const xdef = page.locator('link[rel="alternate"][hreflang="x-default"]');
+    await expect(es).toHaveCount(1);
+    await expect(en).toHaveCount(1);
+    await expect(xdef).toHaveCount(1);
+    const enHref = await en.getAttribute('href');
+    expect(enHref).toContain('lang=en');
+  });
 });
