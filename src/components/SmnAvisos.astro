@@ -51,7 +51,7 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
     data-smn-title
   >
     <span data-smn-icon aria-hidden="true">⚠️</span>
-    <span data-smn-heading>Alertas SMN</span>
+    <span data-smn-heading data-i18n-en="SMN alerts">Alertas SMN</span>
   </h2>
   <p data-smn-loc class="mt-0.5 text-xs"></p>
   <ul data-smn-list class="mt-3 space-y-2"></ul>
@@ -59,12 +59,13 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
   <p class="mt-3 flex flex-wrap items-center gap-x-2 text-xs">
     <span data-smn-stale class="hidden"></span>
     <span>
-      Fuente:{' '}
+      <span data-i18n-en="Source:">Fuente:</span>{' '}
       <a
         href="https://smn.conagua.gob.mx/es/"
         target="_blank"
         rel="noopener noreferrer"
         class="underline"
+        data-i18n-en="Mexican National Weather Service (Conagua)"
       >
         Servicio Meteorológico Nacional (Conagua)
       </a>
@@ -88,11 +89,15 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
    *  before users start seeing a warning. */
   const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 
+  const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+    ? 'en'
+    : 'es') as 'es' | 'en';
+
   function fmtPubDate(s: string): string {
     try {
       const d = new Date(s);
       if (Number.isNaN(d.getTime())) return s;
-      return d.toLocaleString('es-MX', {
+      return d.toLocaleString(lang === 'en' ? 'en-US' : 'es-MX', {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -109,11 +114,13 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
     const ageMs = Date.now() - t;
     if (ageMs < 0) return '';
     const m = Math.round(ageMs / 60000);
-    if (m < 60) return `hace ${m} min`;
+    const ago = lang === 'en' ? '' : 'hace ';
+    const agoSuffix = lang === 'en' ? ' ago' : '';
+    if (m < 60) return `${ago}${m} min${agoSuffix}`;
     const h = Math.round(m / 60);
-    if (h < 24) return `hace ${h} h`;
+    if (h < 24) return `${ago}${h} h${agoSuffix}`;
     const d = Math.round(h / 24);
-    return `hace ${d} d`;
+    return `${ago}${d} ${lang === 'en' ? 'd' : 'd'}${agoSuffix}`;
   }
 
   function severityClass(sev: SmnAviso['severity']): string {
@@ -155,7 +162,8 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
         ? 'hidden'
         : 'text-amber-800 dark:text-amber-300';
       if (icon) icon.textContent = '⚠️';
-      if (heading) heading.textContent = 'Alertas SMN';
+      if (heading)
+        heading.textContent = lang === 'en' ? 'SMN alerts' : 'Alertas SMN';
     } else {
       host.classList.add('border-gray-200', 'bg-gray-50', 'dark:border-gray-800', 'dark:bg-gray-900/40');
       if (title) title.className = 'flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300';
@@ -164,7 +172,10 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
         ? 'hidden'
         : 'text-gray-600 dark:text-gray-400';
       if (icon) icon.textContent = '✓';
-      if (heading) heading.textContent = 'Sin alertas SMN vigentes';
+      if (heading)
+        heading.textContent = lang === 'en'
+          ? 'No active SMN alerts'
+          : 'Sin alertas SMN vigentes';
     }
   }
 
@@ -207,7 +218,10 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
       const hidden = Math.max(0, avisos.length - MAX_VISIBLE);
       if (hidden > 0) {
         const baseAttr = host.dataset.base || '/';
-        overflowEl.innerHTML = `<a href="${escapeHtml(baseAttr)}rss.xml" class="underline">+${hidden} aviso${hidden === 1 ? '' : 's'} más en el feed RSS</a>`;
+        const moreLabel = lang === 'en'
+          ? `+${hidden} more aviso${hidden === 1 ? '' : 's'} in the RSS feed`
+          : `+${hidden} aviso${hidden === 1 ? '' : 's'} más en el feed RSS`;
+        overflowEl.innerHTML = `<a href="${escapeHtml(baseAttr)}rss.xml" class="underline">${escapeHtml(moreLabel)}</a>`;
         overflowEl.classList.remove('hidden');
       } else {
         overflowEl.classList.add('hidden');
@@ -220,7 +234,8 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
       const age = upd ? Date.parse(upd) : NaN;
       const ageMs = Number.isFinite(age) ? Date.now() - age : NaN;
       if (Number.isFinite(ageMs) && ageMs > STALE_AFTER_MS) {
-        staleEl.textContent = `Actualizado ${relativeAge(upd!)} ·`;
+        const prefix = lang === 'en' ? 'Updated' : 'Actualizado';
+        staleEl.textContent = `${prefix} ${relativeAge(upd!)} ·`;
         staleEl.classList.remove('hidden');
       } else {
         staleEl.classList.add('hidden');
@@ -269,16 +284,27 @@ const mode = slugs.length > 0 ? 'slugs' : 'coords';
     let label: string;
     if (stateNames.length === 0) {
       label = avisos.length === 0
-        ? 'Sin avisos nacionales activos.'
-        : 'Avisos nacionales vigentes:';
+        ? lang === 'en'
+          ? 'No active national alerts.'
+          : 'Sin avisos nacionales activos.'
+        : lang === 'en'
+          ? 'Active national alerts:'
+          : 'Avisos nacionales vigentes:';
     } else {
+      const conj = lang === 'en' ? ' and ' : ' y ';
       const list =
         stateNames.length === 1
           ? stateNames[0]
-          : stateNames.slice(0, -1).join(', ') + ' y ' + stateNames.slice(-1);
-      label = avisos.length === 0
-        ? `Sin avisos vigentes para ${list}.`
-        : `${stateNames.length === 1 ? 'Estado afectado' : 'Estados afectados'}: ${list}. Avisos vigentes:`;
+          : stateNames.slice(0, -1).join(', ') + conj + stateNames.slice(-1);
+      if (lang === 'en') {
+        label = avisos.length === 0
+          ? `No active alerts for ${list}.`
+          : `${stateNames.length === 1 ? 'Affected state' : 'Affected states'}: ${list}. Active alerts:`;
+      } else {
+        label = avisos.length === 0
+          ? `Sin avisos vigentes para ${list}.`
+          : `${stateNames.length === 1 ? 'Estado afectado' : 'Estados afectados'}: ${list}. Avisos vigentes:`;
+      }
     }
     render(host, avisos, label, doc);
   }

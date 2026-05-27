@@ -129,9 +129,13 @@ const base = siteBase();
 
   // Defer until idle so we never block initial paint. The ribbon's
   // job is informational, not first-paint critical.
-  if ('requestIdleCallback' in window) {
-    (window as Window & typeof globalThis).requestIdleCallback(() => void run());
+  const w = window as Window &
+    typeof globalThis & {
+      requestIdleCallback?: (cb: () => void) => void;
+    };
+  if (typeof w.requestIdleCallback === 'function') {
+    w.requestIdleCallback(() => void run());
   } else {
-    window.setTimeout(() => void run(), 50);
+    w.setTimeout(() => void run(), 50);
   }
 </script>

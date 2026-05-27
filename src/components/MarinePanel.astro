@@ -28,7 +28,7 @@ const base = siteBase();
 >
   <h2 id="marine-panel-h" class="flex items-center gap-2 text-base font-semibold">
     <span aria-hidden="true">🌊</span>
-    <span>Mar en la costa</span>
+    <span data-i18n-en="Sea at the coast">Mar en la costa</span>
     <span
       data-marine-loc
       class="ml-auto text-xs font-normal text-gray-600 dark:text-gray-400"
@@ -36,7 +36,10 @@ const base = siteBase();
   </h2>
   <div class="mt-3 grid gap-4 sm:grid-cols-2">
     <div>
-      <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <p
+        class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+        data-i18n-en="Wave height"
+      >
         Altura de las olas
       </p>
       <p class="mt-1">
@@ -46,7 +49,10 @@ const base = siteBase();
       <p data-marine-wave-label class="text-sm text-gray-600 dark:text-gray-400">—</p>
     </div>
     <div>
-      <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <p
+        class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+        data-i18n-en="Sea temperature"
+      >
         Temperatura del mar
       </p>
       <p class="mt-1">
@@ -97,15 +103,19 @@ const base = siteBase();
     const sstLblEl = host.querySelector('[data-marine-sst-label]') as HTMLElement | null;
     const locEl = host.querySelector('[data-marine-loc]') as HTMLElement | null;
 
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
     if (waveEl) waveEl.textContent = reading.hs === null ? '—' : reading.hs.toFixed(1);
     if (waveLblEl)
-      waveLblEl.textContent = reading.hs === null ? '—' : waveLabel(reading.hs);
+      waveLblEl.textContent = reading.hs === null ? '—' : waveLabel(reading.hs, lang);
     if (sstEl) sstEl.textContent = reading.sst === null ? '—' : String(reading.sst);
     if (sstLblEl)
-      sstLblEl.textContent = reading.sst === null ? '—' : sstLabel(reading.sst);
+      sstLblEl.textContent = reading.sst === null ? '—' : sstLabel(reading.sst, lang);
     if (locEl && reading.distanceKm > 0) {
       const km = Math.round(reading.distanceKm);
-      locEl.textContent = `Estación: ${reading.beachName} (${km} km)`;
+      const prefix = lang === 'en' ? 'Station' : 'Estación';
+      locEl.textContent = `${prefix}: ${reading.beachName} (${km} km)`;
     } else if (locEl) {
       locEl.textContent = reading.beachName;
     }

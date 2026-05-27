@@ -44,10 +44,15 @@ const forecastHref =
   `&tz=${encodeURIComponent(city.tz)}`;
 
 const title = `Clima en ${city.name} — Pronóstico para hoy y los próximos días`;
+const titleEn = `${city.name} weather — Today's forecast and next days`;
 const description =
   `Pronóstico del tiempo para ${city.name}, ${city.admin}. ` +
   `Temperatura actual, lluvia, viento y los próximos 7 días. ` +
   `Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.`;
+const descriptionEn =
+  `Weather forecast for ${city.name}, ${city.admin}. ` +
+  `Current temperature, rain, wind, and the next 7 days. ` +
+  `Open-Meteo model data — no accounts, no cookies.`;
 
 const canonical = new URL(`${base}clima/${city.slug}/`, Astro.site).href;
 const ogImage = new URL(`${base}og/clima/${city.slug}.png`, Astro.site).href;
@@ -71,6 +76,8 @@ const jsonLd = [
 <BaseLayout
   title={title}
   description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
   lang="es"
   image={ogImage}
   jsonLd={jsonLd}
@@ -80,22 +87,32 @@ const jsonLd = [
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li>Clima por ciudad</li>
+          <li data-i18n-en="Weather by city">Clima por ciudad</li>
           <li aria-hidden="true">›</li>
           <li class="text-gray-900 dark:text-gray-100" aria-current="page">{city.name}</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en-html={`Weather in ${city.name}, <span class="text-gray-700 dark:text-gray-300">${city.admin}</span>`}
+        >
           Clima en {city.name}, <span class="text-gray-700 dark:text-gray-300">{city.admin}</span>
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en={`Weather forecast for ${city.name}. Current temperature, rain, wind, and the next 7 days. Open-Meteo model data, free and without registration.`}
+        >
           Pronóstico del tiempo para {city.name}. Temperatura actual, lluvia, viento y los próximos
           7 días. Datos del modelo meteorológico de Open-Meteo, gratis y sin registro.
         </p>
@@ -109,7 +126,11 @@ const jsonLd = [
         aria-labelledby="now-h"
         class="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900"
       >
-        <h2 id="now-h" class="text-lg font-semibold">Ahora en {city.name}</h2>
+        <h2
+          id="now-h"
+          class="text-lg font-semibold"
+          data-i18n-en={`Now in ${city.name}`}
+        >Ahora en {city.name}</h2>
         <div
           id="now-loading"
           aria-hidden="true"
@@ -127,19 +148,25 @@ const jsonLd = [
           </div>
           <p id="now-cond" class="mt-1 text-base text-gray-800 dark:text-gray-200">—</p>
           <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            <span id="now-wind">Viento —</span> ·
-            <span id="now-humidity">Humedad —</span>
+            <span id="now-wind" data-i18n-en="Wind —">Viento —</span> ·
+            <span id="now-humidity" data-i18n-en="Humidity —">Humedad —</span>
           </p>
           <ClimateAnomalyBadge coords={{ lat: city.lat, lng: city.lng }} />
         </div>
-        <p id="now-error" class="mt-3 hidden text-sm text-red-600 dark:text-red-400">
+        <p
+          id="now-error"
+          class="mt-3 hidden text-sm text-red-600 dark:text-red-400"
+          data-i18n-en-html={`We couldn't load the current weather. <a id="now-error-link" href="${forecastHref}" class="underline">Try the full forecast</a>.`}
+        >
           No pudimos cargar el clima actual.
           <a id="now-error-link" href={forecastHref} class="underline">Intenta el pronóstico completo</a>.
         </p>
       </section>
 
       <section aria-labelledby="next-h" class="space-y-3">
-        <h2 id="next-h" class="text-lg font-semibold">Próximos días</h2>
+        <h2 id="next-h" class="text-lg font-semibold" data-i18n-en="Next days">
+          Próximos días
+        </h2>
         <ul id="next-list" class="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <li class="h-20 rounded-md bg-gray-100 animate-pulse dark:bg-gray-900"></li>
           <li class="h-20 rounded-md bg-gray-100 animate-pulse dark:bg-gray-900"></li>
@@ -151,8 +178,14 @@ const jsonLd = [
         href={forecastHref}
         class="block rounded-lg bg-blue-600 px-5 py-4 text-center text-white shadow-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600"
       >
-        <span class="font-semibold">Ver pronóstico completo de {city.name}</span>
-        <span class="block text-sm opacity-90">
+        <span
+          class="font-semibold"
+          data-i18n-en={`See full forecast for ${city.name}`}
+        >Ver pronóstico completo de {city.name}</span>
+        <span
+          class="block text-sm opacity-90"
+          data-i18n-en="7 days, interactive map, SMN alerts, air quality"
+        >
           7 días, mapa interactivo, alertas SMN, calidad del aire
         </span>
       </a>
@@ -162,8 +195,12 @@ const jsonLd = [
         class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-400"
       >
         <div>
-          <h2 id="meta-h" class="sr-only">Detalles de ubicación</h2>
-          <p>
+          <h2 id="meta-h" class="sr-only" data-i18n-en="Location details">
+            Detalles de ubicación
+          </h2>
+          <p
+            data-i18n-en-html={`Coordinates: ${city.lat.toFixed(2)}°, ${city.lng.toFixed(2)}° · Time zone: <code class="text-xs">${city.tz}</code>`}
+          >
             Coordenadas: {city.lat.toFixed(2)}°, {city.lng.toFixed(2)}° · Zona horaria:
             <code class="text-xs">{city.tz}</code>
           </p>
@@ -180,10 +217,13 @@ const jsonLd = [
             aria-labelledby="state-h"
             class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900 dark:bg-blue-950"
           >
-            <h2 id="state-h" class="sr-only">
+            <h2 id="state-h" class="sr-only" data-i18n-en="State">
               Estado
             </h2>
-            <p class="text-gray-700 dark:text-gray-300">
+            <p
+              class="text-gray-700 dark:text-gray-300"
+              data-i18n-en-html={`<span aria-hidden="true">📍</span> See the whole state summary: <a href="${base}estado/${state.slug}/" class="font-medium text-blue-700 hover:underline dark:text-blue-400">Weather in ${state.name} →</a>`}
+            >
               <span aria-hidden="true">📍</span> Ver el resumen de todo el estado:{' '}
               <a
                 href={`${base}estado/${state.slug}/`}
@@ -197,7 +237,10 @@ const jsonLd = [
       }
 
       <nav aria-label="Otras ciudades" class="border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h2
+          class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          data-i18n-en="Other cities"
+        >
           Otras ciudades
         </h2>
         <ul class="flex flex-wrap gap-2">
@@ -231,6 +274,7 @@ const jsonLd = [
 
   <script>
     import { getForecast } from '../../lib/forecast';
+    import { translateCondition } from '../../lib/weather';
 
     const dataEl = document.getElementById('city-data');
     const data = {
@@ -341,10 +385,21 @@ const jsonLd = [
       return n === null ? '—' : String(Math.round(n));
     }
 
+    // Runtime language read — set by BaseLayout pre-paint script.
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
+    const tr = {
+      es: { feels: 'Sensación', wind: 'Viento', humidity: 'Humedad' },
+      en: { feels: 'Feels like', wind: 'Wind', humidity: 'Humidity' },
+    }[lang];
+
     function dayShort(iso: string): string {
       try {
         const d = new Date(iso + 'T12:00:00');
-        return d.toLocaleDateString('es-MX', { weekday: 'short' });
+        return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', {
+          weekday: 'short',
+        });
       } catch {
         return iso.slice(5);
       }
@@ -356,17 +411,20 @@ const jsonLd = [
       if (tempEl) tempEl.textContent = fmtTemp(v.temperature);
       if (feelsEl)
         feelsEl.textContent =
-          v.feelsLike === null ? '' : `Sensación ${fmtTemp(v.feelsLike)}°`;
-      if (condEl) condEl.textContent = v.condition || '—';
-      if (windEl) windEl.textContent = `Viento ${Math.round(v.windKmh)} km/h`;
-      if (humEl) humEl.textContent = `Humedad ${Math.round(v.humidity)}%`;
+          v.feelsLike === null ? '' : `${tr.feels} ${fmtTemp(v.feelsLike)}°`;
+      if (condEl) condEl.textContent = translateCondition(v.condition || '—', lang);
+      if (windEl) windEl.textContent = `${tr.wind} ${Math.round(v.windKmh)} km/h`;
+      if (humEl) humEl.textContent = `${tr.humidity} ${Math.round(v.humidity)}%`;
       if (nextList && v.next.length) {
         nextList.innerHTML = v.next
           .map((d) => {
             const day = dayShort(d.date);
             const hi = fmtTemp(d.hi);
             const lo = fmtTemp(d.lo);
-            const cond = (d.condition || '').replace(/[<>&"']/g, '');
+            const cond = translateCondition(d.condition || '', lang).replace(
+              /[<>&"']/g,
+              '',
+            );
             return (
               `<li class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">` +
               `<div class="text-sm font-medium capitalize">${day}</div>` +

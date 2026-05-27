@@ -148,20 +148,28 @@ export async function findNearestMarine(
   return { ...reading, distanceKm: best.dist };
 }
 
-/** Spanish UI qualifiers for wave height. */
-export function waveLabel(hs: number): string {
-  if (hs < 0.5) return 'Mar calmo';
-  if (hs < 1.0) return 'Olas pequeñas';
-  if (hs < 1.5) return 'Olas moderadas';
-  if (hs < 2.5) return 'Olas grandes';
-  return 'Olas peligrosas';
+/** UI qualifiers for wave height in either Spanish or English. */
+export function waveLabel(hs: number, lang: 'es' | 'en' = 'es'): string {
+  const labels = {
+    es: ['Mar calmo', 'Olas pequeñas', 'Olas moderadas', 'Olas grandes', 'Olas peligrosas'],
+    en: ['Calm sea', 'Small waves', 'Moderate waves', 'Large waves', 'Dangerous waves'],
+  }[lang];
+  if (hs < 0.5) return labels[0]!;
+  if (hs < 1.0) return labels[1]!;
+  if (hs < 1.5) return labels[2]!;
+  if (hs < 2.5) return labels[3]!;
+  return labels[4]!;
 }
 
-/** Spanish UI qualifier for SST. */
-export function sstLabel(sst: number): string {
-  if (sst < 18) return 'Frío';
-  if (sst < 22) return 'Fresco';
-  if (sst < 26) return 'Templado';
-  if (sst < 29) return 'Cálido';
-  return 'Muy cálido';
+/** UI qualifier for SST in either Spanish or English. */
+export function sstLabel(sst: number, lang: 'es' | 'en' = 'es'): string {
+  const labels = {
+    es: ['Frío', 'Fresco', 'Templado', 'Cálido', 'Muy cálido'],
+    en: ['Cold', 'Cool', 'Mild', 'Warm', 'Very warm'],
+  }[lang];
+  if (sst < 18) return labels[0]!;
+  if (sst < 22) return labels[1]!;
+  if (sst < 26) return labels[2]!;
+  if (sst < 29) return labels[3]!;
+  return labels[4]!;
 }

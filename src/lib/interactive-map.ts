@@ -2235,7 +2235,8 @@ export async function initInteractiveMap(
       | 'marine'
       | 'webcams'
       | 'lakes'
-      | 'histStorms';
+      | 'histStorms'
+      | 'smnStateTint';
     label: string;
     shortcut: string;
     isEnabled: () => boolean;

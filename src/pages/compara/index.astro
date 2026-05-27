@@ -22,9 +22,13 @@ import { breadcrumbLd } from '../../lib/structured-data';
 const base = siteBase();
 
 const title = 'Comparar clima entre ciudades — Clima México';
+const titleEn = 'Compare weather between cities — Clima México';
 const description =
   'Compara el clima de hasta 4 ciudades de México lado a lado. ' +
   'Temperatura, lluvia y los próximos 3 días sincronizados.';
+const descriptionEn =
+  'Compare the weather of up to 4 Mexican cities side by side. ' +
+  'Temperature, rain, and the next 3 days synchronized.';
 const canonical = new URL(`${base}compara/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -44,26 +48,43 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Comparar</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page" data-i18n-en="Compare">Comparar</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en="Compare weather between cities"
+        >
           Comparar clima entre ciudades
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en="Select up to 4 cities to see their weather side by side."
+        >
           Selecciona hasta 4 ciudades para ver su clima lado a lado.
         </p>
       </header>
@@ -72,7 +93,7 @@ const jsonLd = [
         aria-labelledby="picker-h"
         class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900"
       >
-        <h2 id="picker-h" class="sr-only">Selección de ciudades</h2>
+        <h2 id="picker-h" class="sr-only" data-i18n-en="City selection">Selección de ciudades</h2>
         <p id="cmp-selected" class="text-sm text-gray-600 dark:text-gray-400 mb-2"></p>
         <div class="flex flex-wrap gap-2">
           {
@@ -89,16 +110,21 @@ const jsonLd = [
             ))
           }
         </div>
-        <p id="cmp-cap" class="mt-2 hidden text-xs text-amber-700 dark:text-amber-400">
+        <p
+          id="cmp-cap"
+          class="mt-2 hidden text-xs text-amber-700 dark:text-amber-400"
+          data-i18n-en="Maximum 4 cities."
+        >
           Máximo 4 ciudades.
         </p>
       </section>
 
       <section aria-labelledby="grid-h">
-        <h2 id="grid-h" class="sr-only">Comparación</h2>
+        <h2 id="grid-h" class="sr-only" data-i18n-en="Comparison">Comparación</h2>
         <p
           id="cmp-empty"
           class="rounded-md border border-gray-200 bg-white p-6 text-center text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+          data-i18n-en="Select at least one city to see the comparison."
         >
           Selecciona al menos una ciudad para ver la comparación.
         </p>
@@ -133,6 +159,7 @@ const jsonLd = [
   <script>
     import { TOP_CITIES, findCityBySlug } from '../../lib/top-cities';
     import type { CitySnapshot } from '../../lib/city-snapshot';
+    import { translateCondition } from '../../lib/weather';
 
     const MAX_SLUGS = 4;
     const base = (() => {
@@ -178,10 +205,16 @@ const jsonLd = [
       }
     }
 
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
+
     function dayShort(iso: string): string {
       try {
         const d = new Date(iso + 'T12:00:00');
-        return d.toLocaleDateString('es-MX', { weekday: 'short' });
+        return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'es-MX', {
+          weekday: 'short',
+        });
       } catch {
         return iso.slice(5);
       }
@@ -207,7 +240,7 @@ const jsonLd = [
             <h3 class="font-semibold"><a href="${escapeHtml(detailHref)}" class="hover:underline">${name}</a></h3>
             <p class="text-xs text-gray-500 dark:text-gray-400">${admin}</p>
           </header>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Datos no disponibles.</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">${lang === 'en' ? 'No data available.' : 'Datos no disponibles.'}</p>
         </article>`;
       }
       const cur = snap.current;
@@ -215,7 +248,7 @@ const jsonLd = [
       const next = (snap.next ?? []).slice(0, 3);
       const todayRow = today
         ? `<div class="flex items-center justify-between text-sm">
-            <span class="text-gray-600 dark:text-gray-400">Hoy</span>
+            <span class="text-gray-600 dark:text-gray-400">${lang === 'en' ? 'Today' : 'Hoy'}</span>
             <span class="tabular-nums">
               <span class="font-semibold">${today.hi !== null && today.hi !== undefined ? Math.round(today.hi) : '—'}°</span>
               <span class="text-gray-500 dark:text-gray-400">/ ${today.lo !== null && today.lo !== undefined ? Math.round(today.lo) : '—'}°</span>
@@ -239,7 +272,7 @@ const jsonLd = [
           <p class="text-xs text-gray-500 dark:text-gray-400">${admin}</p>
         </header>
         <p class="text-3xl font-bold tabular-nums">${cur.temperature !== null && cur.temperature !== undefined ? Math.round(cur.temperature) : '—'}°<span class="text-base text-gray-500 dark:text-gray-400">C</span></p>
-        <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(cur.condition ?? '—')}</p>
+        <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(translateCondition(cur.condition ?? '—', lang))}</p>
         <div class="mt-3 space-y-1">${todayRow}${nextRows}</div>
       </article>`;
     }
@@ -253,7 +286,9 @@ const jsonLd = [
       });
       if (selectedEl) {
         selectedEl.textContent = slugs.length
-          ? `${slugs.length} de ${MAX_SLUGS} ciudades seleccionadas`
+          ? lang === 'en'
+            ? `${slugs.length} of ${MAX_SLUGS} cities selected`
+            : `${slugs.length} de ${MAX_SLUGS} ciudades seleccionadas`
           : '';
       }
       if (slugs.length === 0) {
@@ -264,7 +299,7 @@ const jsonLd = [
       empty.classList.add('hidden');
       grid.classList.remove('hidden');
       grid.dataset.cols = String(slugs.length);
-      grid.innerHTML = '<p class="text-sm text-gray-500 col-span-full">Cargando…</p>';
+      grid.innerHTML = `<p class="text-sm text-gray-500 col-span-full">${lang === 'en' ? 'Loading…' : 'Cargando…'}</p>`;
       const snaps = await Promise.all(slugs.map(loadSnapshot));
       grid.innerHTML = slugs.map((s, i) => renderColumn(s, snaps[i] ?? null)).join('');
     }

@@ -6,9 +6,13 @@ import { breadcrumbLd } from '../../lib/structured-data';
 
 const base = siteBase();
 const title = 'Clima por estado en México — Las 32 entidades federativas';
+const titleEn = 'Weather by state in Mexico — All 32 federal entities';
 const description =
   'Pronóstico del tiempo para los 32 estados de México. ' +
   'Cada página lista la capital y las principales ciudades del estado.';
+const descriptionEn =
+  'Weather forecast for all 32 Mexican states. ' +
+  'Each page lists the capital and the major cities in the state.';
 const canonical = new URL(`${base}estado/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -29,24 +33,41 @@ const jsonLd = [
 const states = [...MX_STATES].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Estados</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page" data-i18n-en="States">Estados</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Clima por estado en México</h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en="Weather by state in Mexico"
+        >Clima por estado en México</h1>
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en="Weather forecast for all 32 Mexican states. Each page groups the capital and the major cities in the state, plus the volcanoes and beaches we cover."
+        >
           Pronóstico del tiempo para los 32 estados de México. Cada página agrupa la capital
           y las principales ciudades del estado, más los volcanes y playas que cubrimos.
         </p>
@@ -56,7 +77,9 @@ const states = [...MX_STATES].sort((a, b) => a.name.localeCompare(b.name, 'es'))
         id="catalog-filter"
         type="search"
         placeholder="Filtrar por nombre o capital…"
+        data-i18n-en-placeholder="Filter by name or capital…"
         aria-label="Filtrar estados"
+        data-i18n-en-aria-label="Filter states"
         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 dark:border-gray-700 dark:bg-gray-900"
       />
       <ul id="catalog-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -74,13 +97,20 @@ const states = [...MX_STATES].sort((a, b) => a.name.localeCompare(b.name, 'es'))
                 class="block rounded-md border border-gray-200 p-3 hover:border-red-500/40 dark:border-gray-800 dark:hover:border-red-500/40"
               >
                 <div class="font-medium">{s.name}</div>
-                <div class="text-xs text-gray-600 dark:text-gray-400">Capital: {s.capital}</div>
+                <div
+                  class="text-xs text-gray-600 dark:text-gray-400"
+                  data-i18n-en={`Capital: ${s.capital}`}
+                >Capital: {s.capital}</div>
               </a>
             </li>
           ))
         }
       </ul>
-      <p id="catalog-empty" class="hidden text-sm text-gray-500 dark:text-gray-400">
+      <p
+        id="catalog-empty"
+        class="hidden text-sm text-gray-500 dark:text-gray-400"
+        data-i18n-en="No results."
+      >
         Sin resultados.
       </p>
       <script is:inline>

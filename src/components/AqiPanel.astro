@@ -31,7 +31,7 @@ const base = siteBase();
 >
   <h2 id="aqi-h" class="flex items-center gap-2 text-base font-semibold">
     <span aria-hidden="true">🌬️</span>
-    <span>Calidad del aire</span>
+    <span data-i18n-en="Air quality">Calidad del aire</span>
     <span
       data-aqi-band
       class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium ring-1"
@@ -79,17 +79,23 @@ const base = siteBase();
     const adviceEl = host.querySelector('[data-aqi-advice]') as HTMLElement | null;
     const metaEl = host.querySelector('[data-aqi-meta]') as HTMLElement | null;
 
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
     if (pmEl) pmEl.textContent = String(Math.round(result.pm));
     if (bandEl) {
-      bandEl.textContent = result.level.label;
+      bandEl.textContent = lang === 'en' ? result.level.labelEn : result.level.label;
       bandEl.className =
         'ml-auto rounded-full px-2 py-0.5 text-xs font-medium ring-1 ' +
         result.level.tw;
     }
-    if (adviceEl) adviceEl.textContent = result.level.advice;
+    if (adviceEl) adviceEl.textContent =
+      lang === 'en' ? result.level.adviceEn : result.level.advice;
     if (metaEl) {
       const dist = result.distanceKm.toFixed(0);
-      metaEl.textContent = `Estación más cercana: ${result.name} (${dist} km)`;
+      metaEl.textContent = lang === 'en'
+        ? `Nearest station: ${result.name} (${dist} km)`
+        : `Estación más cercana: ${result.name} (${dist} km)`;
     }
 
     // Match the visual treatment to the AQI severity — calm gray

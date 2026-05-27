@@ -6,10 +6,15 @@ import { breadcrumbLd } from '../../lib/structured-data';
 
 const base = siteBase();
 const title = 'Playas de México — Clima, oleaje y temperatura del mar';
+const titleEn = 'Beaches of Mexico — Weather, surf and sea temperature';
 const description =
   'Estado del mar en las principales playas y destinos costeros de México: ' +
   'Cancún, Playa del Carmen, Los Cabos, Puerto Vallarta y más. ' +
   'Altura de las olas y temperatura del mar de Open-Meteo Marine.';
+const descriptionEn =
+  'Sea state at major Mexican beaches and coastal destinations: ' +
+  'Cancún, Playa del Carmen, Los Cabos, Puerto Vallarta and more. ' +
+  'Wave height and sea-surface temperature from Open-Meteo Marine.';
 const canonical = new URL(`${base}playa/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -30,26 +35,43 @@ const jsonLd = [
 const beaches = [...TOP_BEACHES].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Playas</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page" data-i18n-en="Beaches">Playas</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en-html={`<span aria-hidden="true">🌊</span> Beaches of Mexico`}
+        >
           <span aria-hidden="true">🌊</span> Playas de México
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en={`Sea state at the ${beaches.length} major coastal destinations of Mexico. Wave height and water temperature updated hourly from the Open-Meteo marine model.`}
+        >
           Estado del mar en los {beaches.length} principales destinos costeros de México.
           Altura de las olas y temperatura del agua actualizados cada hora desde el modelo
           marino de Open-Meteo.
@@ -60,7 +82,9 @@ const beaches = [...TOP_BEACHES].sort((a, b) => a.name.localeCompare(b.name, 'es
         id="catalog-filter"
         type="search"
         placeholder="Filtrar por nombre o estado…"
+        data-i18n-en-placeholder="Filter by name or state…"
         aria-label="Filtrar playas"
+        data-i18n-en-aria-label="Filter beaches"
         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-gray-700 dark:bg-gray-900"
       />
       <ul id="catalog-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -84,7 +108,11 @@ const beaches = [...TOP_BEACHES].sort((a, b) => a.name.localeCompare(b.name, 'es
           ))
         }
       </ul>
-      <p id="catalog-empty" class="hidden text-sm text-gray-500 dark:text-gray-400">
+      <p
+        id="catalog-empty"
+        class="hidden text-sm text-gray-500 dark:text-gray-400"
+        data-i18n-en="No results."
+      >
         Sin resultados.
       </p>
       <script is:inline>

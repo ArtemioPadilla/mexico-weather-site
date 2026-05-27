@@ -6,10 +6,15 @@ import { breadcrumbLd } from '../../lib/structured-data';
 
 const base = siteBase();
 const title = 'Clima por ciudad en México — Pronóstico de las principales ciudades';
+const titleEn = 'Weather by city in Mexico — Forecast for major cities';
 const description =
   'Pronóstico del tiempo para las principales ciudades de México: ' +
   'CDMX, Guadalajara, Monterrey, Puebla, Tijuana y más. ' +
   'Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.';
+const descriptionEn =
+  'Weather forecast for major Mexican cities: ' +
+  'CDMX, Guadalajara, Monterrey, Puebla, Tijuana and more. ' +
+  'Open-Meteo model data — no accounts, no cookies.';
 const canonical = new URL(`${base}clima/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -31,24 +36,45 @@ const jsonLd = [
 const cities = [...TOP_CITIES].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Clima por ciudad</li>
+          <li
+            class="text-gray-900 dark:text-gray-100"
+            aria-current="page"
+            data-i18n-en="Weather by city"
+          >Clima por ciudad</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Clima por ciudad en México</h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en="Weather by city in Mexico"
+        >Clima por ciudad en México</h1>
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en={`Weather forecast for the ${cities.length} major Mexican cities. Open-Meteo model data. Covers all 32 federal entities with their capital or main city.`}
+        >
           Pronóstico del tiempo para las {cities.length} principales ciudades de México.
           Datos del modelo meteorológico de Open-Meteo. Cubre todas las 32 entidades
           federativas con su capital o ciudad principal.
@@ -59,7 +85,9 @@ const cities = [...TOP_CITIES].sort((a, b) => a.name.localeCompare(b.name, 'es')
         id="catalog-filter"
         type="search"
         placeholder="Filtrar por nombre o estado…"
+        data-i18n-en-placeholder="Filter by name or state…"
         aria-label="Filtrar ciudades"
+        data-i18n-en-aria-label="Filter cities"
         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900"
       />
       <ul id="catalog-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -86,6 +114,7 @@ const cities = [...TOP_CITIES].sort((a, b) => a.name.localeCompare(b.name, 'es')
       <p
         id="catalog-empty"
         class="hidden text-sm text-gray-500 dark:text-gray-400"
+        data-i18n-en="No results."
       >
         Sin resultados.
       </p>

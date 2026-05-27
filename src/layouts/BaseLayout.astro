@@ -10,6 +10,12 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  /** Optional English overrides for title + description. When the
+   *  user has chosen English via ?lang=en or the toggle, the
+   *  inline pre-paint script swaps document.title and the
+   *  description/og meta tags to these values. */
+  titleEn?: string;
+  descriptionEn?: string;
   lang?: 'es' | 'en';
   image?: string;
   robots?: string;
@@ -33,6 +39,8 @@ const sentryDsn = import.meta.env.PUBLIC_SENTRY_DSN;
 const {
   title = 'Clima México',
   description = 'Pronósticos y alertas meteorológicas para México',
+  titleEn,
+  descriptionEn,
   lang = 'es',
   image = defaultImage,
   robots = 'index,follow',
@@ -58,9 +66,13 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
+    <meta
+      name="description"
+      content={description}
+      data-i18n-en-content={descriptionEn}
+    />
     <meta name="robots" content={robots} />
-    <title>{title}</title>
+    <title data-i18n-en={titleEn}>{title}</title>
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <link rel="apple-touch-icon" href={`${base}favicon.svg`} />
     <link rel="manifest" href={`${base}manifest.webmanifest`} />
@@ -130,13 +142,20 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
         document.documentElement.setAttribute('data-lang', lang);
         if (lang === 'en') {
           // Swap text nodes carrying data-i18n-en after DOM is parsed.
-          document.addEventListener('DOMContentLoaded', function () {
-            var nodes = document.querySelectorAll('[data-i18n-en]');
-            nodes.forEach(function (n) {
+          var applyI18n = function () {
+            // textContent swap (default — strips children).
+            document.querySelectorAll('[data-i18n-en]').forEach(function (n) {
               var v = n.getAttribute('data-i18n-en');
               if (v) n.textContent = v;
             });
-            // Swap attribute-based translations (placeholder, aria-label).
+            // innerHTML swap (for mixed content with embedded <strong>,
+            // <a>, etc.). The English HTML must be authored safely
+            // in the data attribute — never user-input.
+            document.querySelectorAll('[data-i18n-en-html]').forEach(function (n) {
+              var v = n.getAttribute('data-i18n-en-html');
+              if (v) n.innerHTML = v;
+            });
+            // Attribute swaps.
             document.querySelectorAll('[data-i18n-en-placeholder]').forEach(function (n) {
               var v = n.getAttribute('data-i18n-en-placeholder');
               if (v) n.setAttribute('placeholder', v);
@@ -145,7 +164,25 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
               var v = n.getAttribute('data-i18n-en-aria-label');
               if (v) n.setAttribute('aria-label', v);
             });
-          });
+            document.querySelectorAll('[data-i18n-en-title]').forEach(function (n) {
+              var v = n.getAttribute('data-i18n-en-title');
+              if (v) n.setAttribute('title', v);
+            });
+            // <meta content> swap (description, og:title, og:description, ...).
+            document.querySelectorAll('[data-i18n-en-content]').forEach(function (n) {
+              var v = n.getAttribute('data-i18n-en-content');
+              if (v) n.setAttribute('content', v);
+            });
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyI18n);
+          } else {
+            applyI18n();
+          }
+          // Expose for runtime-generated content (the SMN widget,
+          // /forecast templates, etc. can call window.__i18nApply()
+          // after they inject HTML).
+          /** @type {any} */ (window).__i18nApply = applyI18n;
         }
       })();
     </script>
@@ -245,8 +282,12 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     </script>
 
     <!-- Open Graph -->
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={title} data-i18n-en-content={titleEn} />
+    <meta
+      property="og:description"
+      content={description}
+      data-i18n-en-content={descriptionEn}
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="Clima México" />
@@ -258,8 +299,12 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:title" content={title} data-i18n-en-content={titleEn} />
+    <meta
+      name="twitter:description"
+      content={description}
+      data-i18n-en-content={descriptionEn}
+    />
     <meta name="twitter:image" content={image} />
 
     {

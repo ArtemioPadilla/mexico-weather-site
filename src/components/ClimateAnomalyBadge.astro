@@ -33,45 +33,59 @@ const base = siteBase();
 <script>
   import { getClimateAnomaly, getForecast } from '../lib/forecast';
 
+  const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+    ? 'en'
+    : 'es') as 'es' | 'en';
+
   function severity(anomalyC: number): { tw: string; label: string; icon: string } {
+    const labels = {
+      es: {
+        hot5: 'Mucho más cálido', hot3: 'Más cálido', hot1: 'Algo más cálido',
+        cold5: 'Mucho más fresco', cold3: 'Más fresco', cold1: 'Algo más fresco',
+      },
+      en: {
+        hot5: 'Much warmer', hot3: 'Warmer', hot1: 'Slightly warmer',
+        cold5: 'Much cooler', cold3: 'Cooler', cold1: 'Slightly cooler',
+      },
+    }[lang];
     if (anomalyC >= 5) {
       return {
         tw: 'bg-red-100 text-red-900 ring-red-400 dark:bg-red-950 dark:text-red-200 dark:ring-red-700',
-        label: 'Mucho más cálido',
+        label: labels.hot5,
         icon: '🔥',
       };
     }
     if (anomalyC >= 3) {
       return {
         tw: 'bg-orange-100 text-orange-900 ring-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800',
-        label: 'Más cálido',
+        label: labels.hot3,
         icon: '🔥',
       };
     }
     if (anomalyC >= 1) {
       return {
         tw: 'bg-amber-100 text-amber-900 ring-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800',
-        label: 'Algo más cálido',
+        label: labels.hot1,
         icon: '🔥',
       };
     }
     if (anomalyC <= -5) {
       return {
         tw: 'bg-blue-100 text-blue-900 ring-blue-400 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-700',
-        label: 'Mucho más fresco',
+        label: labels.cold5,
         icon: '❄️',
       };
     }
     if (anomalyC <= -3) {
       return {
         tw: 'bg-sky-100 text-sky-900 ring-sky-300 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-800',
-        label: 'Más fresco',
+        label: labels.cold3,
         icon: '❄️',
       };
     }
     return {
       tw: 'bg-cyan-100 text-cyan-900 ring-cyan-300 dark:bg-cyan-950 dark:text-cyan-200 dark:ring-cyan-800',
-      label: 'Algo más fresco',
+      label: labels.cold1,
       icon: '❄️',
     };
   }
@@ -118,7 +132,9 @@ const base = siteBase();
 
       const s = severity(anomaly.anomalyC);
       const sign = anomaly.anomalyC >= 0 ? '+' : '';
-      const tooltip = `vs. promedio ${anomaly.yearsUsed} años (${anomaly.baselineTmax.toFixed(1)}°C)`;
+      const tooltip = lang === 'en'
+        ? `vs. ${anomaly.yearsUsed}-yr average (${anomaly.baselineTmax.toFixed(1)}°C)`
+        : `vs. promedio ${anomaly.yearsUsed} años (${anomaly.baselineTmax.toFixed(1)}°C)`;
       host.innerHTML =
         `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ring-1 ${s.tw}" title="${tooltip}">` +
         `<span aria-hidden="true">${s.icon}</span>` +

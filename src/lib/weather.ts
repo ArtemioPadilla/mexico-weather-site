@@ -26,9 +26,76 @@ export const WMO: Record<string, string> = {
   '99': 'Tormenta con granizo ⛈️',
 };
 
-/** Map a WMO weather code to a human-readable Spanish label + emoji. */
-export function describeWeatherCode(code: number | string): string {
-  return WMO[String(code)] || '—';
+/** Same codes, English labels (Story i18n). Mirrors WMO; any code
+ *  added there should be added here too. */
+export const WMO_EN: Record<string, string> = {
+  '0': 'Clear ☀️',
+  '1': 'Mostly clear ☀️',
+  '2': 'Partly cloudy ⛅',
+  '3': 'Overcast ☁️',
+  '45': 'Fog 🌫️',
+  '48': 'Fog 🌫️',
+  '51': 'Drizzle 🌦️',
+  '53': 'Drizzle 🌦️',
+  '55': 'Drizzle 🌦️',
+  '61': 'Rain 🌧️',
+  '63': 'Rain 🌧️',
+  '65': 'Heavy rain 🌧️',
+  '71': 'Snow 🌨️',
+  '73': 'Snow 🌨️',
+  '75': 'Heavy snow 🌨️',
+  '80': 'Showers 🌩️',
+  '81': 'Showers 🌩️',
+  '82': 'Thunderstorm ⛈️',
+  '95': 'Thunderstorm ⛈️',
+  '96': 'Thunderstorm with hail ⛈️',
+  '99': 'Thunderstorm with hail ⛈️',
+};
+
+/** Reverse map: Spanish label → numeric WMO code. Used at runtime
+ *  by the i18n layer to translate condition strings that were
+ *  baked into JSON snapshots at build time (e.g., the city-forecast
+ *  snapshot stores 'Despejado'; the EN client looks it up here). */
+export const WMO_LABEL_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.entries(WMO).map(([code, label]) => [label, code]),
+);
+
+/** Map a WMO weather code to a human-readable label + emoji.
+ *  Defaults to Spanish; pass lang='en' for English. */
+export function describeWeatherCode(
+  code: number | string,
+  lang: 'es' | 'en' = 'es',
+): string {
+  const table = lang === 'en' ? WMO_EN : WMO;
+  return table[String(code)] || '—';
+}
+
+/** Translate a baked Spanish condition string (e.g., from a JSON
+ *  snapshot) to English by reverse-looking-up its WMO code. Returns
+ *  the original string when no match. */
+export function translateCondition(label: string, lang: 'es' | 'en'): string {
+  if (lang === 'es') return label;
+  const code = WMO_LABEL_TO_CODE[label];
+  if (code) return WMO_EN[code] ?? label;
+  // Fallback: dictionary of strings used in build-city-forecasts.py
+  // and elsewhere that may not exactly match WMO[] above.
+  const extras: Record<string, string> = {
+    '—': '—',
+    'Mayormente despejado': 'Mostly clear',
+    'Llovizna ligera': 'Light drizzle',
+    'Llovizna intensa': 'Heavy drizzle',
+    'Lluvia ligera': 'Light rain',
+    'Nevada ligera': 'Light snow',
+    'Nevada': 'Snow',
+    'Nevada intensa': 'Heavy snow',
+    'Chubascos intensos': 'Heavy showers',
+    'Chubascos violentos': 'Violent showers',
+    'Tormenta': 'Thunderstorm',
+    'Tormenta con granizo': 'Thunderstorm with hail',
+    'Tormenta severa': 'Severe thunderstorm',
+    'Niebla con escarcha': 'Freezing fog',
+  };
+  return extras[label] ?? label;
 }
 
 export interface Weather {

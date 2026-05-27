@@ -18,10 +18,15 @@ import { breadcrumbLd } from '../../lib/structured-data';
 const base = siteBase();
 
 const title = 'Huracanes activos — Clima México';
+const titleEn = 'Active hurricanes — Clima México';
 const description =
   'Sistemas tropicales activos en el Atlántico y Pacífico oriental ' +
   'que pueden afectar a México. Datos del Centro Nacional de Huracanes ' +
   '(NHC) actualizados cada 15 minutos.';
+const descriptionEn =
+  'Active tropical systems in the Atlantic and Eastern Pacific ' +
+  'that may affect Mexico. National Hurricane Center (NHC) data ' +
+  'refreshed every 15 minutes.';
 const canonical = new URL(`${base}huracanes/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -40,26 +45,43 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Huracanes</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page" data-i18n-en="Hurricanes">Huracanes</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en-html={`<span aria-hidden="true">🌀</span> Active hurricanes`}
+        >
           <span aria-hidden="true">🌀</span> Huracanes activos
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en-html={`Active tropical systems in the Atlantic and Eastern Pacific that may affect Mexico. Data from the <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener noreferrer" class="underline">National Hurricane Center</a> refreshed every 15 minutes.`}
+        >
           Sistemas tropicales activos en el Atlántico y Pacífico oriental
           que pueden afectar a México. Datos del{' '}
           <a
@@ -83,10 +105,16 @@ const jsonLd = [
           <p class="text-2xl">
             <span aria-hidden="true">✓</span>
           </p>
-          <p class="mt-2 text-lg font-semibold text-green-900 dark:text-green-200">
+          <p
+            class="mt-2 text-lg font-semibold text-green-900 dark:text-green-200"
+            data-i18n-en="No active tropical systems"
+          >
             Sin sistemas tropicales activos
           </p>
-          <p class="mt-1 text-sm text-green-800 dark:text-green-300">
+          <p
+            class="mt-1 text-sm text-green-800 dark:text-green-300"
+            data-i18n-en="There are no hurricanes or tropical storms currently being tracked by the NHC."
+          >
             Por ahora no hay huracanes ni tormentas tropicales en seguimiento por el NHC.
           </p>
           <p
@@ -101,6 +129,7 @@ const jsonLd = [
       <p
         id="huracanes-error"
         class="hidden rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
+        data-i18n-en-html={`We couldn't load the data. Check the <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener noreferrer" class="underline">NHC site</a> directly.`}
       >
         No pudimos cargar los datos. Consulta el{' '}
         <a
@@ -115,10 +144,17 @@ const jsonLd = [
         aria-labelledby="more-h"
         class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900 dark:bg-blue-950"
       >
-        <h2 id="more-h" class="font-semibold text-blue-900 dark:text-blue-200">
+        <h2
+          id="more-h"
+          class="font-semibold text-blue-900 dark:text-blue-200"
+          data-i18n-en="Want the interactive map?"
+        >
           ¿Quieres ver el mapa interactivo?
         </h2>
-        <p class="mt-1 text-blue-800 dark:text-blue-300">
+        <p
+          class="mt-1 text-blue-800 dark:text-blue-300"
+          data-i18n-en-html={`Enable the <strong>Tropical systems</strong> layer on the <a href="${base}mapa/" class="font-medium underline">interactive map</a> to see positions, MX historical tracks, and forecast cones in context.`}
+        >
           Activa la capa <strong>Sistemas tropicales</strong> en el{' '}
           <a href={`${base}mapa/`} class="font-medium underline"
             >mapa interactivo</a
@@ -147,21 +183,37 @@ const jsonLd = [
       return b.endsWith('/') ? b : b + '/';
     })();
 
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
+
     function categoryLabel(cls: string, ktN: number): string {
       const c = (cls || '').toUpperCase();
-      if (c === 'TD') return 'Depresión tropical';
-      if (c === 'TS') return 'Tormenta tropical';
+      const t = {
+        es: {
+          td: 'Depresión tropical', ts: 'Tormenta tropical', hu: 'Huracán',
+          cat: 'Huracán categoría',
+          ex: 'Ciclón post-tropical', pt: 'Tormenta potencial',
+        },
+        en: {
+          td: 'Tropical depression', ts: 'Tropical storm', hu: 'Hurricane',
+          cat: 'Category',
+          ex: 'Post-tropical cyclone', pt: 'Potential storm',
+        },
+      }[lang];
+      if (c === 'TD') return t.td;
+      if (c === 'TS') return t.ts;
       if (c === 'HU' || c === 'HC') {
         // Saffir-Simpson — kt is sustained-wind knots.
-        if (ktN >= 137) return 'Huracán categoría 5';
-        if (ktN >= 113) return 'Huracán categoría 4';
-        if (ktN >= 96) return 'Huracán categoría 3';
-        if (ktN >= 83) return 'Huracán categoría 2';
-        if (ktN >= 64) return 'Huracán categoría 1';
-        return 'Huracán';
+        if (ktN >= 137) return `${t.cat} 5`;
+        if (ktN >= 113) return `${t.cat} 4`;
+        if (ktN >= 96) return `${t.cat} 3`;
+        if (ktN >= 83) return `${t.cat} 2`;
+        if (ktN >= 64) return `${t.cat} 1`;
+        return t.hu;
       }
-      if (c === 'EX') return 'Ciclón post-tropical';
-      if (c === 'PT') return 'Tormenta potencial';
+      if (c === 'EX') return t.ex;
+      if (c === 'PT') return t.pt;
       return cls || '—';
     }
 
@@ -193,8 +245,10 @@ const jsonLd = [
         const d = new Date(iso);
         if (Number.isNaN(d.getTime())) return '';
         const rel = (Date.now() - d.getTime()) / 60000;
-        if (rel < 60) return `Actualizado hace ${Math.round(rel)} min`;
-        return `Actualizado hace ${Math.round(rel / 60)} h`;
+        const prefix = lang === 'en' ? 'Updated' : 'Actualizado hace';
+        const suffix = lang === 'en' ? ' ago' : '';
+        if (rel < 60) return `${prefix} ${Math.round(rel)} min${suffix}`;
+        return `${prefix} ${Math.round(rel / 60)} h${suffix}`;
       } catch {
         return '';
       }
@@ -247,11 +301,11 @@ const jsonLd = [
               </div>
               <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Vientos sostenidos</dt>
+                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">${escapeHtml(lang === 'en' ? 'Sustained winds' : 'Vientos sostenidos')}</dt>
                   <dd class="mt-0.5 font-semibold tabular-nums">${kt} kt · ${kmh} km/h</dd>
                 </div>
                 <div>
-                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Posición</dt>
+                  <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">${escapeHtml(lang === 'en' ? 'Position' : 'Posición')}</dt>
                   <dd class="mt-0.5 font-mono text-sm">${lat}°, ${lng}°</dd>
                 </div>
               </dl>
@@ -261,7 +315,7 @@ const jsonLd = [
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-blue-700 underline hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                >Boletín completo en NHC →</a>
+                >${escapeHtml(lang === 'en' ? 'Full NHC bulletin →' : 'Boletín completo en NHC →')}</a>
               </p>
             </li>`;
           })

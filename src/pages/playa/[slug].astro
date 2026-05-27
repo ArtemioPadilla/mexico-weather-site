@@ -42,10 +42,15 @@ const forecastHref =
   `&tz=America/Mexico_City`;
 
 const title = `Clima y oleaje en ${beach.name} — Pronóstico de playa`;
+const titleEn = `${beach.name} surf & weather — Beach forecast`;
 const description =
   `Estado del mar en ${beach.name}, ${beach.admin}. ` +
   `Altura de las olas, temperatura del mar y pronóstico marino. ` +
   `Datos de Open-Meteo Marine, sin cuentas ni cookies.`;
+const descriptionEn =
+  `Sea state for ${beach.name}, ${beach.admin}. ` +
+  `Wave height, sea-surface temperature and marine forecast. ` +
+  `Data from Open-Meteo Marine — no accounts, no cookies.`;
 
 const canonical = new URL(`${base}playa/${beach.slug}/`, Astro.site).href;
 const ogImage = new URL(`${base}og/playa/${beach.slug}.png`, Astro.site).href;
@@ -69,6 +74,8 @@ const jsonLd = [
 <BaseLayout
   title={title}
   description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
   lang="es"
   image={ogImage}
   jsonLd={jsonLd}
@@ -78,23 +85,33 @@ const jsonLd = [
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li>Playas</li>
+          <li data-i18n-en="Beaches">Playas</li>
           <li aria-hidden="true">›</li>
           <li class="text-gray-900 dark:text-gray-100" aria-current="page">{beach.name}</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en-html={`<span aria-hidden="true">🌊</span> Sea at ${beach.name}, <span class="text-gray-700 dark:text-gray-300">${beach.admin}</span>`}
+        >
           <span aria-hidden="true">🌊</span> Mar en {beach.name},
           <span class="text-gray-700 dark:text-gray-300">{beach.admin}</span>
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en={`Sea state for ${beach.name}: wave height and water temperature. Open-Meteo marine model data, updated hourly.`}
+        >
           Estado del mar para {beach.name}: altura de las olas y temperatura del agua.
           Datos del modelo marino de Open-Meteo, actualizados cada hora.
         </p>
@@ -106,14 +123,19 @@ const jsonLd = [
         aria-labelledby="marine-h"
         class="rounded-lg border border-gray-200 bg-gradient-to-br from-cyan-50 to-blue-50 p-5 dark:border-gray-800 dark:from-gray-900 dark:to-gray-900"
       >
-        <h2 id="marine-h" class="text-lg font-semibold">Ahora en la costa</h2>
+        <h2 id="marine-h" class="text-lg font-semibold" data-i18n-en="Now at the coast">
+          Ahora en la costa
+        </h2>
         <div id="m-loading" aria-hidden="true" class="mt-3 space-y-2 animate-pulse">
           <div class="h-10 w-40 rounded bg-gray-200 dark:bg-gray-800"></div>
           <div class="h-4 w-56 rounded bg-gray-200 dark:bg-gray-800"></div>
         </div>
         <div id="m-content" class="mt-3 hidden grid gap-4 sm:grid-cols-2">
           <div>
-            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <p
+              class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+              data-i18n-en="Wave height"
+            >
               Altura de las olas
             </p>
             <p class="mt-1">
@@ -123,7 +145,10 @@ const jsonLd = [
             <p id="m-wave-label" class="text-sm text-gray-600 dark:text-gray-400">—</p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <p
+              class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400"
+              data-i18n-en="Sea temperature"
+            >
               Temperatura del mar
             </p>
             <p class="mt-1">
@@ -133,7 +158,11 @@ const jsonLd = [
             <p id="m-sst-label" class="text-sm text-gray-600 dark:text-gray-400">—</p>
           </div>
         </div>
-        <p id="m-error" class="mt-3 hidden text-sm text-red-600 dark:text-red-400">
+        <p
+          id="m-error"
+          class="mt-3 hidden text-sm text-red-600 dark:text-red-400"
+          data-i18n-en-html={`We couldn't load marine data. <a href="${forecastHref}" class="underline">See the general forecast</a>.`}
+        >
           No pudimos cargar los datos marinos. <a href={forecastHref} class="underline">Ver el pronóstico general</a>.
         </p>
       </section>
@@ -142,8 +171,14 @@ const jsonLd = [
         href={forecastHref}
         class="block rounded-lg bg-cyan-700 px-5 py-4 text-center text-white shadow-sm hover:bg-cyan-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600 dark:bg-cyan-600 dark:hover:bg-cyan-700"
       >
-        <span class="font-semibold">Ver pronóstico completo de {beach.name}</span>
-        <span class="block text-sm opacity-90">
+        <span
+          class="font-semibold"
+          data-i18n-en={`See full forecast for ${beach.name}`}
+        >Ver pronóstico completo de {beach.name}</span>
+        <span
+          class="block text-sm opacity-90"
+          data-i18n-en="7 days, interactive map, SMN alerts"
+        >
           7 días, mapa interactivo, alertas SMN
         </span>
       </a>
@@ -153,8 +188,12 @@ const jsonLd = [
         class="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-400"
       >
         <div>
-          <h2 id="meta-h" class="sr-only">Detalles de ubicación</h2>
-          <p>Coordenadas: {beach.lat.toFixed(2)}°, {beach.lng.toFixed(2)}°</p>
+          <h2 id="meta-h" class="sr-only" data-i18n-en="Location details">
+            Detalles de ubicación
+          </h2>
+          <p data-i18n-en={`Coordinates: ${beach.lat.toFixed(2)}°, ${beach.lng.toFixed(2)}°`}>
+            Coordenadas: {beach.lat.toFixed(2)}°, {beach.lng.toFixed(2)}°
+          </p>
         </div>
         <ShareButton
           label={`Compartir ${beach.name}`}
@@ -168,10 +207,13 @@ const jsonLd = [
             aria-labelledby="state-h"
             class="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm dark:border-cyan-900 dark:bg-cyan-950"
           >
-            <h2 id="state-h" class="sr-only">
+            <h2 id="state-h" class="sr-only" data-i18n-en="State">
               Estado
             </h2>
-            <p class="text-gray-700 dark:text-gray-300">
+            <p
+              class="text-gray-700 dark:text-gray-300"
+              data-i18n-en-html={`<span aria-hidden="true">📍</span> See the whole state summary: <a href="${base}estado/${state.slug}/" class="font-medium text-cyan-700 hover:underline dark:text-cyan-400">Weather in ${state.name} →</a>`}
+            >
               <span aria-hidden="true">📍</span> Ver el resumen de todo el estado:{' '}
               <a
                 href={`${base}estado/${state.slug}/`}
@@ -185,7 +227,10 @@ const jsonLd = [
       }
 
       <nav aria-label="Otras playas" class="border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h2
+          class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          data-i18n-en="Other beaches"
+        >
           Otras playas
         </h2>
         <ul class="flex flex-wrap gap-2">
@@ -226,20 +271,32 @@ const jsonLd = [
       features?: MarineFeature[];
     }
 
+    const lang = (document.documentElement.getAttribute('data-lang') === 'en'
+      ? 'en'
+      : 'es') as 'es' | 'en';
+    const waveLabels = {
+      es: ['Mar calmo', 'Olas pequeñas', 'Olas moderadas', 'Olas grandes', 'Olas peligrosas'],
+      en: ['Calm sea', 'Small waves', 'Moderate waves', 'Large waves', 'Dangerous waves'],
+    }[lang];
+    const sstLabels = {
+      es: ['Frío', 'Fresco', 'Templado', 'Cálido', 'Muy cálido'],
+      en: ['Cold', 'Cool', 'Mild', 'Warm', 'Very warm'],
+    }[lang];
+
     function waveLabel(hs: number): string {
-      if (hs < 0.5) return 'Mar calmo';
-      if (hs < 1.0) return 'Olas pequeñas';
-      if (hs < 1.5) return 'Olas moderadas';
-      if (hs < 2.5) return 'Olas grandes';
-      return 'Olas peligrosas';
+      if (hs < 0.5) return waveLabels[0]!;
+      if (hs < 1.0) return waveLabels[1]!;
+      if (hs < 1.5) return waveLabels[2]!;
+      if (hs < 2.5) return waveLabels[3]!;
+      return waveLabels[4]!;
     }
 
     function sstLabel(sst: number): string {
-      if (sst < 18) return 'Frío';
-      if (sst < 22) return 'Fresco';
-      if (sst < 26) return 'Templado';
-      if (sst < 29) return 'Cálido';
-      return 'Muy cálido';
+      if (sst < 18) return sstLabels[0]!;
+      if (sst < 22) return sstLabels[1]!;
+      if (sst < 26) return sstLabels[2]!;
+      if (sst < 29) return sstLabels[3]!;
+      return sstLabels[4]!;
     }
 
     async function run(): Promise<void> {

@@ -50,10 +50,15 @@ const capitalHref = state.capitalSlug
     `&tz=America/Mexico_City`;
 
 const title = `Clima en ${state.name} — Pronóstico por ciudad`;
+const titleEn = `${state.name} weather — Forecast by city`;
 const description =
   `Pronóstico del tiempo para ${state.name}, México. ` +
   `Capital ${state.capital} y principales ciudades. ` +
   `Datos del modelo meteorológico de Open-Meteo, sin cuentas ni cookies.`;
+const descriptionEn =
+  `Weather forecast for ${state.name}, Mexico. ` +
+  `Capital ${state.capital} plus major cities. ` +
+  `Open-Meteo model data — no accounts, no cookies.`;
 
 const canonical = new URL(`${base}estado/${state.slug}/`, Astro.site).href;
 const ogImage = new URL(`${base}og/estado/${state.slug}.png`, Astro.site).href;
@@ -77,6 +82,8 @@ const jsonLd = [
 <BaseLayout
   title={title}
   description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
   lang="es"
   image={ogImage}
   jsonLd={jsonLd}
@@ -86,22 +93,32 @@ const jsonLd = [
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li>Estados</li>
+          <li data-i18n-en="States">Estados</li>
           <li aria-hidden="true">›</li>
           <li class="text-gray-900 dark:text-gray-100" aria-current="page">{state.name}</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en={`Weather in ${state.name}`}
+        >
           Clima en {state.name}
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en-html={`Weather forecast for ${state.name}, Mexico. The state capital is <strong>${state.capital}</strong>. Below the cities and beaches we cover in ${state.name}.`}
+        >
           Pronóstico del tiempo para {state.name}, México. La capital del estado es
           <strong>{state.capital}</strong>. A continuación las ciudades y playas
           que cubrimos en {state.name}.
@@ -114,7 +131,9 @@ const jsonLd = [
         aria-labelledby="capital-h"
         class="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900"
       >
-        <h2 id="capital-h" class="text-lg font-semibold">Capital</h2>
+        <h2 id="capital-h" class="text-lg font-semibold" data-i18n-en="Capital">
+          Capital
+        </h2>
         <a
           href={capitalHref}
           class="mt-2 inline-flex items-center gap-1 text-blue-700 hover:underline dark:text-blue-400"
@@ -127,7 +146,9 @@ const jsonLd = [
       {
         citiesInState.length > 0 && (
           <section aria-labelledby="cities-h" class="space-y-3">
-            <h2 id="cities-h" class="text-lg font-semibold">Ciudades</h2>
+            <h2 id="cities-h" class="text-lg font-semibold" data-i18n-en="Cities">
+              Ciudades
+            </h2>
             <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {citiesInState.map((c) => (
                 <li>
@@ -150,7 +171,9 @@ const jsonLd = [
       {
         beachesInState.length > 0 && (
           <section aria-labelledby="beaches-h" class="space-y-3">
-            <h2 id="beaches-h" class="text-lg font-semibold">Playas</h2>
+            <h2 id="beaches-h" class="text-lg font-semibold" data-i18n-en="Beaches">
+              Playas
+            </h2>
             <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {beachesInState.map((b) => (
                 <li>
@@ -175,7 +198,9 @@ const jsonLd = [
       {
         volcanoesInState.length > 0 && (
           <section aria-labelledby="volcanoes-h" class="space-y-3">
-            <h2 id="volcanoes-h" class="text-lg font-semibold">Volcanes</h2>
+            <h2 id="volcanoes-h" class="text-lg font-semibold" data-i18n-en="Volcanoes">
+              Volcanes
+            </h2>
             <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {volcanoesInState.map((v) => (
                 <li>
@@ -186,7 +211,10 @@ const jsonLd = [
                     <div class="font-medium">
                       <span aria-hidden="true">🌋</span> {v.name}
                     </div>
-                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                    <div
+                      class="text-xs text-gray-600 dark:text-gray-400"
+                      data-i18n-en={`Elevation ${v.elevationM} m`}
+                    >
                       Elevación {v.elevationM} m
                     </div>
                   </a>
@@ -205,7 +233,10 @@ const jsonLd = [
       </div>
 
       <nav aria-label="Otros estados" class="border-t border-gray-200 pt-6 dark:border-gray-800">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h2
+          class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          data-i18n-en="Other states"
+        >
           Otros estados
         </h2>
         <ul class="flex flex-wrap gap-2">

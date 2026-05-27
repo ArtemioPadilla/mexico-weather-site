@@ -77,6 +77,11 @@ export function createSmnStateTintOverlay(
     StateProps
   > | null = null;
 
+  interface PolyProps {
+    slug: string;
+    name?: string;
+  }
+
   async function buildFc(): Promise<FeatureCollection<
     Polygon | MultiPolygon,
     StateProps
@@ -90,7 +95,7 @@ export function createSmnStateTintOverlay(
       if (!polyRes.ok || !smnRes.ok) return null;
       const poly = (await polyRes.json()) as FeatureCollection<
         Polygon | MultiPolygon,
-        { slug: string; name?: string }
+        PolyProps
       >;
       const smn = (await smnRes.json()) as SmnByStateDoc;
       // Build the joined FC — keep ONLY states that have at least one
@@ -98,7 +103,9 @@ export function createSmnStateTintOverlay(
       // dropped so the fill layer stays sparse.
       const hasGlobal = (smn.global ?? []).length > 0;
       const globalSev = maxSeverity(smn.global);
-      const features: typeof poly.features = [];
+      const features: Array<typeof poly.features[number] & {
+        properties: StateProps;
+      }> = [];
       for (const f of poly.features) {
         const slug = f.properties?.slug;
         if (!slug) continue;

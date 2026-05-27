@@ -6,10 +6,15 @@ import { breadcrumbLd } from '../../lib/structured-data';
 
 const base = siteBase();
 const title = 'Volcanes de México — Monitoreo y clima';
+const titleEn = 'Volcanoes of Mexico — Monitoring and weather';
 const description =
   'Información sobre los volcanes monitoreados de México: Popocatépetl, ' +
   'Volcán de Colima, El Chichón, Tacaná, Pico de Orizaba, Iztaccíhuatl, ' +
   'Nevado de Toluca. Datos de CENAPRED y clima de Open-Meteo.';
+const descriptionEn =
+  'About the monitored volcanoes of Mexico: Popocatépetl, Volcán de ' +
+  'Colima, El Chichón, Tacaná, Pico de Orizaba, Iztaccíhuatl, ' +
+  'Nevado de Toluca. CENAPRED data and Open-Meteo weather.';
 const canonical = new URL(`${base}volcan/`, Astro.site).href;
 const homeUrl = new URL(base, Astro.site).href;
 const jsonLd = [
@@ -31,26 +36,43 @@ const jsonLd = [
 const volcanoes = [...MX_VOLCANOES].sort((a, b) => b.elevationM - a.elevationM);
 ---
 
-<BaseLayout title={title} description={description} lang="es" jsonLd={jsonLd}>
+<BaseLayout
+  title={title}
+  description={description}
+  titleEn={titleEn}
+  descriptionEn={descriptionEn}
+  lang="es"
+  jsonLd={jsonLd}
+>
   <main class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
     <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <nav aria-label="breadcrumb" class="text-sm">
         <ol class="flex flex-wrap items-center gap-1 text-gray-600 dark:text-gray-400">
           <li>
-            <a href={base} class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline">
+            <a
+              href={base}
+              class="inline-flex min-h-[44px] items-center hover:text-gray-900 dark:hover:text-gray-200 underline"
+              data-i18n-en="Home"
+            >
               Inicio
             </a>
           </li>
           <li aria-hidden="true">›</li>
-          <li class="text-gray-900 dark:text-gray-100" aria-current="page">Volcanes</li>
+          <li class="text-gray-900 dark:text-gray-100" aria-current="page" data-i18n-en="Volcanoes">Volcanes</li>
         </ol>
       </nav>
 
       <header class="space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1
+          class="text-3xl font-bold tracking-tight sm:text-4xl"
+          data-i18n-en-html={`<span aria-hidden="true">🌋</span> Volcanoes of Mexico`}
+        >
           <span aria-hidden="true">🌋</span> Volcanes de México
         </h1>
-        <p class="text-base text-gray-700 dark:text-gray-300">
+        <p
+          class="text-base text-gray-700 dark:text-gray-300"
+          data-i18n-en={`Biographical information for the ${volcanoes.length} monitored volcanoes of Mexico, with links to official CENAPRED monitoring and weather for each zone. Sorted by elevation.`}
+        >
           Información biográfica de los {volcanoes.length} volcanes monitoreados de México,
           con enlaces al monitoreo oficial de CENAPRED y al clima de cada zona. Ordenados
           por elevación.
@@ -61,7 +83,9 @@ const volcanoes = [...MX_VOLCANOES].sort((a, b) => b.elevationM - a.elevationM);
         id="catalog-filter"
         type="search"
         placeholder="Filtrar por nombre o estado…"
+        data-i18n-en-placeholder="Filter by name or state…"
         aria-label="Filtrar volcanes"
+        data-i18n-en-aria-label="Filter volcanoes"
         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-900"
       />
       <ul id="catalog-list" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -87,7 +111,11 @@ const volcanoes = [...MX_VOLCANOES].sort((a, b) => b.elevationM - a.elevationM);
           ))
         }
       </ul>
-      <p id="catalog-empty" class="hidden text-sm text-gray-500 dark:text-gray-400">
+      <p
+        id="catalog-empty"
+        class="hidden text-sm text-gray-500 dark:text-gray-400"
+        data-i18n-en="No results."
+      >
         Sin resultados.
       </p>
       <script is:inline>

@@ -47,10 +47,14 @@ export interface AqiLevel {
     | 'hazardous';
   /** Spanish label for UI. */
   label: string;
+  /** English label for UI (i18n). */
+  labelEn: string;
   /** Tailwind classes for badge styling. */
   tw: string;
   /** Brief recommendation for sensitive populations. */
   advice: string;
+  /** English advice (i18n). */
+  adviceEn: string;
 }
 
 /** EPA 24-h PM2.5 breakpoints → AQI band. Numeric thresholds match
@@ -60,52 +64,69 @@ export function aqiLevel(pm: number): AqiLevel {
     return {
       band: 'good',
       label: 'Buena',
+      labelEn: 'Good',
       tw: 'bg-green-100 text-green-900 ring-green-300 dark:bg-green-950 dark:text-green-200 dark:ring-green-900',
       advice: 'Aire limpio. Sin restricciones para actividades al aire libre.',
+      adviceEn: 'Clean air. No restrictions for outdoor activity.',
     };
   }
   if (pm < 35) {
     return {
       band: 'moderate',
       label: 'Moderada',
+      labelEn: 'Moderate',
       tw: 'bg-yellow-100 text-yellow-900 ring-yellow-300 dark:bg-yellow-950 dark:text-yellow-200 dark:ring-yellow-900',
       advice:
         'Aceptable para la mayoría. Personas inusualmente sensibles pueden notar molestias.',
+      adviceEn:
+        'Acceptable for most. Unusually sensitive people may notice mild irritation.',
     };
   }
   if (pm < 55) {
     return {
       band: 'unhealthy-sensitive',
       label: 'Dañina para grupos sensibles',
+      labelEn: 'Unhealthy for sensitive groups',
       tw: 'bg-orange-100 text-orange-900 ring-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-900',
       advice:
         'Niños, adultos mayores y personas con asma deberían limitar la actividad al aire libre.',
+      adviceEn:
+        'Children, older adults, and people with asthma should limit outdoor activity.',
     };
   }
   if (pm < 150) {
     return {
       band: 'unhealthy',
       label: 'Dañina',
+      labelEn: 'Unhealthy',
       tw: 'bg-red-100 text-red-900 ring-red-300 dark:bg-red-950 dark:text-red-200 dark:ring-red-900',
       advice:
         'Todos pueden experimentar efectos. Limita el ejercicio prolongado al aire libre.',
+      adviceEn:
+        'Everyone may experience effects. Limit prolonged outdoor exertion.',
     };
   }
   if (pm < 250) {
     return {
       band: 'very-unhealthy',
       label: 'Muy dañina',
+      labelEn: 'Very unhealthy',
       tw: 'bg-purple-100 text-purple-900 ring-purple-300 dark:bg-purple-950 dark:text-purple-200 dark:ring-purple-900',
       advice:
         'Evita actividades al aire libre. Mantén ventanas cerradas si es posible.',
+      adviceEn:
+        'Avoid outdoor activity. Keep windows closed if possible.',
     };
   }
   return {
     band: 'hazardous',
     label: 'Peligrosa',
+    labelEn: 'Hazardous',
     tw: 'bg-rose-200 text-rose-950 ring-rose-400 dark:bg-rose-900 dark:text-rose-100 dark:ring-rose-700',
     advice:
       'Alerta sanitaria. Permanece en interiores; usa cubrebocas N95 si debes salir.',
+    adviceEn:
+      'Health alert. Stay indoors; wear an N95 mask if you must go out.',
   };
 }
 
