@@ -40,8 +40,10 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git diff --quiet -- public/data/hurricanes-mx.json || (
-            git add public/data/hurricanes-mx.json &&
+          # See marine-snapshot.yml — stage first so a never-tracked
+          # snapshot registers as a real diff.
+          git add public/data/hurricanes-mx.json
+          git diff --staged --quiet || (
             git commit -m 'chore: refresh IBTrACS hurricanes archive' &&
             git push &&
             echo 'committed=true' >> "$GITHUB_OUTPUT"

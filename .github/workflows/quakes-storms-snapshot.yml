@@ -40,11 +40,13 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          changed=0
+          # See marine-snapshot.yml — stage first so untracked snapshot
+          # files register as a real diff. The old per-file
+          # `git diff --quiet` skipped never-tracked files entirely.
           for f in public/data/quakes-snapshot.json public/data/storms-snapshot.json; do
-            git diff --quiet -- "$f" || { git add "$f"; changed=1; }
+            git add "$f"
           done
-          if [ "$changed" = "1" ]; then
+          if ! git diff --staged --quiet; then
             git commit -m 'chore: refresh quakes + storms snapshots' &&
             git push &&
             echo 'committed=true' >> "$GITHUB_OUTPUT"

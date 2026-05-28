@@ -36,8 +36,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git diff --quiet -- public/data/marine-snapshot.json || (
-            git add public/data/marine-snapshot.json &&
+          # `git add` first so an untracked-but-newly-created file
+          # registers as a real diff. The old `git diff --quiet` check
+          # treated never-tracked files as "no change" and silently
+          # skipped the commit, leaving production at 404.
+          git add public/data/marine-snapshot.json
+          git diff --staged --quiet || (
             git commit -m 'chore: refresh marine snapshot' &&
             git push &&
             echo 'committed=true' >> "$GITHUB_OUTPUT"

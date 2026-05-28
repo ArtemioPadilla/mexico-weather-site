@@ -955,6 +955,17 @@ const base = siteBase();
         li.setAttribute('aria-selected', 'false');
         li.className =
           'px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800';
+        // Explicit aria-label so screen readers read a clean
+        // comma-separated sentence rather than the run-on textContent
+        // produced by concatenated spans (`<span>Name</span><span>kind
+        // </span><span>admin</span>` reads as "Nameindkindadmin").
+        const labelParts = [r.name];
+        if (typeof r.population === 'number' && r.population >= 50000) {
+          labelParts.push('ciudad');
+        }
+        const place = [r.admin1, r.country].filter(Boolean).join(', ');
+        if (place) labelParts.push(`en ${place}`);
+        li.setAttribute('aria-label', labelParts.join(', '));
 
         // Primary line: city name in bold, optional "ciudad" marker for
         // populous places so the real city stands out from tiny hamlets.

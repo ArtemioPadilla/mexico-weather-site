@@ -39,8 +39,11 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git diff --quiet -- public/data/aqi-snapshot.json || (
-            git add public/data/aqi-snapshot.json &&
+          # See marine-snapshot.yml — stage first so an untracked file
+          # registers as a diff. The old check silently skipped commits
+          # for never-tracked snapshots, leaving production at 404.
+          git add public/data/aqi-snapshot.json
+          git diff --staged --quiet || (
             git commit -m 'chore: refresh AQI snapshot' &&
             git push &&
             echo 'committed=true' >> "$GITHUB_OUTPUT"

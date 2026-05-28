@@ -40,12 +40,23 @@ interface ApiResult {
   feature_code?: string;
 }
 
-/** Number of raw results to request — over-fetch so ranking has material. */
-const REQUEST_COUNT = 20;
+/** Number of raw results to request — over-fetch so ranking has material.
+ *  Bumped from 20 → 40 so Mexico-first ranking has more Mexican
+ *  candidates to surface even when Open-Meteo's name matcher returns
+ *  populous non-MX entries that would otherwise saturate the top 8. */
+const REQUEST_COUNT = 40;
 /** How many ranked results to surface to the UI. */
 const DISPLAY_COUNT = 8;
 /** Two results within this lat/lng delta are treated as the same place. */
 const NEAR_DEG = 0.05;
+
+/** True if a result's country field names Mexico in any common spelling
+ *  (English, Spanish, accented). */
+function isMexico(country: string | undefined): boolean {
+  if (!country) return false;
+  const c = country.toLowerCase();
+  return c === 'mexico' || c === 'méxico' || c.startsWith('mexico') || c.startsWith('méxico');
+}
 
 /** Build the Open-Meteo geocoding search URL. */
 export function buildGeocodeUrl(query: string, lang = 'es'): string {
@@ -73,13 +84,19 @@ function mapResult(r: ApiResult): GeoResult {
 }
 
 /**
- * Stable sort by population descending; entries without a population sort
- * after all entries that have one (their relative order is preserved).
+ * Stable sort: Mexican results first (regardless of population), then by
+ * population descending, then by original index. This is intentional for
+ * a México-focused site — typing "gua" should surface Guadalajara before
+ * Guatemala City even though Guatemala City has more people. Users
+ * searching for non-MX destinations still get them, just after MX hits.
  */
 function byPopulationDesc(list: GeoResult[]): GeoResult[] {
   return list
     .map((item, idx) => ({ item, idx }))
     .sort((a, b) => {
+      const aMx = isMexico(a.item.country);
+      const bMx = isMexico(b.item.country);
+      if (aMx !== bMx) return aMx ? -1 : 1;
       const pa = a.item.population;
       const pb = b.item.population;
       const aHas = typeof pa === 'number';

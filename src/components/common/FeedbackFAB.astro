@@ -240,9 +240,11 @@ const tr = feedback[lang];
         <button
           type="button"
           id="secid-report-submit"
+          disabled
           class="min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold
                  bg-primary-600 hover:bg-primary-700 text-white
-                 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
+                 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors
+                 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary-600"
         >
           {tr.open_on_github}
         </button>
@@ -434,6 +436,22 @@ const tr = feedback[lang];
       typeEl.addEventListener('change', function () {
         bugFields.style.display = typeEl.value === 'bug' ? '' : 'none';
       });
+    }
+
+    // Gate submit on a non-empty title. The default HTML wires the
+    // button as disabled; this re-enables it once the user has typed
+    // something. Without this gate, clicking submit opened a GitHub
+    // issue with an empty title — useless noise in the issue tracker.
+    if (titleEl && submitBtn) {
+      var updateSubmitEnabled = function () {
+        submitBtn.disabled = titleEl.value.trim().length === 0;
+      };
+      titleEl.addEventListener('input', updateSubmitEnabled);
+      titleEl.addEventListener('change', updateSubmitEnabled);
+      // Reset to disabled every time the modal opens fresh (titleEl
+      // value persists across opens, but a fresh blur shouldn't
+      // appear enabled by stale state).
+      updateSubmitEnabled();
     }
 
     // Open modal
