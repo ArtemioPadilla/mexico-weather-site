@@ -305,7 +305,9 @@ export async function initInteractiveMap(
     // Required so map.getCanvas().toDataURL() returns the rendered
     // pixels (plan 3.3 snapshot compare). WebGL discards the buffer
     // by default at the end of each frame; this keeps it readable.
-    preserveDrawingBuffer: true,
+    // maplibre-gl v5 moved this into canvasContextAttributes (was a
+    // top-level MapOption in v4).
+    canvasContextAttributes: { preserveDrawingBuffer: true },
     // MapLibre's attributionControl typing is `false | AttributionControlOptions`;
     // pass `false` to suppress it, or omit (undefined) to use the default control.
     attributionControl: controls ? undefined : false,
