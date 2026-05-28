@@ -5,27 +5,54 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Thu, 28 May 2026 11:32:33 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 28 May 2026 13:39:26 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 28 de mayo del 2026 | Emisión 03:00h</title>
+      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 295 | 28 de Mayo del 2026 | Emisión 06:00h</title>
+      <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
+      <description><![CDATA[LLUVIAS PUNTUALES INTENSAS EN CHIAPAS, TABASCO, CAMPECHE Y YUCATÁN, Y PUNTUALES MUY FUERTES EN OAXACA, VERACRUZ Y QUINTANA ROO
+
+---
+Pronóstico Meteorológico General
+No. Aviso: 295
+Ciudad de México a 28 de Mayo del 2026.
+Emisión: 06:00h
+Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
+
+LLUVIAS PUNTUALES INTENSAS EN CHIAPAS, TABASCO, CAMPECHE Y YUCATÁN, Y PUNTUALES MUY FUERTES EN OAXACA, VERACRUZ Y QUINTANA ROO
+
+Para hoy, el desplazamiento de la onda tropical núm. 2 al sur de las costas de Oaxaca y Guerrero, en combinación con el ingreso de aire húmedo del golfo de México y mar Caribe, y con una vaguada en altura sobre el golfo de México y el sureste mexicano, ocasionarán lluvias puntuales intensas en Yucatán, Campeche, Tabasco y Chiapas; puntuales muy fuertes en Veracruz, Oaxaca y Quintana Roo; y puntuales fuertes en Puebla y Guerrero. Por otra parte, un frente frío (fuera de temporada) sobre el noroeste del territorio nacional, en interacción con una circulación ciclónica en niveles medios y altos de la atmósfera en el suroeste de Estados Unidos y con las corrientes en chorro polar y subtropical, propiciarán lluvias aisladas en zonas de Baja California, y rachas de viento de 40 a 60 km/h con posibles tolvaneras en el norte de México.…]]></description>
+      <pubDate>Thu, 28 May 2026 12:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-pronostico-general-2026-05-28-295</guid>
+      <category>Pronóstico General</category>
+    </item>
+    <item>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 28 de mayo del 2026 | Emisión 06:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 28 de mayo del 2026
-Emisión: 03:00
+Emisión: 06:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Thu, 28 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-28-12</guid>
       <category>Aviso Tormentas</category>
     </item>
     <item>
-      <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Puebla (norte y sureste), Veracruz (norte y centro), Oaxaca (norte y suroeste) y Chiapas (norte, centro y este).</title>
+      <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Chiapas, Tabasco, Campeche y Yucatán.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Lluvias puntuales muy fuertes (50 a 75 mm): Nuevo León (este), Tamaulipas (oeste) y Tabasco (este y sur).]]></description>
-      <pubDate>Thu, 28 May 2026 05:32:22 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-28-a8c7</guid>
+      <description><![CDATA[Temperaturas Máximas (40 a 45 °C): Sinaloa, Chihuahua, Nayarit, Michoacán, Guerrero, Oaxaca y Yucatán.]]></description>
+      <pubDate>Thu, 28 May 2026 07:39:16 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-28-88bc</guid>
       <category>Alerta</category>
+    </item>
+    <item>
+      <title>📋 SMN Reporte Matutino 28 MAY 2026: se pronostican lluvias intensas para regiones de Tabasco, Chiapas, Campeche y Yucatán</title>
+      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf</link>
+      <description><![CDATA[se pronostican lluvias intensas para regiones de Tabasco, Chiapas, Campeche y Yucatán — Reporte Matutino del 28 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf]]></description>
+      <pubDate>Thu, 28 May 2026 07:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_28</guid>
+      <category>Comunicado</category>
     </item>
     <item>
       <title>📋 SMN Reporte Vespertino 27 MAY 2026: Para esta noche se pronostican lluvias intensas en regiones de Puebla, Veracruz, Oaxaca y Chiapas</title>
@@ -34,27 +61,6 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <pubDate>Wed, 27 May 2026 17:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_05_27</guid>
       <category>Comunicado</category>
-    </item>
-    <item>
-      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 294 | 27 de Mayo del 2026 | Emisión 18:00h</title>
-      <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
-      <description><![CDATA[LLUVIAS PUNTUALES INTENSAS EN PUEBLA, VERACRUZ, OAXACA Y CHIAPAS
-
----
-Pronóstico Meteorológico General
-No. Aviso: 294
-Ciudad de México a 27 de Mayo del 2026.
-Emisión: 18:00h
-Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
-
- 
-
-LLUVIAS PUNTUALES INTENSAS EN PUEBLA, VERACRUZ, OAXACA Y CHIAPAS 
-
-Durante esta tarde-noche y madrugada del día jueves, una vaguada en altura sobre el noreste y oriente de México, interaccionará con inestabilidad atmosférica y con el ingreso de humedad del golfo de México, ocasionando lluvias puntuales intensas en Puebla (norte y sureste) y Veracruz (centro), muy fuertes en Nuevo León (este) y Tamaulipas (oeste), así como lluvias fuertes en San Luis Potosí (este y sur), Guanajuato (noreste), Querétaro (norte), Hidalgo (norte, este y sureste), Tlaxcala, Estado de México (norte, centro y este), Ciudad de México, Morelos y Guerrero (norte y este). La onda tropical núm.…]]></description>
-      <pubDate>Wed, 27 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-pronostico-general-2026-05-27-294</guid>
-      <category>Pronóstico General</category>
     </item>
     <item>
       <title>📋 SMN Reporte Matutino 27 MAY 2026: Se pronostican lluvias intensas para regiones de Puebla, Veracruz, Oaxaca y Chiapas</title>
@@ -78,14 +84,6 @@ Durante esta tarde-noche y madrugada del día jueves, una vaguada en altura so
       <description><![CDATA[Se pronostican lluvias intensas en el noreste de México, así como condiciones para torbellinos o tornados en el norte ... — Reporte Matutino del 26 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_26.pdf]]></description>
       <pubDate>Tue, 26 May 2026 07:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_26</guid>
-      <category>Comunicado</category>
-    </item>
-    <item>
-      <title>📋 SMN Reporte Vespertino 25 MAY 2026: Para esta noche se pronostican lluvias intensas en regiones de Oaxaca, Chiapas, Campeche y Yucatán</title>
-      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_25.pdf</link>
-      <description><![CDATA[Para esta noche se pronostican lluvias intensas en regiones de Oaxaca, Chiapas, Campeche y Yucatán — Reporte Vespertino del 25 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_25.pdf]]></description>
-      <pubDate>Mon, 25 May 2026 17:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_05_25</guid>
       <category>Comunicado</category>
     </item>
   </channel>
