@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Thu, 28 May 2026 13:39:26 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 28 May 2026 15:33:03 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -28,11 +28,11 @@ Para hoy, el desplazamiento de la onda tropical núm. 2 al sur de las costas de 
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 28 de mayo del 2026 | Emisión 06:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 28 de mayo del 2026 | Emisión 09:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 28 de mayo del 2026
-Emisión: 06:00
+Emisión: 09:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Thu, 28 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-28-12</guid>
@@ -42,7 +42,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Chiapas, Tabasco, Campeche y Yucatán.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas Máximas (40 a 45 °C): Sinaloa, Chihuahua, Nayarit, Michoacán, Guerrero, Oaxaca y Yucatán.]]></description>
-      <pubDate>Thu, 28 May 2026 07:39:16 -0600</pubDate>
+      <pubDate>Thu, 28 May 2026 09:32:54 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-28-88bc</guid>
       <category>Alerta</category>
     </item>
