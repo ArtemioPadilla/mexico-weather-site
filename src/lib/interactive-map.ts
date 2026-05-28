@@ -35,10 +35,10 @@ import {
 } from './maptimeline';
 import {
   viewportGrid,
-  buildFieldUrl,
   fetchFieldChunks,
   fetchWindChunks,
   parseFieldResponse,
+  parseWindResponse,
   fieldFrameIndex,
   tempColor,
   humidityColor,
@@ -50,6 +50,7 @@ import {
   getColorBlindMode,
   type FieldGrid,
   type LegendStop,
+  type WindGrid,
 } from './mapfields';
 import {
   MAX_WIND_MPS,
@@ -60,7 +61,6 @@ import {
   initParticlePositions,
   type WindPoint,
 } from './mapwind';
-import { buildWindUrl, parseWindResponse, type WindGrid } from './mapfields';
 import {
   renderFieldRaster,
   bilerpValue,
@@ -943,11 +943,10 @@ export async function initInteractiveMap(
     const speedVar =
       windSubOption === 'rachas' ? 'wind_gusts_10m' : 'wind_speed_10m';
     try {
-      const res = await deps.fetch(
-        buildWindUrl(grid, speedVar, activeModel),
-      );
-      if (!res.ok) return;
-      const wg = parseWindResponse(await res.json(), grid, speedVar);
+      const json = await fetchWindChunks(grid, speedVar, deps.fetch, {
+        model: activeModel,
+      });
+      const wg = parseWindResponse(json, grid, speedVar);
       if (!wg || wg.points.length === 0) return;
       windGrid = wg;
       windTexDirty = true;
@@ -1845,17 +1844,15 @@ export async function initInteractiveMap(
         // Wind layer activation from a fresh URL hash like ?layer=wind
         // sometimes hit TypeError: Failed to fetch on first try and fell
         // back to base. A single 500 ms retry resolves the transient.
-        async function attempt(): Promise<Response> {
-          const r = await deps.fetch(
-            buildWindUrl(grid, speedVar, activeModel),
-            { signal: ac.signal },
-          );
-          if (!r.ok) throw new Error('non-2xx');
-          return r;
+        async function attempt(): Promise<unknown[]> {
+          return await fetchWindChunks(grid, speedVar, deps.fetch, {
+            signal: ac.signal,
+            model: activeModel,
+          });
         }
-        let res: Response;
+        let json: unknown[];
         try {
-          res = await attempt();
+          json = await attempt();
         } catch {
           if (ac.signal.aborted) {
             removeWind();
@@ -1874,7 +1871,7 @@ export async function initInteractiveMap(
             syncHash();
             return;
           }
-          res = await attempt();
+          json = await attempt();
         }
         if (ac.signal.aborted) {
           removeWind();
@@ -1884,7 +1881,7 @@ export async function initInteractiveMap(
           syncHash();
           return;
         }
-        windGrid = parseWindResponse(await res.json(), grid, speedVar);
+        windGrid = parseWindResponse(json, grid, speedVar);
         windTexDirty = true;
       } catch {
         if (!ac.signal.aborted) windGrid = null;

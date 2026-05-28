@@ -303,10 +303,13 @@ const tr = feedback[lang];
     W.addEventListener('unhandledrejection', function (ev) {
       // Drop AbortErrors entirely — they're a routine side-effect of
       // user-driven layer toggles cancelling in-flight requests, not
-      // a real fault. Drop generic network errors too; the dedicated
-      // fetch wrapper below already captures those as network entries
-      // with status 0.
-      if (isAbortError(ev.reason) || isNetworkErrorReason(ev.reason)) return;
+      // a real fault. Do NOT drop "Failed to fetch" / NetworkError
+      // here: those are real promise rejections from app code that
+      // should be visible in the diagnostic log even though the
+      // fetch wrapper also captures them as structured network
+      // entries — the two views are complementary (network entries
+      // show URL+method, diagnostic shows the stack trace).
+      if (isAbortError(ev.reason)) return;
       var r = ev.reason;
       var msg = r instanceof Error ? r.message + '\n' + (r.stack || '') : String(r || 'Unhandled rejection');
       diag.errors.push({ ts: new Date().toISOString(), msg: msg.slice(0, 300), src: 'promise' });

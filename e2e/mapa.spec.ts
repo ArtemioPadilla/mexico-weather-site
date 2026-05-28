@@ -187,6 +187,12 @@ test.describe('mapa page', () => {
     await page.route('**/tilecache.rainviewer.com/**', (route) =>
       route.fulfill({ status: 200, contentType: 'image/png', body: TRANSPARENT_PNG }),
     );
+    // Force live path by 404-ing the pre-baked field-grid snapshot —
+    // otherwise loadFieldGrid hydrates from the static JSON and the
+    // Open-Meteo waitForResponse below never fires.
+    await page.route('**/data/field-grids/**', (route) =>
+      route.fulfill({ status: 404 }),
+    );
     await page.route('**/api.open-meteo.com/v1/forecast**', (route) =>
       route.fulfill({
         status: 200,
@@ -224,6 +230,11 @@ test.describe('mapa page', () => {
       );
       await page.route('**/tilecache.rainviewer.com/**', (route) =>
         route.fulfill({ status: 200, contentType: 'image/png', body: TRANSPARENT_PNG }),
+      );
+      // See temperature test above — bypass the pre-baked snapshot
+      // so the Open-Meteo waitForResponse below fires.
+      await page.route('**/data/field-grids/**', (route) =>
+        route.fulfill({ status: 404 }),
       );
       await page.route('**/api.open-meteo.com/v1/forecast**', (route) =>
         route.fulfill({

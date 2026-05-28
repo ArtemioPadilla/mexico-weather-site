@@ -103,6 +103,11 @@
   (function () {
     var DISMISS_KEY = 'mw:pwa-install-dismissed';
     var VISITS_KEY = 'mw:visits';
+    /** sessionStorage flag — set on the first page-load of a session
+     *  so subsequent in-session navigations don't re-increment the
+     *  persistent visit counter. The intent of the counter is
+     *  "distinct sessions", not "page-loads within a session". */
+    var SESSION_KEY = 'mw:visit-counted';
 
     var wrap = document.getElementById('pwa-install-wrap');
     var btn = document.getElementById('pwa-install-btn');
@@ -136,8 +141,14 @@
     function bumpVisits() {
       try {
         var n = parseInt(localStorage.getItem(VISITS_KEY) || '0', 10) || 0;
+        // Only count one bump per session. Without this, every
+        // page-load (Inicio → Mapa → Pregunta) would push the user
+        // straight into the iOS sheet after just three clicks on
+        // their first visit — way too aggressive.
+        if (sessionStorage.getItem(SESSION_KEY) === '1') return n;
         n += 1;
         localStorage.setItem(VISITS_KEY, String(n));
+        sessionStorage.setItem(SESSION_KEY, '1');
         return n;
       } catch (e) {
         return 0;

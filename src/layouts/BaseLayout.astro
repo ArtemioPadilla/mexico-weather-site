@@ -121,14 +121,16 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
         var lang;
         // Priority order: URL ?lang= param (Story 6.3 hreflang
         // landing) → sessionStorage → navigator.language → 'es'.
-        // A ?lang= param ALSO writes through to sessionStorage so
-        // subsequent in-session navigation stays in that language
-        // without the param.
+        // The URL param is intentionally NOT written to sessionStorage
+        // — that would mean a Spanish-speaking user clicking a
+        // shared ?lang=en link gets permanently flipped to English
+        // for their whole session, with no obvious way back. The
+        // user has to explicitly hit the toggle to persist a
+        // preference. Per-page application only.
         try {
           var p = new URLSearchParams(window.location.search).get('lang');
           if (p === 'en' || p === 'es') {
             lang = p;
-            try { sessionStorage.setItem('mw:lang', lang); } catch (e) { /* ignore */ }
           }
         } catch (e) { /* SSR / no URLSearchParams */ }
         if (!lang) {

@@ -1,18 +1,26 @@
 /**
  * Open-Meteo data source.
  *
- * Wraps the pure URL builders + response parsers from `src/lib/mapfields.ts`
- * in the canonical {@link DataSource} interface so map plugins can fetch
- * gridded forecasts without knowing about URLs, caching, or coalescing.
+ * Wraps the chunked fetch helpers + response parsers from
+ * `src/lib/mapfields.ts` in the canonical {@link DataSource}
+ * interface so map plugins can fetch gridded forecasts without
+ * knowing about URLs, chunking, or caching.
  *
- * Two source instances are exposed because Open-Meteo's gridded API uses
- * different parameter shapes for scalar fields (temperature, humidity,
- * pressure) versus vector fields (wind speed + direction).
+ * Two source instances are exposed because Open-Meteo's gridded API
+ * uses different parameter shapes for scalar fields (temperature,
+ * humidity, pressure) versus vector fields (wind speed + direction).
+ *
+ * Chunking note: at 32x24=768 points the single-URL form exceeds
+ * Open-Meteo's ~8 KB GET limit (HTTP 414). Both sources use
+ * fetchFieldChunks / fetchWindChunks which split into ≤200-point
+ * batches. Default 10x7=70 points is already safe, but the
+ * chunked path makes any caller that bumps the grid past 200
+ * points safe by default.
  */
 
 import {
-  buildFieldUrl,
-  buildWindUrl,
+  fetchFieldChunks,
+  fetchWindChunks,
   parseFieldResponse,
   parseWindResponse,
   type Bounds,
@@ -22,7 +30,6 @@ import {
   viewportGrid,
 } from '../../mapfields';
 import type { DataSource } from '../core/types';
-import { cachedFetch } from '../utils/fetch';
 
 const ATTRIBUTION = 'Open-Meteo';
 /** Open-Meteo updates hourly; 10 min is a safe TTL for client-side reuse. */
@@ -37,8 +44,9 @@ export interface OpenMeteoFieldParams {
   bounds: Bounds;
   /** Open-Meteo hourly variable, e.g. 'temperature_2m'. */
   hourlyVar: string;
-  /** Sample grid columns × rows. Defaults to 10×7 (70 points) which fits
-   *  Open-Meteo's bulk request limits comfortably. */
+  /** Sample grid columns × rows. Defaults to 10×7 (70 points). At
+   *  this size the URL fits in one chunk; larger grids are split
+   *  automatically by fetchFieldChunks. */
   cols?: number;
   rows?: number;
 }
@@ -55,11 +63,17 @@ export const openMeteoFieldSource: DataSource<
     const cols = params.cols ?? 10;
     const rows = params.rows ?? 7;
     const points: LngLat[] = viewportGrid(params.bounds, cols, rows);
-    const url = buildFieldUrl(points, params.hourlyVar);
-    const res = await cachedFetch(url, { signal });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return parseFieldResponse(json, points, params.hourlyVar);
+    try {
+      const json = await fetchFieldChunks(
+        points,
+        params.hourlyVar,
+        globalThis.fetch,
+        { signal },
+      );
+      return parseFieldResponse(json, points, params.hourlyVar);
+    } catch {
+      return null;
+    }
   },
 };
 
@@ -85,10 +99,16 @@ export const openMeteoWindSource: DataSource<
     const cols = params.cols ?? 10;
     const rows = params.rows ?? 7;
     const points: LngLat[] = viewportGrid(params.bounds, cols, rows);
-    const url = buildWindUrl(points);
-    const res = await cachedFetch(url, { signal });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return parseWindResponse(json, points);
+    try {
+      const json = await fetchWindChunks(
+        points,
+        'wind_speed_10m',
+        globalThis.fetch,
+        { signal },
+      );
+      return parseWindResponse(json, points);
+    } catch {
+      return null;
+    }
   },
 };
