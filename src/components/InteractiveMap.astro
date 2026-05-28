@@ -662,17 +662,29 @@ const cfg = JSON.stringify({
           tooltip: document.getElementById(cfg.ids.tooltip),
           coords: document.getElementById(cfg.ids.coords),
         };
-        void initInteractiveMap({
-          els,
-          features: cfg.features,
-          initialView: cfg.initialView,
-          initialLayer: cfg.initialLayer,
-          useHash: cfg.useHash,
-          exposeE2eHook: cfg.exposeE2eHook,
-          interactive: cfg.interactive,
-          markerPopups: cfg.markerPopups,
-          lang: cfg.lang,
-        });
+        // Surface async init failures. Without these handlers an
+        // unhandled rejection inside initInteractiveMap is silently
+        // dropped by the FAB's AbortError filter and the map appears
+        // to vanish for no reason.
+        try {
+          initInteractiveMap({
+            els,
+            features: cfg.features,
+            initialView: cfg.initialView,
+            initialLayer: cfg.initialLayer,
+            useHash: cfg.useHash,
+            exposeE2eHook: cfg.exposeE2eHook,
+            interactive: cfg.interactive,
+            markerPopups: cfg.markerPopups,
+            lang: cfg.lang,
+          }).catch((err) => {
+             
+            console.error('[interactive-map] init failed:', err);
+          });
+        } catch (err) {
+           
+          console.error('[interactive-map] init threw synchronously:', err);
+        }
       };
 
       if (cfg.lazy && typeof IntersectionObserver === 'function') {
@@ -690,8 +702,18 @@ const cfg = JSON.stringify({
         );
         io.observe(root);
       } else {
-        // /mapa is non-lazy: the whole viewport IS the map, so boot now.
-        window.requestAnimationFrame(boot);
+        // /mapa is non-lazy: the whole viewport IS the map. The
+        // previous implementation used `requestAnimationFrame(boot)`
+        // here, but rAF callbacks are throttled or paused entirely
+        // when the tab is backgrounded (browser tab not focused, OS
+        // window not focused, screen off, headless / automated
+        // sessions, etc.). The result was a silent boot failure:
+        // `imBooted` got set so `bootAll` wouldn't retry, the
+        // scheduled rAF never fired, and the map never mounted.
+        // setTimeout fires even in background tabs (clamped to 1 s
+        // minimum but still reliable), and 0 ms is plenty to let
+        // the current task finish before mounting. Fixes NEW-C1.
+        window.setTimeout(boot, 0);
       }
     });
   }
