@@ -181,6 +181,19 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
           } else {
             applyI18n();
           }
+          // Skip-link target: every page that uses BaseLayout has a
+          // single <main>. Stamp #main-content on the first one we
+          // find so the skip link in the body has somewhere to land
+          // without threading an id through every page template.
+          var setSkipTarget = function () {
+            var m = document.querySelector('main');
+            if (m && !m.id) m.id = 'main-content';
+          };
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setSkipTarget);
+          } else {
+            setSkipTarget();
+          }
           // Expose for runtime-generated content (the SMN widget,
           // /forecast templates, etc. can call window.__i18nApply()
           // after they inject HTML).
@@ -320,6 +333,17 @@ const ogLocale = lang === 'es' ? 'es_MX' : 'en_US';
     }
   </head>
   <body class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased">
+    {/* Skip link — sr-only by default, visible on focus. Keyboard
+        users skip the ~30-link top nav and land directly on the
+        page's main content. Every page that uses BaseLayout has a
+        single <main> with the implicit `main` landmark; we target it
+        with href="#main" + an id added below by the runtime so we
+        don't have to thread an id through every page template. */}
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:bg-blue-600 focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
+      data-i18n-en="Skip to main content"
+    >Saltar al contenido principal</a>
     {/* Site-wide alert ribbon for critical national SMN avisos.
         Renders as a slim red bar ABOVE the sticky nav so it's
         impossible to miss. Hidden by default; the runtime script

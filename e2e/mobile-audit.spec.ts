@@ -88,6 +88,12 @@ test.describe('mobile UX — 360x640 portrait', () => {
           if (r.width === 0 || r.height === 0) continue;
           // Skip elements with display:none in ancestors.
           if (el.offsetParent === null && el.tagName !== 'BODY') continue;
+          // Skip sr-only patterns (skip links, etc). These are
+          // intentionally 1×1 until focused — at which point the
+          // focus: utilities make them full-size. Tapping requires
+          // visibility, so an unfocused sr-only link can't be a
+          // mobile target by definition.
+          if (el.classList.contains('sr-only')) continue;
           // Targets where the element is small but is inside a larger
           // touchable parent (the parent's hit area is what counts).
           // We check the parent <li> / wrapper for grid lists.
