@@ -22,7 +22,7 @@
   "dependencies": {
     "astro": "^6.3.7",
     "d3-contour": "^4.0.2",
-    "maplibre-gl": "^4.7.1"
+    "maplibre-gl": "^5.24.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
