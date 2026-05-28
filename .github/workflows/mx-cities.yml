@@ -42,8 +42,10 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git diff --quiet -- public/data/mx-cities.json || (
-            git add public/data/mx-cities.json &&
+          # See marine-snapshot.yml — stage first so a never-tracked
+          # file registers as a real diff.
+          git add public/data/mx-cities.json
+          git diff --staged --quiet || (
             git commit -m 'chore: refresh MX cities dictionary' &&
             git push &&
             echo 'committed=true' >> "$GITHUB_OUTPUT"
