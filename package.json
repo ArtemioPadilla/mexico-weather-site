@@ -20,7 +20,7 @@
     "*.{json,css}": "prettier --write"
   },
   "dependencies": {
-    "astro": "^6.3.3",
+    "astro": "^6.3.7",
     "d3-contour": "^4.0.2",
     "maplibre-gl": "^4.7.1"
   },
@@ -43,7 +43,7 @@
     "prettier-plugin-astro": "^0.14.1",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.3",
+    "typescript-eslint": "^8.59.4",
     "vitest": "^3.2.4"
   },
   "overrides": {
