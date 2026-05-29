@@ -156,7 +156,7 @@ import { createNightLightsOverlay } from './map/overlays/night-lights';
 import { createTropicalStormsOverlay } from './map/overlays/tropical-storms';
 import {
   createBasemapThemeController,
-  OSM_TILES as BASEMAP_OSM_TILES,
+  CARTO_LIGHT_TILES as BASEMAP_LIGHT_TILES,
   CARTO_DARK_TILES as BASEMAP_CARTO_DARK_TILES,
 } from './map/chrome/basemap-theme';
 import { createSunLayer } from './map/layers/sun-layer';
@@ -318,7 +318,7 @@ export async function initInteractiveMap(
   // Initial tile arrays — sourced from the shared basemap-theme module
   // to keep the single source of truth (no diverging URL lists between
   // the map construction and the runtime theme controller).
-  const OSM_TILES_INIT = BASEMAP_OSM_TILES;
+  const LIGHT_TILES_INIT = BASEMAP_LIGHT_TILES;
   const CARTO_DARK_TILES_INIT = BASEMAP_CARTO_DARK_TILES;
 
   const map = new maplibre.Map({
@@ -345,11 +345,11 @@ export async function initInteractiveMap(
       sources: {
         osm: {
           type: 'raster',
-          tiles: initialDark ? CARTO_DARK_TILES_INIT : OSM_TILES_INIT,
+          tiles: initialDark ? CARTO_DARK_TILES_INIT : LIGHT_TILES_INIT,
           tileSize: 256,
-          attribution: initialDark
-            ? '© OpenStreetMap contributors © CARTO'
-            : '© OpenStreetMap',
+          // Both light (Positron) and dark (Dark Matter) basemaps are
+          // CARTO, OSM-derived.
+          attribution: '© OpenStreetMap contributors © CARTO',
         },
       },
       layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
