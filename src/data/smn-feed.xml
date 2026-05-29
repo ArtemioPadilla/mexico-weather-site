@@ -5,15 +5,26 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Fri, 29 May 2026 05:46:53 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 29 May 2026 07:41:07 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 29 de mayo del 2026 | Emisión 00:00h</title>
+      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
+      <description><![CDATA[Aviso de Potencial de Tormentas
+Ciudad de México, 29 de mayo del 2026
+Emisión: 00:00
+Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
+      <pubDate>Fri, 29 May 2026 12:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-29-12</guid>
+      <category>Aviso Tormentas</category>
+    </item>
     <item>
       <title>⚠️ Alerta SMN: Lluvias muy fuertes con puntuales intensas (75 a 150 mm): Oaxaca, Chiapas, Tabasco, Campeche, Yucatán y Quintana Roo.</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Viento con rachas de 50 a 70 km/h y tolvaneras: Chihuahua y Coahuila; y de 40 a 60 km/h con tolvaneras: Baja California, Jalisco, Durango, Zacatecas y San Luis Poto...]]></description>
-      <pubDate>Thu, 28 May 2026 23:46:44 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-28-60a9</guid>
+      <pubDate>Fri, 29 May 2026 01:40:58 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-29-60a9</guid>
       <category>Alerta</category>
     </item>
     <item>
@@ -43,17 +54,6 @@ Durante esta noche y madrugada del viernes, la interacción de una vaguada en n
       <pubDate>Thu, 28 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-pronostico-general-2026-05-28-296</guid>
       <category>Pronóstico General</category>
-    </item>
-    <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 28 de mayo del 2026 | Emisión 21:00h</title>
-      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
-      <description><![CDATA[Aviso de Potencial de Tormentas
-Ciudad de México, 28 de mayo del 2026
-Emisión: 21:00
-Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
-      <pubDate>Thu, 28 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-28-12</guid>
-      <category>Aviso Tormentas</category>
     </item>
     <item>
       <title>📋 SMN Reporte Matutino 28 MAY 2026: se pronostican lluvias intensas para regiones de Tabasco, Chiapas, Campeche y Yucatán</title>
