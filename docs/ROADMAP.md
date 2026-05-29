@@ -22,6 +22,16 @@ accounts, no API keys, no backend.** The service worker has **no fetch
 handler** by design (`public/sw.js` is a scope-claimer only). These are the
 competitive angle, not limitations.
 
+## Status at a glance
+
+- **Shipped:** 9 epics (E1–E9), the interactive map (8 base layers, 17
+  overlays), and full functional parity with zoom.earth.
+- **Open backlog:** 5 epics (E10–E14), 19 stories. Next up: **E10** (map
+  first paint, P0) gated on a foreground-repro check, then **E11** (mobile).
+- **Health:** 438 unit tests + 103 e2e green on `main`; Core Web Vitals
+  baseline established (Story 8.2). Known data-pipeline fix (#288) confirmed
+  live in production.
+
 ---
 
 ## Shipped epics (the "sprint" work)
@@ -217,6 +227,8 @@ the embeds is the remainder.
 **Story 12.4 — F7 state-driven UI** · est 2d
 - [ ] Replace imperative DOM mutation with subscriptions to the map store;
       rail/timeline/shortcuts/hash all enumerate the registry.
+- Acceptance: adding a layer/overlay requires no edits to UI wiring — it
+  appears in the rail/menu/shortcuts purely by registering.
 
 **Story 12.5 — F8 retire the monolith** · est ½d
 - [ ] Delete legacy `interactive-map.ts`; keep `index.ts` façade.
@@ -230,28 +242,54 @@ the embeds is the remainder.
 > `PLAN_SUPERIORITY`.
 
 **Story 13.1 — Multi-metric hover tooltip** · est 1wk
-- [ ] Show temp + humidity + wind (with a directional arrow) at the cursor;
-      sticky-on-touch for mobile. Genuinely beyond zoom.earth.
+- [ ] Extend the existing `#mapTooltip` to show temp + humidity + wind at the
+      cursor in one read (currently single-metric).
+- [ ] Directional wind arrow (rotate a glyph by bearing) in the tooltip.
+- [ ] Sticky-on-touch: tap-to-pin on mobile, since there's no hover.
+- Acceptance: hovering anywhere on the field shows all three metrics for that
+  point; touch devices can pin/unpin; no extra network calls (reuse the
+  already-loaded grids).
 
 **Story 13.2 — Combined "Precipitación" mode** · est 1wk
-- [ ] One toggle that stacks GIBS GeoColor satellite + clouds overlay + radar;
-      closes the last visible parity gap. GeoColor already in `nasa-gibs.ts`.
+- [ ] Add a single mode toggle that activates GIBS GeoColor satellite +
+      clouds overlay + radar together (GeoColor already in `nasa-gibs.ts`).
+- [ ] Tune z-order + opacity so all three read at once.
+- [ ] Hash/URL state so the combined mode is shareable.
+- Acceptance: one click yields the zoom.earth-equivalent "precipitation"
+  picture; deep-link restores it.
 
 **Story 13.3 — Multi-model disagreement view** · est 1wk
-- [ ] Expose ICON/GFS/ECMWF/GEM and a "where models diverge" confidence view.
-      Data path already wired for the model toggle (Open-Meteo `models=`).
+- [ ] Surface per-model fields (ICON/GFS/ECMWF/GEM) via Open-Meteo `models=`
+      — the model toggle data path already exists.
+- [ ] Compute + render a spread/disagreement field (e.g. inter-model stdev)
+      as a confidence overlay.
+- [ ] Legend explaining "low confidence = models diverge here".
+- Acceptance: a user can see where the forecast is uncertain, not just the
+  best-match value.
 
 **Story 13.4 — WebGL field renderer** · est 1wk
-- [ ] Replace canvas bilinear with a fragment shader sampling the grid as a
-      texture; quality + perf win, no extra data. Test Safari/Firefox iOS.
+- [ ] Replace the canvas bilinear raster with a fragment shader sampling the
+      grid as a texture (target the existing `weather-raster` path).
+- [ ] Match current color ramps exactly (regression-test against snapshots).
+- [ ] Verify on Safari + Firefox iOS before shipping; feature-flag fallback
+      to canvas if WebGL2 unavailable.
+- Acceptance: field quality ≥ current at all zooms; render time drops;
+  no visual regression in the field-grid snapshots.
 
 **Story 13.5 — Temporal before/after compare** · est 1wk
-- [ ] Split-screen "hace 24h vs ahora" slider for the same map view.
+- [ ] Split-screen / swipe slider rendering the same view at two timestamps
+      ("hace 24h vs ahora").
+- [ ] Drive both panes from one timeline + view state.
+- Acceptance: a user can swipe between two times of the same layer/region.
 
 **Story 13.6 — Full-field climate anomaly ramp** · est 2wk
-- [ ] Anomaly color ramp over the field (per-location badge already shipped
-      as 3.2). Needs ERA5/baseline preprocessing — reuses `climate-baseline`
-      workflow output.
+- [ ] Preprocess an ERA5/baseline grid (reuse the `climate-baseline`
+      workflow output) into a field the map can sample.
+- [ ] Anomaly color ramp over the field (the per-location badge shipped as
+      Story 3.2; this is the spatial version).
+- [ ] Toggle + legend ("+5°C vs mayo histórico").
+- Acceptance: anomaly layer renders over MX; values reconcile with the
+  per-location badge at sampled points.
 
 ---
 
@@ -272,6 +310,23 @@ the embeds is the remainder.
 3. **E13.1–13.3** the three high-ROI differentiators.
 4. **E12** plugin-registry sweep (P2) once the map surface is stable.
 5. **E13.4–13.6** depth; **E14** only after validation.
+
+---
+
+## Success metrics
+
+How we'll know the open work paid off (folds in `PLAN_SUPERIORITY`'s metrics):
+
+- **E10 (first paint):** field paints ≤3s on cold load with **zero clicks**,
+  10/10 reloads, on a real foreground device. The Playwright pixel-variance
+  test (10.3) stays green.
+- **E11 (mobile):** every top-level route reachable < 640px; `mobile-audit`
+  tap-target assertions pass with no per-element exemptions; `/mapa` opacity +
+  overlay + model controls operable on a phone.
+- **E13 (differentiate):** in a blind side-by-side vs zoom.earth, ≥60% prefer
+  our UX after E13.1–13.3; cold-load first paint < 500ms once 13.4 lands.
+- **Always-on guardrails:** unit + e2e suites green; no regression in the
+  field-grid snapshots; the five hard product constraints intact.
 
 ---
 
