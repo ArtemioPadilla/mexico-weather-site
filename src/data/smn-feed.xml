@@ -5,9 +5,17 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Fri, 29 May 2026 17:32:16 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 29 May 2026 19:13:34 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>⚠️ Alerta SMN: Lluvias muy fuertes con puntuales intensas (75 a 150 mm): Chiapas (este y sur), Campeche (norte) y Yucatán (oeste).</title>
+      <link>https://smn.conagua.gob.mx/es/</link>
+      <description><![CDATA[Viento de 30 a 40 km/h con rachas de 50 a 70 km/h y con posible formación de torbellinos y/o tornados: Coahuila (norte).]]></description>
+      <pubDate>Fri, 29 May 2026 13:13:23 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-29-0d67</guid>
+      <category>Alerta</category>
+    </item>
     <item>
       <title>🌩️ Pronóstico Meteorológico General — SMN | No. 297 | 29 de Mayo del 2026 | Emisión 06:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
@@ -32,30 +40,22 @@ Este día, una circulación ciclónica en niveles medios y altos de la atmósf
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 29 de mayo del 2026 | Emisión 09:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 29 de mayo del 2026 | Emisión 12:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 29 de mayo del 2026
-Emisión: 09:00
+Emisión: 12:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Fri, 29 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-29-12</guid>
       <category>Aviso Tormentas</category>
     </item>
     <item>
-      <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75-150 mm): Oaxaca, Chiapas, Tabasco, Campeche, Yucatán y Quintana Roo.</title>
-      <link>https://smn.conagua.gob.mx/es/</link>
-      <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Sinaloa, Nayarit, Colima, Michoacán, Guerrero y Oaxaca.]]></description>
-      <pubDate>Fri, 29 May 2026 11:32:06 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-29-a71a</guid>
-      <category>Alerta</category>
-    </item>
-    <item>
       <title>📋 SMN Reporte Matutino 29 MAY 2026: Se pronostican lluvias muy fuertes en regiones de Chiapas, Campeche, Yucatán y Quintana Roo</title>
-      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf</link>
-      <description><![CDATA[Se pronostican lluvias muy fuertes en regiones de Chiapas, Campeche, Yucatán y Quintana Roo — Reporte Matutino del 29 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf]]></description>
+      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_29.pdf</link>
+      <description><![CDATA[Se pronostican lluvias muy fuertes en regiones de Chiapas, Campeche, Yucatán y Quintana Roo — Reporte Matutino del 29 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_29.pdf]]></description>
       <pubDate>Fri, 29 May 2026 07:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_28</guid>
+      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_29</guid>
       <category>Comunicado</category>
     </item>
     <item>
@@ -64,6 +64,14 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <description><![CDATA[Se mantiene el pronóstico de lluvias muy fuertes a intensas en zonas del sureste de México y la península de Yucatán — Reporte Vespertino del 28 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteVespertino2026_05_28.pdf]]></description>
       <pubDate>Thu, 28 May 2026 17:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-comunicado-ReporteVespertino2026_05_28</guid>
+      <category>Comunicado</category>
+    </item>
+    <item>
+      <title>📋 SMN Reporte Matutino 28 MAY 2026: se pronostican lluvias intensas para regiones de Tabasco, Chiapas, Campeche y Yucatán</title>
+      <link>https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf</link>
+      <description><![CDATA[se pronostican lluvias intensas para regiones de Tabasco, Chiapas, Campeche y Yucatán — Reporte Matutino del 28 MAY 2026. Descarga el PDF: https://smn.conagua.gob.mx/files/pdfs/comunicados-de-prensa/ReporteMatutino2026_05_28.pdf]]></description>
+      <pubDate>Thu, 28 May 2026 07:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-comunicado-ReporteMatutino2026_05_28</guid>
       <category>Comunicado</category>
     </item>
     <item>
