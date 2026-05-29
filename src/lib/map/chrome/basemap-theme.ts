@@ -13,7 +13,19 @@
  */
 import type maplibregl from 'maplibre-gl';
 
-export const OSM_TILES = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
+// Labeled light basemap — CARTO Positron. This replaced a single-host
+// `tile.openstreetmap.org` source that blanked the map in light mode at
+// zoom ≥5: a single host gives MapLibre's concurrent tile burst no
+// parallelism (OSM also forbids heavy app use), so tiles dropped and the
+// canvas went white while dark mode (CARTO's 4-subdomain CDN) was fine.
+// Positron is OSM-derived, served from the same reliable a/b/c/d CDN as
+// the dark `dark_all` tiles, so light now behaves identically to dark.
+export const CARTO_LIGHT_TILES = [
+  'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+  'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+  'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+  'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+];
 export const CARTO_DARK_TILES = [
   'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
   'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
@@ -39,7 +51,7 @@ export const LABEL_ZOOM_THRESHOLD = 5;
 /** Pure mapping (dark, dense?) → tile URL list. Exposed for tests. */
 export function pickBasemapTiles(dark: boolean, dense: boolean): string[] {
   if (dark) return dense ? CARTO_DARK_TILES : CARTO_DARK_NOLABELS;
-  return dense ? OSM_TILES : CARTO_LIGHT_NOLABELS;
+  return dense ? CARTO_LIGHT_TILES : CARTO_LIGHT_NOLABELS;
 }
 
 export interface BasemapThemeController {
