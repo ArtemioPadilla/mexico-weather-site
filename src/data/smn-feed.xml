@@ -5,7 +5,7 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sat, 30 May 2026 15:46:20 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 30 May 2026 16:40:12 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
@@ -42,7 +42,7 @@ Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite 
       <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Oax (centro y S) y Chis (E y S).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[T. Máx. (40 a 45 °C): Son, Chih, Dgo, Sin, Jal, Col, Mich y Gro.]]></description>
-      <pubDate>Sat, 30 May 2026 09:46:09 -0600</pubDate>
+      <pubDate>Sat, 30 May 2026 10:39:58 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-30-fa62</guid>
       <category>Alerta</category>
     </item>
