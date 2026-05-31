@@ -5,15 +5,26 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sun, 31 May 2026 05:48:26 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 31 May 2026 07:36:11 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
+    <item>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 31 de mayo del 2026 | Emisión 00:00h</title>
+      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
+      <description><![CDATA[Aviso de Potencial de Tormentas
+Ciudad de México, 31 de mayo del 2026
+Emisión: 00:00
+Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
+      <pubDate>Sun, 31 May 2026 12:00:00 -0600</pubDate>
+      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-31-12</guid>
+      <category>Aviso Tormentas</category>
+    </item>
     <item>
       <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Oaxaca (centro y sur), Chiapas (este y sur) y Quintana Roo (oeste y sur). Viento con rachas de 50 a 70 km/h con posibles torbellinos: Coahuila (norte).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Viento con rachas de 40 a 60 km/h y posibles tolvaneras: Baja California, Chihuahua, Durango, Sinaloa y Nayarit; y de 30 a 50 km/h con posibles tolvaneras: Baja Cal...]]></description>
-      <pubDate>Sat, 30 May 2026 23:48:15 -0600</pubDate>
-      <guid isPermaLink="false">smn-alert-2026-05-30-83e2</guid>
+      <pubDate>Sun, 31 May 2026 01:35:57 -0600</pubDate>
+      <guid isPermaLink="false">smn-alert-2026-05-31-83e2</guid>
       <category>Alerta</category>
     </item>
     <item>
@@ -45,17 +56,6 @@ En el transcurso de esta noche y la madrugada del domingo, una circulación cic
       <pubDate>Sat, 30 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-pronostico-general-2026-05-30-300</guid>
       <category>Pronóstico General</category>
-    </item>
-    <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 30 de mayo del 2026 | Emisión 21:00h</title>
-      <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
-      <description><![CDATA[Aviso de Potencial de Tormentas
-Ciudad de México, 30 de mayo del 2026
-Emisión: 21:00
-Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
-      <pubDate>Sat, 30 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-potencial-tormentas-2026-05-30-12</guid>
-      <category>Aviso Tormentas</category>
     </item>
     <item>
       <title>📋 SMN Reporte Vespertino 29 MAY 2026: Para esta noche se pronostican lluvias torrenciales en regiones de Yucatán e intensas en zonas de Chiapas y Campeche</title>
