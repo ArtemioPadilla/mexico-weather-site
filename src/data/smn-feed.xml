@@ -5,14 +5,14 @@
     <link>https://smn.conagua.gob.mx/es/</link>
     <description>Alertas meteorológicas, comunicados de prensa y pronósticos del Servicio Meteorológico Nacional (SMN / Conagua), México.</description>
     <language>es-mx</language>
-    <lastBuildDate>Sat, 30 May 2026 23:40:16 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 31 May 2026 03:31:36 +0000</lastBuildDate>
     <ttl>60</ttl>
     <generator>smn_rss.py / ArtemIO</generator>
     <item>
       <title>⚠️ Alerta SMN: Lluvias puntuales intensas (75 a 150 mm): Oaxaca (centro y sur), Chiapas (este y sur) y Quintana Roo (oeste y sur).</title>
       <link>https://smn.conagua.gob.mx/es/</link>
       <description><![CDATA[Temperaturas máximas de 40 a 45 °C: Son, Chih, Dgo, Sin, Jal, Col, Mich y Gro.]]></description>
-      <pubDate>Sat, 30 May 2026 17:40:07 -0600</pubDate>
+      <pubDate>Sat, 30 May 2026 21:31:21 -0600</pubDate>
       <guid isPermaLink="false">smn-alert-2026-05-30-0d59</guid>
       <category>Alerta</category>
     </item>
@@ -25,30 +25,33 @@
       <category>Comunicado</category>
     </item>
     <item>
-      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 299 | 30 de Mayo del 2026 | Emisión 06:00h</title>
+      <title>🌩️ Pronóstico Meteorológico General — SMN | No. 300 | 30 de Mayo del 2026 | Emisión 18:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/pronosticossubmenu/pronostico-meteorologico-general</link>
-      <description><![CDATA[SE PRONOSTICAN LLUVIAS INTENSAS EN OAXACA Y CHIAPAS Y MUY FUERTES EN GUERRERO
+      <description><![CDATA[ESTA NOCHE, EXISTEN CONDICIONES PARA LA FORMACIÓN DE TORBELLINOS EN EL NORTE DE COAHUILA, ASÍ COMO PROBABILIDAD DE LLUVIAS PUNTUALES INTENSAS EN ZONAS DE OAXACA, CHIAPAS Y QUINTANA ROO
 
 ---
 Pronóstico Meteorológico General
-No. Aviso: 299
+No. Aviso: 300
 Ciudad de México a 30 de Mayo del 2026.
-Emisión: 06:00h
+Emisión: 18:00h
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:
 
-SE PRONOSTICAN LLUVIAS INTENSAS EN OAXACA Y CHIAPAS Y MUY FUERTES EN GUERRERO
 
-Para hoy, una línea seca en el norte de México, propiciará rachas de viento de hasta 70 km/h y posibles tolvaneras en dicha región. Por su parte, una circulación ciclónica en niveles medios y altos de la atmósfera sobre el sureste del territorio mexicano, favorecerá el ingreso de aire húmedo del océano Pacífico sobre el sureste mexicano, así como la entrada de aire húmedo del mar Caribe sobre la península de Yucatán, originando lluvias puntuales intensas en Chiapas; puntuales fuertes en Quintana Roo, Yucatán y Campeche; e intervalos de chubascos en Tabasco, Veracruz y Puebla. La onda tropical núm. 3 que se desplazará frente a las costas del Pacífico sur mexicano, ocasionará lluvias puntuales intensas en Oaxaca; y puntuales muy fuertes en Guerrero.…]]></description>
+ESTA NOCHE, EXISTEN CONDICIONES PARA LA FORMACIÓN DE TORBELLINOS EN EL NORTE DE COAHUILA, ASÍ COMO PROBABILIDAD DE LLUVIAS PUNTUALES INTENSAS EN ZONAS DE OAXACA, CHIAPAS Y QUINTANA ROO
+
+
+
+En el transcurso de esta noche y la madrugada del domingo, una circulación ciclónica en niveles medios y altos de la atmósfera sobre el sureste mexicano, en interacción con la onda tropical número 3 frente a las costas de Oaxaca, canales de baja presión e ingreso de humedad procedente del océano Pacífico y mar Caribe, ocasionarán lluvias fuertes, descargas eléctricas y posible caída de granizo en estados del sur y sureste del país, incluida la península de Yucatán; con lluvias puntuales muy fuertes en Guerrero (este y sureste), Tabasco (este), Campeche (norte y centro) y Yucatán (oeste y sur) e intensas en Oaxaca (centro y sur), Chiapas (este y sur) y Quintana Roo (oeste y sur).…]]></description>
       <pubDate>Sat, 30 May 2026 12:00:00 -0600</pubDate>
-      <guid isPermaLink="false">smn-pronostico-general-2026-05-30-299</guid>
+      <guid isPermaLink="false">smn-pronostico-general-2026-05-30-300</guid>
       <category>Pronóstico General</category>
     </item>
     <item>
-      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 30 de mayo del 2026 | Emisión 15:00h</title>
+      <title>⛈️ Aviso de Potencial de Tormentas — SMN | 30 de mayo del 2026 | Emisión 21:00h</title>
       <link>https://smn.conagua.gob.mx/es/pronosticos/avisos/aviso-de-potencial-de-tormentas</link>
       <description><![CDATA[Aviso de Potencial de Tormentas
 Ciudad de México, 30 de mayo del 2026
-Emisión: 15:00
+Emisión: 21:00
 Servicio Meteorológico Nacional, fuente oficial del Gobierno de México, emite el siguiente aviso:]]></description>
       <pubDate>Sat, 30 May 2026 12:00:00 -0600</pubDate>
       <guid isPermaLink="false">smn-potencial-tormentas-2026-05-30-12</guid>
